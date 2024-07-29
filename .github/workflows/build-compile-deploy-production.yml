@@ -1,0 +1,415 @@
+name: build-compile-deploy-production
+
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+
+jobs:
+  build_compile_app:
+    env:
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [macos-14, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies for Tauri - Linux (x86_64)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: >-
+          sudo apt-get update &&
+          sudo apt-get install -y 
+          libwebkit2gtk-4.1-dev
+          build-essential
+          curl
+          wget
+          file
+          libxdo-dev
+          libssl-dev
+          libayatana-appindicator3-dev
+          librsvg2-dev
+
+      - name: Setup new version xCode - macOS
+        # Doc : https://github.com/actions/runner-images/blob/main/images/macos/macos-14-Readme.md
+        if: matrix.platform == 'macos-14'
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '15.4.0'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install Node.js version latest LTS and setup cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+
+      - name: Install dependencies for project
+        run: npm install --ignore-scripts
+
+      - name: Get latest release tag
+        id: lasttag
+        uses: WyriHaximus/github-action-get-previous-tag@v1
+
+      - name: Modify version in tauri.conf.json from last tag release - macOS / Linux
+        if: matrix.platform == 'macos-14' || matrix.platform == 'ubuntu-latest'
+        run: |
+          TAG_VERSION=${{ steps.lasttag.outputs.tag }}
+          echo "TAG_VERSION is $TAG_VERSION"
+          TAG_VERSION=$(echo $TAG_VERSION | sed 's/^v//')
+          echo "TAG_VERSION after removing 'v' is $TAG_VERSION"
+          npx json -I -f src-tauri/tauri.conf.json -e "this.version = '${TAG_VERSION}'"
+          cat src-tauri/tauri.conf.json
+
+      - name: Modify version in tauri.conf.json from last tag release - Windows
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: |
+          $env:TAG_VERSION="${{ steps.lasttag.outputs.tag }}"
+          Write-Host "TAG_VERSION is $env:TAG_VERSION"
+          $env:TAG_VERSION = $env:TAG_VERSION.TrimStart("v")
+          Write-Host "TAG_VERSION after removing 'v' is $env:TAG_VERSION"
+          npx json -I -f src-tauri/tauri.conf.json -e "this.version = '${env:TAG_VERSION}'"
+          Get-Content src-tauri\tauri.conf.json
+
+      - name: Install dos2unix - Linux
+        if: matrix.platform == 'ubuntu-latest'
+        run: sudo apt-get install -y dos2unix
+
+      - name: Install dos2unix - macOS
+        if: matrix.platform == 'macos-14'
+        run: brew install dos2unix
+
+      - name: Convert line endings - Linux
+        if: matrix.platform == 'ubuntu-latest'
+        run: dos2unix src-tauri/scripts/beforeDevCommand.sh src-tauri/scripts/beforeBuildCommand.sh
+
+      - name: Convert line endings - macOS
+        if: matrix.platform == 'macos-14'
+        run: dos2unix src-tauri/scripts/beforeDevCommand.sh src-tauri/scripts/beforeBuildCommand.sh
+
+      - name: Rust Install target compilation - Windows
+        if: matrix.platform == 'windows-latest'
+        run: npm run desktop:install:target:windows
+
+      - name: Rust Install target compilation - macOS
+        if: matrix.platform == 'macos-14'
+        run: npm run desktop:install:target:macos
+
+      - name: Rust Install target compilation - Linux
+        if: matrix.platform == 'ubuntu-latest'
+        run: npm run desktop:install:target:linux
+
+      - name: Install the Apple Certificate (Developer ID Application) - Not Mac AppStore - macOS
+        if: matrix.platform == 'macos-14'
+        env:
+          # Certificat Apple au format p12 encodé en base64
+          MACOS_APPLE_CERTIFICATE_DEVELOPERIDAPPLICATION_P12_BASE64: ${{ secrets.MACOS_APPLE_CERTIFICATE_DEVELOPERIDAPPLICATION_P12_BASE64 }}
+          # Mot de passe du certificat p12
+          MACOS_APPLE_CERTIFICATE_DEVELOPERIDAPPLICATION_P12_PASSWORD: ${{ secrets.MACOS_APPLE_CERTIFICATE_DEVELOPERIDAPPLICATION_P12_PASSWORD }}
+          # Un nouveau trousseau sera créé sur le coureur, de sorte que le mot de passe du nouveau trousseau peut être n'importe quelle nouvelle chaîne aléatoire
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          # create variables
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+
+          # import certificate
+          echo -n "$MACOS_APPLE_CERTIFICATE_DEVELOPERIDAPPLICATION_P12_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+
+          # create temporary keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          # import certificate to keychain
+          security import $CERTIFICATE_PATH -P "$MACOS_APPLE_CERTIFICATE_DEVELOPERIDAPPLICATION_P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+
+      - name: Build app and Sign app - macOS (x86_64/arm64/universal)
+        if: matrix.platform == 'macos-14'
+        env:
+          GITHUB_REF: ${{ github.ref }}
+          APPLE_SIGNING_IDENTITY: 'Developer ID Application: Corentin Recanzone (${{ secrets.APPLE_TEAM_ID }})'
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }} # Identifiant de l'équipe Apple
+          APPLE_ID: ${{ secrets.APPLE_ID }} # Email du compte apple developer
+          APPLE_PASSWORD: ${{ secrets.MACOS_APPLE_APP_SPECIFIC_PASSWORD_CRZGAMESLAUNCHERPRODUCTION }} # Mot de passe de l'application spécifique
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER_ID }} # Identifiant de l'émetteur de l'API
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }} # Clé de l'API
+          # APPLE_PROVIDER_SHORT_NAME: ${{ secrets.APPLE_PROVIDER_SHORT_NAME }} # Le APPLE_PROVIDER_SHORT_NAME est nécessaire si votre Apple ID est associé à plusieurs équipes.
+        run: |
+          npm run tauri build -- --target x86_64-apple-darwin
+          npm run tauri build -- --target aarch64-apple-darwin
+          npm run tauri build -- --target universal-apple-darwin
+
+      - name: Build app and Sign app - Windows (x64/x86/arm64)
+        if: matrix.platform == 'windows-latest'
+        env:
+          GITHUB_REF: ${{ github.ref }}
+        run: |
+          npm run tauri build -- --target aarch64-pc-windows-msvc
+          npm run tauri build -- --target x86_64-pc-windows-msvc
+          npm run tauri build -- --target i686-pc-windows-msvc
+
+      - name: Build app - Linux (x86_64)
+        if: matrix.platform == 'ubuntu-latest'
+        env:
+          GITHUB_REF: ${{ github.ref }}
+        run: |
+          npm run tauri build -- --target x86_64-unknown-linux-gnu
+
+      - name: Rename file - Windows
+        if: matrix.platform == 'windows-latest'
+        run: |
+          mv src-tauri\target\x86_64-pc-windows-msvc\release\bundle\msi\*.msi src-tauri\target\x86_64-pc-windows-msvc\release\bundle\msi\CrzGamesSetup_x64.msi
+          mv src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\*.exe src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\CrzGamesSetup_x64.exe
+          mv src-tauri\target\x86_64-pc-windows-msvc\release\bundle\msi\*.msi.zip src-tauri\target\x86_64-pc-windows-msvc\release\bundle\msi\CrzGamesSetup_x64.msi.zip
+          mv src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\*.nsis.zip src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\CrzGamesSetup_x64.nsis.zip
+          mv src-tauri\target\x86_64-pc-windows-msvc\release\bundle\msi\*.msi.zip.sig src-tauri\target\x86_64-pc-windows-msvc\release\bundle\msi\CrzGamesSetup_x64.msi.zip.sig
+          mv src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\*.nsis.zip.sig src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\CrzGamesSetup_x64.nsis.zip.sig
+
+          mv src-tauri\target\i686-pc-windows-msvc\release\bundle\msi\*.msi src-tauri\target\i686-pc-windows-msvc\release\bundle\msi\CrzGamesSetup_x86.msi
+          mv src-tauri\target\i686-pc-windows-msvc\release\bundle\nsis\*.exe src-tauri\target\i686-pc-windows-msvc\release\bundle\nsis\CrzGamesSetup_x86.exe
+          mv src-tauri\target\i686-pc-windows-msvc\release\bundle\msi\*.msi.zip src-tauri\target\i686-pc-windows-msvc\release\bundle\msi\CrzGamesSetup_x86.msi.zip
+          mv src-tauri\target\i686-pc-windows-msvc\release\bundle\nsis\*.nsis.zip src-tauri\target\i686-pc-windows-msvc\release\bundle\nsis\CrzGamesSetup_x86.nsis.zip
+          mv src-tauri\target\i686-pc-windows-msvc\release\bundle\msi\*.msi.zip.sig src-tauri\target\i686-pc-windows-msvc\release\bundle\msi\CrzGamesSetup_x86.msi.zip.sig
+          mv src-tauri\target\i686-pc-windows-msvc\release\bundle\nsis\*.nsis.zip.sig src-tauri\target\i686-pc-windows-msvc\release\bundle\nsis\CrzGamesSetup_x86.nsis.zip.sig
+
+          mv src-tauri\target\aarch64-pc-windows-msvc\release\bundle\msi\*.msi src-tauri\target\aarch64-pc-windows-msvc\release\bundle\msi\CrzGamesSetup_arm64.msi
+          mv src-tauri\target\aarch64-pc-windows-msvc\release\bundle\nsis\*.exe src-tauri\target\aarch64-pc-windows-msvc\release\bundle\nsis\CrzGamesSetup_arm64.exe
+          mv src-tauri\target\aarch64-pc-windows-msvc\release\bundle\msi\*.msi.zip src-tauri\target\aarch64-pc-windows-msvc\release\bundle\msi\CrzGamesSetup_arm64.msi.zip
+          mv src-tauri\target\aarch64-pc-windows-msvc\release\bundle\nsis\*.nsis.zip src-tauri\target\aarch64-pc-windows-msvc\release\bundle\nsis\CrzGamesSetup_arm64.nsis.zip
+          mv src-tauri\target\aarch64-pc-windows-msvc\release\bundle\msi\*.msi.zip.sig src-tauri\target\aarch64-pc-windows-msvc\release\bundle\msi\CrzGamesSetup_arm64.msi.zip.sig
+          mv src-tauri\target\aarch64-pc-windows-msvc\release\bundle\nsis\*.nsis.zip.sig src-tauri\target\aarch64-pc-windows-msvc\release\bundle\nsis\CrzGamesSetup_arm64.nsis.zip.sig
+
+      - name: Rename file - Linux
+        if: matrix.platform == 'ubuntu-latest'
+        run: |
+          mv src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage.tar.gz src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/CrzGamesSetup_x86_64.AppImage.tar.gz
+          mv src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage.tar.gz.sig src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/CrzGamesSetup_x86_64.AppImage.tar.gz.sig
+          mv src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/CrzGamesSetup_x86_64.AppImage
+          mv src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/*.deb src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/CrzGamesSetup_x86_64.deb
+          mv src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/rpm/*.rpm src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/rpm/CrzGamesSetup_x86_64.rpm
+
+      - name: Rename file - macOS
+        if: matrix.platform == 'macos-14'
+        run: |
+          mv src-tauri/target/x86_64-apple-darwin/release/bundle/macos/*.app.tar.gz src-tauri/target/x86_64-apple-darwin/release/bundle/macos/CrzGamesSetup_x86_64.app.tar.gz
+          mv src-tauri/target/x86_64-apple-darwin/release/bundle/macos/*.app.tar.gz.sig src-tauri/target/x86_64-apple-darwin/release/bundle/macos/CrzGamesSetup_x86_64.app.tar.gz.sig
+          mv src-tauri/target/x86_64-apple-darwin/release/bundle/macos/*.app src-tauri/target/x86_64-apple-darwin/release/bundle/macos/CrzGamesSetup_x86_64.app
+          mv src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/CrzGamesSetup_x86_64.dmg
+
+          mv src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app.tar.gz src-tauri/target/aarch64-apple-darwin/release/bundle/macos/CrzGamesSetup_arm64.app.tar.gz
+          mv src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app.tar.gz.sig src-tauri/target/aarch64-apple-darwin/release/bundle/macos/CrzGamesSetup_arm64.app.tar.gz.sig
+          mv src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app src-tauri/target/aarch64-apple-darwin/release/bundle/macos/CrzGamesSetup_arm64.app
+          mv src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/CrzGamesSetup_arm64.dmg
+
+          mv src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app src-tauri/target/universal-apple-darwin/release/bundle/macos/CrzGamesSetup_universal.app
+          mv src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg src-tauri/target/universal-apple-darwin/release/bundle/dmg/CrzGamesSetup_universal.dmg
+
+      - name: Upload Artifact - Linux
+        if: matrix.platform == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: |
+            src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/*.deb
+            src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/rpm/*.rpm
+            src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage
+            src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage.tar.gz
+            src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage.tar.gz.sig
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Upload Artifact - macOS
+        if: matrix.platform == 'macos-14'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: |
+            src-tauri/target/x86_64-apple-darwin/release/bundle/macos/*.app
+            src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
+            src-tauri/target/x86_64-apple-darwin/release/bundle/macos/*.app.tar.gz
+            src-tauri/target/x86_64-apple-darwin/release/bundle/macos/*.app.tar.gz.sig
+
+            src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app
+            src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+            src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app.tar.gz
+            src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app.tar.gz.sig
+
+            src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app
+            src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Upload Artifact - Windows
+        if: matrix.platform == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi.zip
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.nsis.zip
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi.zip.sig
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.nsis.zip.sig
+
+            src-tauri/target/i686-pc-windows-msvc/release/bundle/msi/*.msi
+            src-tauri/target/i686-pc-windows-msvc/release/bundle/nsis/*.exe
+            src-tauri/target/i686-pc-windows-msvc/release/bundle/msi/*.msi.zip
+            src-tauri/target/i686-pc-windows-msvc/release/bundle/nsis/*.nsis.zip
+            src-tauri/target/i686-pc-windows-msvc/release/bundle/msi/*.msi.zip.sig
+            src-tauri/target/i686-pc-windows-msvc/release/bundle/nsis/*.nsis.zip.sig
+
+            src-tauri/target/aarch64-pc-windows-msvc/release/bundle/msi/*.msi
+            src-tauri/target/aarch64-pc-windows-msvc/release/bundle/nsis/*.exe
+            src-tauri/target/aarch64-pc-windows-msvc/release/bundle/msi/*.msi.zip
+            src-tauri/target/aarch64-pc-windows-msvc/release/bundle/nsis/*.nsis.zip
+            src-tauri/target/aarch64-pc-windows-msvc/release/bundle/msi/*.msi.zip.sig
+            src-tauri/target/aarch64-pc-windows-msvc/release/bundle/nsis/*.nsis.zip.sig
+          retention-days: 1
+          if-no-files-found: error
+
+  deploy_release-updater_website:
+    needs: [build_compile_app]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get latest release tag
+        id: lasttag
+        uses: WyriHaximus/github-action-get-previous-tag@v1
+
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Install zip and jq
+        run: sudo apt-get update && sudo apt-get install -y zip jq
+
+      - name: Create directory for dist and dist-updater
+        run: mkdir dist && mkdir dist-updater
+
+      - name: Extract signatures and set environment variables
+        run: |
+          echo "DARWIN_X86_64_SIGNATURE=$(cat macos/x86_64-apple-darwin/release/bundle/macos/*.app.tar.gz.sig)" >> $GITHUB_ENV
+          echo "DARWIN_AARCH64_SIGNATURE=$(cat macos/aarch64-apple-darwin/release/bundle/macos/*.app.tar.gz.sig)" >> $GITHUB_ENV
+          echo "LINUX_X86_64_SIGNATURE=$(cat linux/appimage/*.AppImage.tar.gz.sig)" >> $GITHUB_ENV
+          echo "WINDOWS_I686_SIGNATURE=$(cat windows/i686-pc-windows-msvc/release/bundle/msi/*.msi.zip.sig)" >> $GITHUB_ENV
+          echo "WINDOWS_X86_64_SIGNATURE=$(cat windows/x86_64-pc-windows-msvc/release/bundle/msi/*.msi.zip.sig)" >> $GITHUB_ENV
+          echo "WINDOWS_AARCH64_SIGNATURE=$(cat windows/aarch64-pc-windows-msvc/release/bundle/msi/*.msi.zip.sig)" >> $GITHUB_ENV
+
+      - name: Modify the updater-launcher.json file for the signature and version
+        run: |
+          # Get the last tag version
+          TAG_VERSION=${{ steps.lasttag.outputs.tag }}
+          echo "TAG_VERSION is $TAG_VERSION"
+          TAG_VERSION=$(echo $TAG_VERSION | sed 's/^v//')
+          echo "TAG_VERSION after removing 'v' is $TAG_VERSION"
+
+          # Update updater-launcher.json file with the new version and signatures using jq
+          jq --arg version "$TAG_VERSION" '.version = $version' src-tauri/updater-launcher.json > src-tauri/updater-launcher.tmp.json
+          mv src-tauri/updater-launcher.tmp.json src-tauri/updater-launcher.json
+
+          jq --arg sig "$DARWIN_X86_64_SIGNATURE" '.platforms["darwin-x86_64"].signature = $sig' src-tauri/updater-launcher.json > src-tauri/updater-launcher.tmp.json
+          mv src-tauri/updater-launcher.tmp.json src-tauri/updater-launcher.json
+
+          jq --arg sig "$DARWIN_AARCH64_SIGNATURE" '.platforms["darwin-aarch64"].signature = $sig' src-tauri/updater-launcher.json > src-tauri/updater-launcher.tmp.json
+          mv src-tauri/updater-launcher.tmp.json src-tauri/updater-launcher.json
+
+          jq --arg sig "$LINUX_X86_64_SIGNATURE" '.platforms["linux-x86_64"].signature = $sig' src-tauri/updater-launcher.json > src-tauri/updater-launcher.tmp.json
+          mv src-tauri/updater-launcher.tmp.json src-tauri/updater-launcher.json
+
+          jq --arg sig "$WINDOWS_X86_64_SIGNATURE" '.platforms["windows-x86_64"].signature = $sig' src-tauri/updater-launcher.json > src-tauri/updater-launcher.tmp.json
+          mv src-tauri/updater-launcher.tmp.json src-tauri/updater-launcher.json
+
+          jq --arg sig "$WINDOWS_I686_SIGNATURE" '.platforms["windows-i686"].signature = $sig' src-tauri/updater-launcher.json > src-tauri/updater-launcher.tmp.json
+          mv src-tauri/updater-launcher.tmp.json src-tauri/updater-launcher.json
+
+          jq --arg sig "$WINDOWS_AARCH64_SIGNATURE" '.platforms["windows-aarch64"].signature = $sig' src-tauri/updater-launcher.json > src-tauri/updater-launcher.tmp.json
+          mv src-tauri/updater-launcher.tmp.json src-tauri/updater-launcher.json
+          
+          # Display the updated updater-launcher.json file
+          cat src-tauri/updater-launcher.json
+
+      - name: Copy updater-launcher.json to dist-updater directory
+        run: cp src-tauri/updater-launcher.json dist-updater/
+
+      - name: Move and flatten Linux files to dist directory
+        run: |
+          find linux -type f \( -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' -o -name '*.AppImage.tar.gz' -o -name '*.AppImage.tar.gz.sig' \) -exec mv {} dist/ \;
+
+      - name: Move and flatten macOS files to dist directory
+        run: |
+          find macos -type f \( -name '*.dmg' -o -name '*.app.tar.gz' -o -name '*.app.tar.gz.sig' \) -exec mv {} dist/ \;
+
+      - name: Move macOS .app folders to dist directory
+        run: |
+          # Définir le chemin de base où se trouvent les dossiers .app
+          base_path="macos/target"
+
+          # Liste des architectures compilées
+          architectures=("aarch64-apple-darwin" "universal-apple-darwin" "x86_64-apple-darwin")
+
+          # Boucle sur chaque architecture pour déplacer les dossiers .app
+          for arch in "${architectures[@]}"; do
+            # Vérifier si le dossier .app existe avant de tenter de le déplacer
+            app_path="${base_path}/${arch}/release/bundle/macos/*.app"
+            if compgen -G "$app_path" > /dev/null; then
+              echo "Moving .app for architecture $arch"
+              mv $app_path dist/
+            else
+              echo "No .app found for architecture $arch"
+            fi
+          done
+
+      - name: Move and flatten Windows files to dist directory
+        run: |
+          find windows -type f \( -name '*.msi' -o -name '*.exe' -o -name '*.msi.zip' -o -name '*.nsis.zip' -o -name '*.msi.zip.sig' -o -name '*.nsis.zip.sig' \) -exec mv {} dist/ \;
+
+      - name: Create ZIP of dist directory contents
+        run: |
+          cd dist
+          zip -r ../launcher-binaries.zip ./*
+
+      - name: Deploy binaries Launcher for all platforms to bucket S3 (Minio)
+        uses: mamal72/minio-perfect-deploy-action@main
+        with:
+          endpoint: 'https://s3.api.crzcommon.com'
+          access_key: 'crzgames'
+          secret_key: 'Marylene59!!!'
+          bucket: 'crzgames-public'
+          source_dir: 'dist'
+          target_dir: '/launcher/download/'
+
+      - name: Deploy manifest for Update Launcher (Minio)
+        uses: mamal72/minio-perfect-deploy-action@main
+        with:
+          endpoint: 'https://s3.api.crzcommon.com'
+          access_key: 'crzgames'
+          secret_key: 'Marylene59!!!'
+          bucket: 'crzgames-public'
+          source_dir: 'dist-updater'
+          target_dir: '/launcher/updater/'
+
+      - name: Deploy assets binaries CrzGames Launcher - Release Github
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+        with:
+          files: |
+            launcher-binaries.zip

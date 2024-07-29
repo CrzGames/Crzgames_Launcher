@@ -1,0 +1,33 @@
+{
+  "version": "0.0.0",
+  "platforms": {
+    "darwin-x86_64": {
+      "signature": "Content of app.tar.gz.sig",
+      "url": "https://api.crzcommon.com/launcher/download/CrzGamesSetup_x86_64.app.tar.gz"
+    },
+    "darwin-aarch64": {
+      "signature": "Content of app.tar.gz.sig",
+      "url": "https://api.crzcommon.com/launcher/download/CrzGamesSetup_arm64.app.tar.gz"
+    },
+    "linux-x86_64": {
+      "signature": "Content of app.AppImage.tar.gz.sig",
+      "url": "https://api.crzcommon.com/launcher/download/CrzGamesSetup_x86_64.AppImage.tar.gz"
+    },
+    "linux-aarch64": {
+      "signature": "Content of app.AppImage.tar.gz.sig",
+      "url": "https://api.crzcommon.com/launcher/download/CrzGamesSetup_arm64.AppImage.tar.gz"
+    },
+    "windows-i686": {
+      "signature": "Content of app.msi.sig",
+      "url": "https://api.crzcommon.com/launcher/download/CrzGamesSetup_x86.msi.zip"
+    },
+    "windows-x86_64": {
+      "signature": "Content of app.msi.sig",
+      "url": "https://api.crzcommon.com/launcher/download/CrzGamesSetup_x64.msi.zip"
+    },
+    "windows-aarch64": {
+      "signature": "Content of app.msi.sig",
+      "url": "https://api.crzcommon.com/launcher/download/CrzGamesSetup_arm64.msi.zip"
+    }
+  }
+}

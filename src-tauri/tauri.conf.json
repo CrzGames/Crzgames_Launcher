@@ -1,0 +1,88 @@
+{
+  "productName": "CrzGames Launcher",
+  "version": "0.0.0",
+  "identifier": "com.crzgames.launcher",
+  "build": {
+    "frontendDist": "../.output/public/",
+    "devUrl": "http://localhost:3555",
+    "beforeDevCommand": "bash src-tauri/scripts/beforeDevCommand.sh",
+    "beforeBuildCommand": "bash src-tauri/scripts/beforeBuildCommand.sh"
+  },
+  "app": {
+    "windows": [
+      {
+        "fullscreen": false,
+        "width": 290,
+        "height": 380,
+        "resizable": false,
+        "title": "CrzGames Launcher",
+        "decorations": false,
+        "center": true,
+        "alwaysOnTop": false,
+        "visible": true,
+        "url": "/",
+        "label": "main"
+      }
+    ],
+    "macOSPrivateApi": true,
+    "security": {
+      "csp": "default-src 'self'; connect-src http://127.0.0.1:3333/ https://staging.api.crzcommon.com https://api.crzcommon.com http://ipc.localhost;",
+      "assetProtocol": {
+        "enable": false,
+        "scope": []
+      },
+      "dangerousDisableAssetCspModification": false,
+      "freezePrototype": false,
+      "pattern": {
+        "use": "brownfield"
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "category": "Games",
+    "copyright": "DEV-ALL",
+    "longDescription": "CrzGames Launcher",
+    "shortDescription": "CrzGames Launcher",
+    "license": "Proprietary",
+    "targets": "all",
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+    "publisher": "DEV-ALL",
+    "resources": [],
+    "externalBin": [],
+    "fileAssociations": [],
+    "linux": {
+      "appimage": {
+        "bundleMediaFramework": true
+      }
+    },
+    "macOS": {
+      "minimumSystemVersion": "11.0",
+      "entitlements": null,
+      "exceptionDomain": "127.0.0.1 staging.api.crzcommon.com api.crzcommon.com",
+      "frameworks": [],
+      "providerShortName": null,
+      "signingIdentity": null
+    },
+    "windows": {
+      "webviewInstallMode": {
+        "silent": true,
+        "type": "offlineInstaller"
+      },
+      "allowDowngrades": false,
+      "signCommand": "binarie-sign-windows/AzureSignTool.exe sign %1 --azure-key-vault-url https://signmycodecertificates.vault.azure.net --azure-key-vault-client-id 808b7b87-9b41-41e3-9e91-04ea0d31818a --azure-key-vault-client-secret VxW8Q~yRSal-5iRS2zyLQRZw33OmH.wN28lFLb1q --azure-key-vault-tenant-id d9e667d1-3139-45aa-8b50-d915ca6dcd38 --azure-key-vault-certificate CorentinRecanzone --timestamp-rfc3161 http://timestamp.digicert.com --timestamp-digest sha512 --file-digest sha512"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "windows": {
+        "installMode": "passive"
+      },
+      "active": true,
+      "endpoints": ["https://api.crzcommon.com/launcher/updater-manifest/{{target}}/{{arch}}/{{current_version}}"],
+      "dialog": false,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDE5NjU0QjdDQTI1Njk4MDYKUldRR21GYWlmRXRsR2Faekh4WGJSeVR4czJkTFZFSzI0enVtaGxxc2dNWm9yZG1nN0ZIU2Q3NXQK"
+    }
+  },
+  "$schema": "../node_modules/@tauri-apps/cli/schema.json"
+}
