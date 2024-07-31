@@ -27,7 +27,7 @@ tauri-plugin-autostart = "2.0.0-beta.9"
 lazy_static = "1.5.0"
 tokio = { version = "1.39.2", features = ["full"] }
 serde = { version = "1.0.204", features = ["derive"] }
-serde_json = "1.0.120"
+serde_json = "1.0.121"
 sysinfo = "0.30.13"
 reqwest = { version = "0.12.5", features = ["blocking"] }
 flate2 = "1.0.30"
