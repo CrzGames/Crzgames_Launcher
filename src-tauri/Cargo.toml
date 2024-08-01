@@ -28,7 +28,7 @@ lazy_static = "1.5.0"
 tokio = { version = "1.39.2", features = ["full"] }
 serde = { version = "1.0.204", features = ["derive"] }
 serde_json = "1.0.120"
-sysinfo = "0.30.13"
+sysinfo = "0.31.0"
 reqwest = { version = "0.12.5", features = ["blocking"] }
 flate2 = "1.0.30"
 zip = "2.1.5"
