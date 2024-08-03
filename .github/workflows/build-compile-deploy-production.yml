@@ -342,7 +342,7 @@ jobs:
 
           jq --arg sig "$WINDOWS_AARCH64_SIGNATURE" '.platforms["windows-aarch64"].signature = $sig' src-tauri/updater-launcher.json > src-tauri/updater-launcher.tmp.json
           mv src-tauri/updater-launcher.tmp.json src-tauri/updater-launcher.json
-          
+
           # Display the updated updater-launcher.json file
           cat src-tauri/updater-launcher.json
 

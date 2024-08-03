@@ -12,7 +12,6 @@
 
 <br /><br /><br /><br />
 
-   
 ## 🛠 Tech Stack
 
 - Tauri (framework)
@@ -24,8 +23,8 @@
 
 <br /><br /><br /><br />
 
-
 ## 📦 Versionning
+
 On utilise la convention SemVer : https://semver.org/lang/fr/ <br /><br />
 Pour une Release classique : MAJOR.MINOR.PATCH <br />
 Pour une Pre-Release, exemples : MAJOR.MINOR.PATCH-rc.0 OR MAJOR.MINOR.PATCH-beta.3 <br /><br />
@@ -35,12 +34,13 @@ Pour que cela sois pris en compte il faut utiliser les conventionnal commits : h
 Release Please crée une demande d'extraction de version après avoir remarqué que la branche par défaut contient des « unités publiables » depuis la dernière version. Une unité publiable est un commit sur la branche avec l'un des préfixes suivants : `feat` et `fix`. <br /><br />
 
 La première Release que créer release-please automatiquement est la version : 1.0.0 <br />
-Pour créer une Pre-Release faire un commit vide, par exemple si on'ai à la version 1.0.0, on peut faire : 
+Pour créer une Pre-Release faire un commit vide, par exemple si on'ai à la version 1.0.0, on peut faire :
+
 ```bash
 git commit --allow-empty -m "chore: release 1.1.0-rc.0" -m "Release-As: 1.1.0-rc.0"
 ```
-<br /><br /><br /><br />
 
+<br /><br /><br /><br />
 
 ## ⚙️Setup Environment - Windows
 
