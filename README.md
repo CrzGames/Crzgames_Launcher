@@ -46,7 +46,7 @@ git commit --allow-empty -m "chore: release 1.1.0-rc.0" -m "Release-As: 1.1.0-rc
 
 1. Download and Install Microsoft Visual Studio 2022 (MSVC >= v143 and Windows SDK >= 10): https://visualstudio.microsoft.com/fr/vs/
 2. Download and Install WebView2 (if windows < 10) : https://developer.microsoft.com/en-us/microsoft-edge/webview2/#download-section
-3. Download and Install Rust version >= 1.78 : https://www.rust-lang.org/tools/install
+3. Download and Install Rust version >= 1.80.1 : https://www.rust-lang.org/tools/install
 4. Spécifiquement pour build du ARM64 il faut installer LLVM et ajouté au PATH : https://github.com/llvm/llvm-project/releases
 5. Install NodeJS latest LTS for Vue.js/Tauri :
 
@@ -92,7 +92,7 @@ rustup default stable-i686-pc-windows-msvc # Windows x86
 xcode-select --install
 ```
 
-2. Download and Install Rust version >= 1.78 :
+2. Download and Install Rust version >= 1.80.1 :
 
 ```bash
 #curl
@@ -153,7 +153,7 @@ sudo apt install -y libwebkit2gtk-4.1-dev \
   fuse # for .AppImage
 ```
 
-2. Install Rust version >= 1.78 :
+2. Install Rust version >= 1.80.1 :
 
 ```bash
 #curl

@@ -5,7 +5,7 @@ description = "Launcher for games"
 authors = ["corentin recanzone"]
 repository = "https://github.com/corentin35000/Crzgames_Launcher"
 edition = "2021"
-rust-version = "1.78"
+rust-version = "1.80.1"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
