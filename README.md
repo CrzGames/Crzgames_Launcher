@@ -352,12 +352,6 @@ sudo apt install fuse
 
 <span style="color: red;">IMPORTANT (4)</span> : Si votre application lit de l'audio/vidéo, vous devez activer tauri.conf.json > tauri > bundle > appimage > bundleMediaFramework. Cela augmentera la taille du bundle AppImage pour inclure gstreamerdes fichiers supplémentaires nécessaires à la lecture multimédia. Cet indicateur n'est actuellement pris en charge que sur les systèmes de construction Ubuntu. <br />
 
-Linux 32-bit (kernel 3.2+, glibc 2.17+) :
-
-```bash
-npm run desktop:build:linux:x86
-```
-
 Linux 64-bit (kernel 3.2+, glibc 2.17+) :
 
 ```bash
