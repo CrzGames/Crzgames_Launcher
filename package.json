@@ -45,7 +45,7 @@
     "@tauri-apps/plugin-notification": "^2.0.0-rc.0",
     "@tauri-apps/plugin-os": "^2.0.0-rc.0",
     "@tauri-apps/plugin-process": "^2.0.0-rc.0",
-    "@tauri-apps/plugin-shell": "^2.0.0-rc.0",
+    "@tauri-apps/plugin-shell": "^2.0.0-rc.1",
     "@tauri-apps/plugin-updater": "^2.0.0-rc.0",
     "@vee-validate/rules": "^4.13.2",
     "axios": "^1.7.7",
