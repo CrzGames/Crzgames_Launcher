@@ -46,7 +46,7 @@ git commit --allow-empty -m "chore: release 1.1.0-rc.0" -m "Release-As: 1.1.0-rc
 
 1. Download and Install Microsoft Visual Studio 2022 (MSVC >= v143 and Windows SDK >= 10): https://visualstudio.microsoft.com/fr/vs/
 2. Download and Install WebView2 (if windows < 10) : https://developer.microsoft.com/en-us/microsoft-edge/webview2/#download-section
-3. Download and Install Rust version >= 1.80.1 : https://www.rust-lang.org/tools/install
+3. Download and Install Rust version >= 1.85.0 : https://www.rust-lang.org/tools/install
 4. Spécifiquement pour build du ARM64 il faut installer LLVM et ajouté au PATH : https://github.com/llvm/llvm-project/releases
 5. Install NodeJS latest LTS for Vue.js/Tauri :
 
@@ -79,7 +79,7 @@ rustup default
 
 # Pour changer la chaine d'outils par défault utilisé, exemples :
 rustup default stable-x86_64-pc-windows-msvc # Windows x64
-rustup default stable-i686-pc-windows-msvc # Windows x86
+rustup default stable-aarch64-pc-windows-msvc # Windows arm64
 ```
 
 <br />
@@ -92,7 +92,7 @@ rustup default stable-i686-pc-windows-msvc # Windows x86
 xcode-select --install
 ```
 
-2. Download and Install Rust version >= 1.80.1 :
+2. Download and Install Rust version >= 1.85.0 :
 
 ```bash
 #curl
@@ -129,7 +129,7 @@ npm run desktop:install:target:macos
 rustup default
 
 # Pour changer la chaine d'outils par défault utilisé, exemples :
-rustup default stable-x86_64-apple-darwin # macOS Intel x64
+rustup default stable-x86_64-apple-darwin # macOS Intel x86_64
 rustup default stable-aarch64-unknown-linux-gnu # macOS Apple Silicon arm64
 ```
 
@@ -153,7 +153,7 @@ sudo apt install -y libwebkit2gtk-4.1-dev \
   fuse # for .AppImage
 ```
 
-2. Install Rust version >= 1.80.1 :
+2. Install Rust version >= 1.85.0 :
 
 ```bash
 #curl
@@ -191,7 +191,7 @@ rustup default
 
 # Pour changer la chaine d'outils par défault utilisé, exemples :
 rustup default stable-x86_64-unknown-linux-gnu # Linux x64
-rustup default stable-i686-unknown-linux-gnu	# Linux x86
+rustup default stable-aarch64-unknown-linux-gnu # Linux arm64
 ```
 
 <br /><br /><br /><br />
@@ -313,12 +313,6 @@ src-tauri/target/release/bundle/
 <br />
 
 <span style="color: red;">IMPORTANT (2)</span> : Windows 11 est compatible nativement, mais en-dessous de Windows 11 il n'y as pas WebView2 installer par défault. Il faudra le packager dans l'installeur .msi pour que ce sois compatible à partir de Windows7 et +. <br />
-
-Windows 32-bit (Windows 7+) :
-
-```bash
-npm run desktop:build:windows:x86
-```
 
 Windows 64-bit (Windows 7+) :
 

@@ -8,7 +8,6 @@ import { LogicalSize } from '@tauri-apps/api/dpi'
 import { Window } from '@tauri-apps/api/window'
 import type { Arch, OsType, Platform } from '@tauri-apps/plugin-os'
 import { arch, hostname, platform, type } from '@tauri-apps/plugin-os'
-import type { Permission } from '@tauri-apps/plugin-notification'
 import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification'
 import { useWindowStore } from '@/stores/window.store'
 import { CloudStorageS3Service } from '~/common/core/services/CloudStorageS3Service'
@@ -799,7 +798,7 @@ export class TauriService {
 
       // Le cas échéant on la demande
       if (!permissionGranted) {
-        const permission: Permission = await requestPermission()
+        const permission: NotificationPermission = await requestPermission()
         permissionGranted = permission === 'granted'
       }
 

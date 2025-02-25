@@ -90,7 +90,8 @@ $color: rgb(224, 161, 0);
   background-color: $color;
   background-repeat: no-repeat;
   animation: checkmark 0.2s ease-out;
-  background-image: linear-gradient(-45deg, rgba(0, 0, 0, 0) 65%, $color 65.99%),
+  background-image:
+    linear-gradient(-45deg, rgba(0, 0, 0, 0) 65%, $color 65.99%),
     linear-gradient(45deg, rgba(0, 0, 0, 0) 75%, $color 75.99%),
     linear-gradient(-45deg, $color 40%, rgba(0, 0, 0, 0) 40.99%),
     linear-gradient(45deg, $color 30%, rgb(29, 35, 42) 30.99%, rgb(29, 35, 42) 40%, rgba(0, 0, 0, 0) 40.99%),

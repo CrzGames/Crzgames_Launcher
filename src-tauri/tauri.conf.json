@@ -1,12 +1,14 @@
 {
+  "$schema": "https://schema.tauri.app/config/2",
   "productName": "CrzGames Launcher",
+  "mainBinaryName": "example-name-app",
   "version": "0.0.0",
   "identifier": "com.crzgames.launcher",
   "build": {
     "frontendDist": "../.output/public/",
     "devUrl": "http://localhost:3555",
-    "beforeDevCommand": "bash src-tauri/scripts/beforeDevCommand.sh",
-    "beforeBuildCommand": "bash src-tauri/scripts/beforeBuildCommand.sh"
+    "beforeDevCommand": "tsx src-tauri/scripts/beforeDevCommand.ts",
+    "beforeBuildCommand": "tsx src-tauri/scripts/beforeBuildCommand.ts"
   },
   "app": {
     "windows": [
@@ -33,36 +35,59 @@
       },
       "dangerousDisableAssetCspModification": false,
       "freezePrototype": false,
+      "headers": {},
       "pattern": {
         "use": "brownfield"
       }
     }
   },
   "bundle": {
+    "createUpdaterArtifacts": true,
     "active": true,
     "category": "Games",
     "copyright": "DEV-ALL",
     "longDescription": "CrzGames Launcher",
     "shortDescription": "CrzGames Launcher",
     "license": "Proprietary",
+    "licenseFile": "path/to/license.txt",
     "targets": "all",
     "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
     "publisher": "DEV-ALL",
     "resources": [],
     "externalBin": [],
     "fileAssociations": [],
+    "homepage": "https://example.flapi.org",
+    "useLocalToolsDir": false,
     "linux": {
       "appimage": {
-        "bundleMediaFramework": true
+        "bundleMediaFramework": true,
+        "files": {}
       }
     },
     "macOS": {
       "minimumSystemVersion": "11.0",
+      "files": {},
+      "hardenedRuntime": true,
       "entitlements": null,
       "exceptionDomain": "127.0.0.1 staging.api.crzcommon.com api.crzcommon.com",
       "frameworks": [],
       "providerShortName": null,
-      "signingIdentity": null
+      "signingIdentity": null,
+      "dmg": {
+        "appPosition": {
+          "x": 180,
+          "y": 170
+        },
+        "applicationFolderPosition": {
+          "x": 480,
+          "y": 170
+        },
+        "windowSize": {
+          "height": 400,
+          "width": 660
+        },
+        "background": "dmg-config/background.png"
+      }
     },
     "windows": {
       "webviewInstallMode": {
@@ -70,7 +95,9 @@
         "type": "offlineInstaller"
       },
       "allowDowngrades": false,
-      "signCommand": "binarie-sign-windows/AzureSignTool.exe sign %1 --azure-key-vault-url https://signmycodecertificates.vault.azure.net --azure-key-vault-client-id 808b7b87-9b41-41e3-9e91-04ea0d31818a --azure-key-vault-client-secret VxW8Q~yRSal-5iRS2zyLQRZw33OmH.wN28lFLb1q --azure-key-vault-tenant-id d9e667d1-3139-45aa-8b50-d915ca6dcd38 --azure-key-vault-certificate CorentinRecanzone --timestamp-rfc3161 http://timestamp.digicert.com --timestamp-digest sha512 --file-digest sha512"
+      "signCommand": "scripts\\windowsSign.bat %1",
+      "nsis": null,
+      "wix": null
     }
   },
   "plugins": {
@@ -83,6 +110,5 @@
       "dialog": false,
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDE5NjU0QjdDQTI1Njk4MDYKUldRR21GYWlmRXRsR2Faekh4WGJSeVR4czJkTFZFSzI0enVtaGxxc2dNWm9yZG1nN0ZIU2Q3NXQK"
     }
-  },
-  "$schema": "../node_modules/@tauri-apps/cli/schema.json"
+  }
 }
