@@ -55,7 +55,7 @@ const runCommandsNpm: () => void = (): void => {
     execSync('npm run web:build:static:staging', { stdio: 'inherit' })
   } else {
     // Pour tout autre branche (feat/*, dev, etc.) => build:static:dev
-    execSync('npm run web:build:static:dev', { stdio: 'inherit' })
+    execSync('npm run web:build:static:develop', { stdio: 'inherit' })
   }
 }
 

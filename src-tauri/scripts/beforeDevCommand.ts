@@ -6,7 +6,7 @@ import { execSync } from 'child_process'
  */
 const runCommandsNpm: () => void = (): void => {
   execSync('npm run web:build:static:develop', { stdio: 'inherit' })
-  execSync('npm run web:run:dev', { stdio: 'inherit' })
+  execSync('npm run web:run:develop', { stdio: 'inherit' })
 }
 
 runCommandsNpm()
