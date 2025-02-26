@@ -1,3 +1,5 @@
+import { fileURLToPath } from "url";
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   app: {
@@ -10,6 +12,18 @@ export default defineNuxtConfig({
       noscript: [],
     },
   },
+  srcDir: 'src-nuxt',
+  alias: {
+    '#src-nuxt': fileURLToPath(new URL('./src-nuxt', import.meta.url)),
+    '#src-common': fileURLToPath(new URL('./src-common', import.meta.url)),
+    '#src-core': fileURLToPath(new URL('./src-core', import.meta.url)),
+  },
+  css: [
+    '~/assets/css/tailwind.css',
+    '~/assets/css/main.scss',
+    '~/assets/css/modules/floating-vue.scss',
+    '~/assets/css/modules/notyf.scss'
+  ],
   experimental: {
     appManifest: false, // BIG IMPORTANT
   },
@@ -18,11 +32,15 @@ export default defineNuxtConfig({
   telemetry: false,
   modules: ['@pinia/nuxt', '@nuxt/test-utils/module', '@nuxtjs/google-fonts', '@nuxtjs/tailwindcss'],
   components: [
-    { path: '~/common/components' },
+    { path: '~/src-common/components' },
 
     // It's important that this comes last if you have overrides you wish to apply
     '~/components',
   ],
+  // Enables the development server to be discoverable by other devices when running on iOS physical devices
+  devServer: {
+    host: process.env.TAURI_DEV_HOST || 'localhost',
+  },
   vite: {
     // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
     // prevent vite from obscuring rust errors
@@ -33,19 +51,13 @@ export default defineNuxtConfig({
     // https://tauri.app/2/reference/environment-variables/
     envPrefix: ['VITE_', 'TAURI_', 'NUXT_'],
 
-    build: {
-      // Tauri supports es2021
-      target: ['es2021', 'chrome100', 'safari13'],
-      // don't minify for debug builds
-      minify: !process.env.TAURI_DEBUG ? 'esbuild' : false,
-      // produce sourcemaps for debug builds
-      sourcemap: !!process.env.TAURI_DEBUG,
-    },
-
+    // tauri expects a fixed port, fail if that port is not available
     server: {
+      port: 1460,
       // Tauri requires a consistent port
       strictPort: true,
       // Enables the development server to be discoverable by other devices for mobile development
+      host: '0.0.0.0',
       hmr: {
         // Use websocket for mobile hot reloading
         protocol: 'ws',
@@ -58,10 +70,10 @@ export default defineNuxtConfig({
         // tell vite to ignore watching `src-tauri`
         ignored: ['**/src-tauri/**'],
       },
-    },
+    } as any,
   },
   pinia: {
-    storesDirs: ['./stores/**'],
+    storesDirs: ['./src-nuxt/stores/**'],
   },
   tailwindcss: {
     exposeConfig: true,

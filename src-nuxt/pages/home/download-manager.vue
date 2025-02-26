@@ -1,0 +1,237 @@
+<template>
+  <section class="grid gap-4 px-4 py-5 pb-12 text-white">
+    <h1 class="font-serif text-xl font-semibold sm:text-2xl">Download Manager</h1>
+
+    <p
+      v-if="activeDownloadGames.length <= 0 && completeDownloadGames.length <= 0"
+      class="text-center text-base font-semibold text-gray-400 md:text-xl"
+    >
+      No downloads are currently active or completed. <br />
+      Browse games to start downloading !
+    </p>
+
+    <div v-if="activeDownloadGames && activeDownloadGames.length > 0" class="mb-20 grid gap-4">
+      <h4 class="font-serif text-sm font-medium">Active download</h4>
+
+      <ActiveDownloadCard
+        v-for="game in activeDownloadGames"
+        :key="game.gameId"
+        :title="game.gameTitle"
+        :imageUrl="game.gamePictureUrl"
+        :isPlaying="game.isPlaying"
+        :progress="game.progress"
+        :downloaded="bytesToSize(game.totalDownloadedBytesNow || 0)"
+        :total="bytesToSize(game.gameBinarySize)"
+        :speed="game.speed"
+        :remainingTime="game.remainingTime"
+        :gameId="game.gameId"
+        :pathInstallLocation="game.pathInstallLocation"
+        @play="resumeDownload(game)"
+        @pause="pauseDownload(game)"
+        @cancel="openModalCancelDownload(game)"
+      />
+    </div>
+
+    <div v-if="completeDownloadGames && completeDownloadGames.length > 0" class="grid gap-4">
+      <h4 class="font-serif text-sm font-medium">Complete download</h4>
+
+      <div class="grid gap-4">
+        <CompleteDownloadCard
+          v-for="game in completeDownloadGames"
+          :key="game.gameTitle"
+          :title="game.gameTitle"
+          :imageUrl="game.gamePictureUrl"
+        />
+      </div>
+    </div>
+
+    <CrzConfirmModal
+      :show="showCancelDownloadModal"
+      @update:show="showCancelDownloadModal = $event"
+      @cancel="showCancelDownloadModal = false"
+      @ok="confirmCancelDownload"
+      title="Cancel Download"
+      :message="`Are you sure you want to cancel the download for ${gameCurrentCancelDownloadModal?.gameTitle} ?`"
+    />
+  </section>
+</template>
+
+<script lang="ts" setup>
+import type { ComputedRef, Ref } from 'vue'
+import { ref } from 'vue'
+import type { ActiveDownloadGame, CompleteDownloadGame } from '#src-nuxt/stores/downloads.store'
+import { useDownloadsStore } from '#src-nuxt/stores/downloads.store'
+import ActiveDownloadCard from '#src-nuxt/components/cards/ActiveDownloadCard.vue'
+import CompleteDownloadCard from '#src-nuxt/components/cards/CompleteDownloadCard.vue'
+import CrzConfirmModal from '#src-common/components/modals/CrzConfirmModal.vue'
+import { bytesToSize } from '#src-core/utils/bytesToSize'
+import { useAuthStore } from '#src-nuxt/stores/auth.store'
+import type UserModel from '#src-common/core/models/UserModel'
+import type GameModel from '#src-common/core/models/GameModel'
+import { GameService } from '#src-common/core/services/GameService'
+import {
+  type FileDetails,
+  type GameManifestLocal,
+  type GameManifestRemote,
+  type SystemOSInfo,
+  TauriService,
+} from '#src-core/services/TauriService'
+import type GamePlatformModel from '#src-common/core/models/GamePlatformModel'
+import type GameBinaryModel from '#src-common/core/models/GameBinaryModel'
+import type { GameVersionModel } from '#src-common/core/models/GameVersionModel'
+import { GameVersionService } from '#src-common/core/services/GameVersionService'
+
+const { $notyf } = useNuxtApp()
+
+/* LAYOUT - MIDDLEWARE */
+definePageMeta({
+  layout: 'layout-home',
+  middleware: ['auth'],
+})
+
+// eslint-disable-next-line eslint-plugin-unused-imports/no-unused-vars
+const user: UserModel | undefined = useAuthStore().user
+
+/* STORES */
+// eslint-disable-next-line @typescript-eslint/typedef
+const downloadsStore = useDownloadsStore()
+
+const gameCurrentCancelDownloadModal: Ref<ActiveDownloadGame | null> = ref(null)
+const showCancelDownloadModal: Ref<boolean> = ref(false)
+
+const activeDownloadGames: ComputedRef<ActiveDownloadGame[]> = computed(() => downloadsStore.activeDownloads)
+const completeDownloadGames: ComputedRef<CompleteDownloadGame[]> = computed(() => downloadsStore.completedDownloads)
+
+/**
+ * On cancel download
+ * @param {ActiveDownloadGame} game - The game
+ * @returns {void}
+ */
+const openModalCancelDownload: (game: ActiveDownloadGame) => void = (game: ActiveDownloadGame): void => {
+  gameCurrentCancelDownloadModal.value = game
+  showCancelDownloadModal.value = true
+}
+
+/**
+ * Cancel download
+ * @returns {void}
+ */
+const confirmCancelDownload: () => Promise<void> = async (): Promise<void> => {
+  if (gameCurrentCancelDownloadModal.value && user) {
+    await TauriService.cancelDownloadGame(
+      gameCurrentCancelDownloadModal.value.gameId,
+      gameCurrentCancelDownloadModal.value.pathInstallLocation,
+    )
+    await downloadsStore.deleteActiveDownload(gameCurrentCancelDownloadModal.value.gameId, user.id)
+    $notyf.success(`${gameCurrentCancelDownloadModal.value.gameTitle} game download canceled successfully`)
+  }
+  showCancelDownloadModal.value = false
+}
+
+/**
+ * Permet de reprendre le téléchargement d'un jeu en pause
+ * @param {ActiveDownloadGame} gameActiveDownload - The game
+ * @returns {Promise<void>}
+ */
+const resumeDownload: (gameActiveDownload: ActiveDownloadGame) => Promise<void> = async (
+  gameActiveDownload: ActiveDownloadGame,
+): Promise<void> => {
+  // Récupérer le manifeste local du jeu
+  const gameManifestLocal: GameManifestLocal | undefined = await TauriService.getContentLocalManifest(
+    gameActiveDownload.pathInstallLocation,
+  )
+  if (!gameManifestLocal) {
+    return
+  }
+
+  // Récupérer les informations sur le système d'exploitation actuel
+  const currentSystemOSInfo: SystemOSInfo | undefined = await TauriService.getSystemOSCurrent()
+  if (!currentSystemOSInfo) {
+    return
+  }
+
+  // Récupérer le jeu
+  const game: GameModel = await GameService.getGameById(gameActiveDownload.gameId)
+
+  // Récupérer la plateforme du jeu qui correspond à l'OS du système actuel en rendant la comparaison insensible à la casse
+  const gamePlatform: GamePlatformModel | undefined = game.gamePlatform.find(
+    (gamePlatform: GamePlatformModel) => gamePlatform.name.toLowerCase() === currentSystemOSInfo.os.toLowerCase(),
+  )
+
+  // Si une plateforme correspondante est trouvée, procédez au téléchargement
+  if (gamePlatform) {
+    const gameBinaryPlatform: GameBinaryModel | undefined = game.gameBinary.find(
+      (gameBinary: GameBinaryModel): boolean => gameBinary.game_platforms_id === gamePlatform.id,
+    )
+
+    if (gameBinaryPlatform) {
+      // Récupérer la dernière version du jeu disponible
+      const latestGameVersionAvailable: GameVersionModel | undefined =
+        await GameVersionService.getLatestAvailableGameVersionByGameId(game.id)
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (!latestGameVersionAvailable) {
+        return
+      }
+
+      // Récupérer le manifeste du jeu à partir du serveur
+      const fullPathFilename: string =
+        gameBinaryPlatform.file.pathfilename +
+        latestGameVersionAvailable.version +
+        '/' +
+        currentSystemOSInfo.architecture +
+        '/'
+      const gameManifestRemote: GameManifestRemote | undefined = await TauriService.downloadGameManifestRemote(
+        gameBinaryPlatform.file.bucket.name,
+        fullPathFilename,
+      )
+      if (!gameManifestRemote) {
+        return
+      }
+
+      // Récupérer la liste des fichiers à télécharger pour le jeu en comparant les manifestes locaux et distant
+      const files: FileDetails[] = await TauriService.getFilesToDownload(
+        gameManifestLocal,
+        gameManifestRemote,
+        gameManifestLocal.pathInstallLocation,
+      )
+
+      // Télécharger le jeu
+      if (user) {
+        gameActiveDownload.isPlaying = true
+        await TauriService.downloadGame(
+          gameBinaryPlatform.file.bucket.name,
+          gameBinaryPlatform.file.pathfilename,
+          gameManifestLocal.pathInstallLocation,
+          false, // TODO: Il faut l'ajouter au préalable dans le manifest_local.json avant
+          game.title,
+          latestGameVersionAvailable.version,
+          gameManifestLocal.gameBinarySize,
+          game.id,
+          user.id,
+          files,
+          gameManifestRemote,
+        )
+      }
+    }
+  }
+}
+
+/**
+ * Permet de mettre en pause le téléchargement d'un jeu
+ * @param {ActiveDownloadGame} game - The game
+ * @returns {void}
+ */
+const pauseDownload: (game: ActiveDownloadGame) => void = (game: ActiveDownloadGame): void => {
+  game.isPlaying = false
+}
+
+/**
+ * On mounted
+ * @returns {Promise<void>}
+ */
+onMounted(async (): Promise<void> => {
+  if (user) {
+    await downloadsStore.loadActiveDownloadsPersisted(user)
+  }
+})
+</script>

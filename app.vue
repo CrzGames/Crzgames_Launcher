@@ -1,31 +1,29 @@
 <template>
   <div class="h-full">
     <!-- Spinner affiché lorsque isLoading est vrai (changement de fenetre window) -->
-    <div v-if="windowStore.isLoading" class="spinner-overlay bg-blue-800">
+    <div v-if="windowStore.isLoading" class="spinner-overlay">
       <CrzSpinner />
     </div>
 
     <!-- Layout et pages de Nuxt -->
     <NuxtLayout>
-      <NuxtPage class="h-full overflow-hidden bg-blue-800" />
+      <NuxtPage class="h-full" />
     </NuxtLayout>
   </div>
 </template>
 
 <script lang="ts" setup>
-import '~/assets/css/tailwind.css'
-import '~/assets/css/main.scss'
-import '~/assets/css/modules/floating-vue.scss'
 import { listen } from '@tauri-apps/api/event'
 import type { UnlistenFn } from '@tauri-apps/api/event'
-import { TauriService } from '@/services/TauriService'
-import type { GameManifestLocal, GameProgressDownload } from '@/services/TauriService'
+import { TauriService } from '#src-core/services/TauriService'
+import type { GameManifestLocal, GameProgressDownload } from '#src-core/services/TauriService'
 import { onMounted, onBeforeUnmount } from 'vue'
-import { useWindowStore } from '@/stores/window.store'
-import CrzSpinner from '~/common/components/loaders/CrzSpinner.vue'
-import { useDownloadsStore } from '@/stores/downloads.store'
-import type GameModel from '~/common/core/models/GameModel'
-import { GameService } from '~/common/core/services/GameService'
+import { useWindowStore } from '#src-nuxt/stores/window.store'
+import CrzSpinner from '#src-common/components/loaders/CrzSpinner.vue'
+import { useDownloadsStore } from '#src-nuxt/stores/downloads.store'
+import type { ActiveDownloadGame } from '#src-nuxt/stores/downloads.store'
+import type GameModel from '#src-common/core/models/GameModel'
+import { GameService } from '#src-common/core/services/GameService'
 import { enable, isEnabled } from '@tauri-apps/plugin-autostart'
 import { defineRule } from 'vee-validate'
 import { email } from '@vee-validate/rules'
