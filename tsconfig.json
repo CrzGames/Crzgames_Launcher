@@ -12,7 +12,7 @@
     "tailwind.config.ts",
     "nuxt.config.ts",
     "error.vue",
-    "app.vue",
+    "app.vue"
   ],
   "exclude": ["dist", ".output", "node_modules"]
 }

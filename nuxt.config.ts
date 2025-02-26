@@ -1,4 +1,4 @@
-import { fileURLToPath } from "url";
+import { fileURLToPath } from 'url'
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -22,7 +22,7 @@ export default defineNuxtConfig({
     '~/assets/css/tailwind.css',
     '~/assets/css/main.scss',
     '~/assets/css/modules/floating-vue.scss',
-    '~/assets/css/modules/notyf.scss'
+    '~/assets/css/modules/notyf.scss',
   ],
   experimental: {
     appManifest: false, // BIG IMPORTANT
