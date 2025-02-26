@@ -1,8 +1,8 @@
+import GameLoader from '#src-common/core/loaders/GameLoader'
+import GameLibraryModel from '#src-common/core/models/GameLibraryModel'
 import type GameModel from '#src-common/core/models/GameModel'
 import { GameLibraryService } from '#src-common/core/services/GameLibraryService'
 import type { iGameLibraryCommand } from '#src-common/core/services/GameLibraryService'
-import GameLibraryModel from '#src-common/core/models/GameLibraryModel'
-import GameLoader from '#src-common/core/loaders/GameLoader'
 
 /**
  * GameLibraryLoader

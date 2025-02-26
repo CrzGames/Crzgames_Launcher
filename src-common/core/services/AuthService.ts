@@ -1,14 +1,14 @@
-import BaseApiService from '#src-common/core/services/BaseApiService'
 import type {
-  ValidateAccountCommand,
+  AuthModel,
+  LoginCommand,
   ResetEmailCommand,
   ResetPasswordCommand,
-  LoginCommand,
   SignUpCommand,
-  AuthModel,
+  ValidateAccountCommand,
 } from '#src-common/core/models/AuthModel'
-import type UserModel from '#src-common/core/models/UserModel'
 import type { SuccessResponse } from '#src-common/core/models/BaseModel'
+import type UserModel from '#src-common/core/models/UserModel'
+import BaseApiService from '#src-common/core/services/BaseApiService'
 
 /**
  * AuthService

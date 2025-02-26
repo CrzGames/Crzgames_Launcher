@@ -22,18 +22,18 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watchEffect } from 'vue'
-import type { Ref } from 'vue'
-import { useAuthStore } from '#src-nuxt/stores/auth.store'
-import CrzInput from '#src-common/components/buttons/CrzInput.vue'
 import CrzButton from '#src-common/components/buttons/CrzButton.vue'
+import CrzInput from '#src-common/components/buttons/CrzInput.vue'
+import CrzConfirmModal from '#src-common/components/modals/CrzConfirmModal.vue'
+import type { AuthModel } from '#src-common/core/models/AuthModel'
+import AuthService from '#src-common/core/services/AuthService'
 import { TauriService } from '#src-core/services/TauriService'
 import type { Credentials } from '#src-core/services/TauriService'
-import type { AuthModel } from '#src-common/core/models/AuthModel'
-import CrzConfirmModal from '#src-common/components/modals/CrzConfirmModal.vue'
-import AuthService from '#src-common/core/services/AuthService'
 import { useAppStore } from '#src-nuxt/stores/app.store'
+import { useAuthStore } from '#src-nuxt/stores/auth.store'
 import { Form } from 'vee-validate'
+import { ref, watchEffect } from 'vue'
+import type { Ref } from 'vue'
 
 const { $notyf } = useNuxtApp()
 

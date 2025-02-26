@@ -54,8 +54,8 @@
 </template>
 
 <script lang="ts" setup>
-import { Form } from 'vee-validate'
 import CrzButton from '#src-common/components/buttons/CrzButton.vue'
+import { Form } from 'vee-validate'
 
 /* TYPES */
 /**

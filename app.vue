@@ -13,20 +13,20 @@
 </template>
 
 <script lang="ts" setup>
-import { listen } from '@tauri-apps/api/event'
-import type { UnlistenFn } from '@tauri-apps/api/event'
-import { TauriService } from '#src-core/services/TauriService'
-import type { GameManifestLocal, GameProgressDownload } from '#src-core/services/TauriService'
-import { onMounted, onBeforeUnmount } from 'vue'
-import { useWindowStore } from '#src-nuxt/stores/window.store'
 import CrzSpinner from '#src-common/components/loaders/CrzSpinner.vue'
-import { useDownloadsStore } from '#src-nuxt/stores/downloads.store'
-import type { ActiveDownloadGame } from '#src-nuxt/stores/downloads.store'
 import type GameModel from '#src-common/core/models/GameModel'
 import { GameService } from '#src-common/core/services/GameService'
+import { TauriService } from '#src-core/services/TauriService'
+import type { GameManifestLocal, GameProgressDownload } from '#src-core/services/TauriService'
+import { useDownloadsStore } from '#src-nuxt/stores/downloads.store'
+import type { ActiveDownloadGame } from '#src-nuxt/stores/downloads.store'
+import { useWindowStore } from '#src-nuxt/stores/window.store'
+import { listen } from '@tauri-apps/api/event'
+import type { UnlistenFn } from '@tauri-apps/api/event'
 import { enable, isEnabled } from '@tauri-apps/plugin-autostart'
-import { defineRule } from 'vee-validate'
 import { email } from '@vee-validate/rules'
+import { defineRule } from 'vee-validate'
+import { onBeforeUnmount, onMounted } from 'vue'
 
 // define global rules
 defineRule('email', email)

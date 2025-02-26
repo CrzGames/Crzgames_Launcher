@@ -1,6 +1,6 @@
 import { BaseModel } from '#src-common/core/models/BaseModel'
-import type GamePlatformModel from '#src-common/core/models/GamePlatformModel'
 import type FileModel from '#src-common/core/models/FileModel'
+import type GamePlatformModel from '#src-common/core/models/GamePlatformModel'
 
 /**
  * Class for the game binary object

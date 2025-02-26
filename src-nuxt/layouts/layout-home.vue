@@ -28,9 +28,9 @@
 </template>
 
 <script lang="ts" setup>
-import { useAppStore } from '#src-nuxt/stores/app.store'
-import SideBarRight from '#src-nuxt/components/navigations/SideBarRight.vue'
-import SideBarLeft from '#src-nuxt/components/navigations/SideBarLeft.vue'
-import WindowBar from '#src-nuxt/components/window-bar/WindowBar.vue'
 import CrzSpinner from '#src-common/components/loaders/CrzSpinner.vue'
+import SideBarLeft from '#src-nuxt/components/navigations/SideBarLeft.vue'
+import SideBarRight from '#src-nuxt/components/navigations/SideBarRight.vue'
+import WindowBar from '#src-nuxt/components/window-bar/WindowBar.vue'
+import { useAppStore } from '#src-nuxt/stores/app.store'
 </script>

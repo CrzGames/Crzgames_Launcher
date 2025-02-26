@@ -9,10 +9,10 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue'
 import CrzIcon from '#src-common/components/ui/CrzIcon.vue'
 import { platformsIcons } from '#src-common/components/ui/platforms-icons'
 import type { tPlatformsIcons } from '#src-common/components/ui/platforms-icons'
+import { computed } from 'vue'
 
 /* TYPES*/
 /**

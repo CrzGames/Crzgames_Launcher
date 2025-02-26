@@ -60,11 +60,11 @@
 
 <script lang="ts" setup>
 import CrzIcon from '#src-common/components/ui/CrzIcon.vue'
+import type { UserConnectedStatus } from '#src-core/services/TauriService'
 import Divider from '#src-nuxt/components/ui/Divider.vue'
 import { useAuthStore } from '#src-nuxt/stores/auth.store'
 import { exit } from '@tauri-apps/plugin-process'
 import type { PropType } from 'vue'
-import type { UserConnectedStatus } from '#src-core/services/TauriService'
 
 /* EMITS */
 //const emit: (event: 'open-myprofile-modal', ...args: any[]) => void = defineEmits(['open-myprofile-modal'])

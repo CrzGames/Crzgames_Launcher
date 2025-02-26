@@ -1,6 +1,6 @@
-import BaseApiService from '#src-common/core/services/BaseApiService'
-import type GameModel from '#src-common/core/models/GameModel'
 import type GameLibraryModel from '#src-common/core/models/GameLibraryModel'
+import type GameModel from '#src-common/core/models/GameModel'
+import BaseApiService from '#src-common/core/services/BaseApiService'
 
 /**
  * iGameLibraryCommand

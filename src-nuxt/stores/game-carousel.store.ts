@@ -1,8 +1,8 @@
-import { defineStore } from 'pinia'
-import type { GameCarouselModel } from '#src-common/core/models/GameCarouselModel'
 import GameCarouselLoader from '#src-common/core/loaders/GameCarouselLoader'
-import { useAppStore } from '#src-nuxt/stores/app.store'
+import type { GameCarouselModel } from '#src-common/core/models/GameCarouselModel'
 import { getS3FileUrl } from '#src-common/core/utils/s3Utils'
+import { useAppStore } from '#src-nuxt/stores/app.store'
+import { defineStore } from 'pinia'
 
 /**
  * Carousel item type

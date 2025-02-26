@@ -1,5 +1,5 @@
-import BaseApiService from '#src-common/core/services/BaseApiService'
 import type { GameCarouselModel } from '#src-common/core/models/GameCarouselModel'
+import BaseApiService from '#src-common/core/services/BaseApiService'
 
 /**
  * Game carousel command interface

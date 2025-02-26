@@ -31,8 +31,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
 import CrzSquareIconButton from '#src-common/components/buttons/CrzSquareIconButton.vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import type { Ref } from 'vue'
 
 /* REFS */

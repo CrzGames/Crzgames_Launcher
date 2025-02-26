@@ -27,9 +27,9 @@
 
 <script lang="ts" setup>
 import CrzModal from '#src-common/components/modals/CrzModal.vue'
+import type { PathInstallLocation } from '#src-core/services/TauriService'
 import DownloadForm from '#src-nuxt/components/forms/DownloadForm.vue'
 import type { PropType } from 'vue'
-import type { PathInstallLocation } from '#src-core/services/TauriService'
 
 /* TYPES */
 /**

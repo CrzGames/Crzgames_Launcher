@@ -1,18 +1,18 @@
-import { defineStore } from 'pinia'
-import type {
-  ResetPasswordCommand,
-  ResetEmailCommand,
-  LoginCommand,
-  SignUpCommand,
-  AuthModel,
-} from '#src-common/core/models/AuthModel'
-import UserModel from '#src-common/core/models/UserModel'
 import AuthLoader from '#src-common/core/loaders/AuthLoader'
-import { useAppStore } from '#src-nuxt/stores/app.store'
-import CookieService from '#src-common/core/services/CookieService'
+import type {
+  AuthModel,
+  LoginCommand,
+  ResetEmailCommand,
+  ResetPasswordCommand,
+  SignUpCommand,
+} from '#src-common/core/models/AuthModel'
 import type { SuccessResponse } from '#src-common/core/models/BaseModel'
-import type { Router } from 'vue-router'
+import UserModel from '#src-common/core/models/UserModel'
+import CookieService from '#src-common/core/services/CookieService'
 import { TauriService } from '#src-core/services/TauriService'
+import { useAppStore } from '#src-nuxt/stores/app.store'
+import { defineStore } from 'pinia'
+import type { Router } from 'vue-router'
 
 const user: string | undefined = CookieService.getCookie('user')
 const tempVerifyEmail: string | undefined = CookieService.getCookie('temp_verify_email')

@@ -36,8 +36,8 @@
 </template>
 
 <script lang="ts" setup>
-import { Window } from '@tauri-apps/api/window'
 import CrzIcon from '#src-common/components/ui/CrzIcon.vue'
+import { Window } from '@tauri-apps/api/window'
 import { useRoute } from 'vue-router'
 import type { RouteLocationNormalizedLoaded } from 'vue-router'
 

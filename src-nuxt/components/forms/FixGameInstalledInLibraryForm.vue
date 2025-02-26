@@ -123,12 +123,12 @@
 </template>
 
 <script lang="ts" setup>
-import { Form } from 'vee-validate'
 import CrzButton from '#src-common/components/buttons/CrzButton.vue'
+import CrzIcon from '#src-common/components/ui/CrzIcon.vue'
 import Divider from '#src-nuxt/components/ui/Divider.vue'
+import { Form } from 'vee-validate'
 import type { ComputedRef, PropType } from 'vue'
 import type { PathInstallLocation } from '~~/src-core/services/TauriService'
-import CrzIcon from '#src-common/components/ui/CrzIcon.vue'
 
 /* TYPES */
 /**

@@ -1,6 +1,6 @@
+import { useAppStore } from '#src-nuxt/stores/app.store'
 import { defineNuxtRouteMiddleware } from 'nuxt/app'
 import type { RouteLocationNormalized } from 'vue-router'
-import { useAppStore } from '#src-nuxt/stores/app.store'
 
 /**
  * Middleware pour stocker la route précédente

@@ -11,14 +11,14 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue'
-import type { Ref } from 'vue'
 import CrzLogo2 from '#src-common/components/ui/CrzLogo2.vue'
-import AutoUpdateLoader from '#src-nuxt/components/loaders/AutoUpdateLoader.vue'
 import { TauriService } from '#src-core/services/TauriService'
+import AutoUpdateLoader from '#src-nuxt/components/loaders/AutoUpdateLoader.vue'
+import { relaunch } from '@tauri-apps/plugin-process'
 import type { DownloadEvent, Update } from '@tauri-apps/plugin-updater'
 import { check } from '@tauri-apps/plugin-updater'
-import { relaunch } from '@tauri-apps/plugin-process'
+import { onMounted, ref } from 'vue'
+import type { Ref } from 'vue'
 
 /* REFS */
 const updateStatus: Ref<string> = ref('Check for update...')

@@ -1,6 +1,6 @@
+import CookieService from '#src-common/core/services/CookieService'
 import axios from 'axios'
 import type { AxiosInstance, AxiosResponse } from 'axios'
-import CookieService from '#src-common/core/services/CookieService'
 
 /**
  * BaseApiService

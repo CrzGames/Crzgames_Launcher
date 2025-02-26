@@ -1,14 +1,14 @@
-import { defineStore } from 'pinia'
-import type { iGameCommand, iUpdateGameCommand } from '#src-common/core/services/GameService'
-import type GameModel from '#src-common/core/models/GameModel'
 import GameLoader from '#src-common/core/loaders/GameLoader'
-import { useAppStore } from '#src-nuxt/stores/app.store'
-import type { iGameBinaryCommand } from '#src-common/core/services/GameBinaryService'
-import { TauriService } from '#src-core/services/TauriService'
-import type { SystemOSInfo } from '#src-core/services/TauriService'
-import type GamePlatformModel from '#src-common/core/models/GamePlatformModel'
 import type GameBinaryModel from '#src-common/core/models/GameBinaryModel'
 import type GameCategoryModel from '#src-common/core/models/GameCategoryModel'
+import type GameModel from '#src-common/core/models/GameModel'
+import type GamePlatformModel from '#src-common/core/models/GamePlatformModel'
+import type { iGameBinaryCommand } from '#src-common/core/services/GameBinaryService'
+import type { iGameCommand, iUpdateGameCommand } from '#src-common/core/services/GameService'
+import { TauriService } from '#src-core/services/TauriService'
+import type { SystemOSInfo } from '#src-core/services/TauriService'
+import { useAppStore } from '#src-nuxt/stores/app.store'
+import { defineStore } from 'pinia'
 
 const { $notyf } = useNuxtApp()
 

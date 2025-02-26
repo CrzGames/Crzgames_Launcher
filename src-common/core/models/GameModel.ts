@@ -1,8 +1,8 @@
 import { BaseModel } from '#src-common/core/models/BaseModel'
+import type FileModel from '#src-common/core/models/FileModel'
+import type GameBinaryModel from '#src-common/core/models/GameBinaryModel'
 import type GameCategoryModel from '#src-common/core/models/GameCategoryModel'
 import type GamePlatformModel from '#src-common/core/models/GamePlatformModel'
-import type GameBinaryModel from '#src-common/core/models/GameBinaryModel'
-import type FileModel from '#src-common/core/models/FileModel'
 
 const PCPlatforms: string[] = [
   'windows',

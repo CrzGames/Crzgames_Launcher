@@ -1,7 +1,7 @@
-import { defineNuxtRouteMiddleware } from 'nuxt/app'
-import type { RouteLocationNormalized } from 'vue-router'
 import { TauriService } from '#src-core/services/TauriService'
 import { useAuthStore } from '#src-nuxt/stores/auth.store'
+import { defineNuxtRouteMiddleware } from 'nuxt/app'
+import type { RouteLocationNormalized } from 'vue-router'
 
 /**
  * Middleware pour vérifier si l'utilisateur est connecté

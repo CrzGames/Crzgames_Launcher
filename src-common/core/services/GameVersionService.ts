@@ -1,5 +1,5 @@
-import BaseApiService from '#src-common/core/services/BaseApiService'
 import type { GameVersionModel } from '#src-common/core/models/GameVersionModel'
+import BaseApiService from '#src-common/core/services/BaseApiService'
 
 /**
  * GameVersionCommand

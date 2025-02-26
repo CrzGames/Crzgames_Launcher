@@ -30,17 +30,17 @@
 </template>
 
 <script lang="ts" setup>
-import CrzLogo2 from '#src-common/components/ui/CrzLogo2.vue'
-import WindowBar from '#src-nuxt/components/window-bar/WindowBar.vue'
-import LoginForm from '#src-nuxt/components/forms/LoginForm.vue'
 import CrzCheckbox from '#src-common/components/buttons/CrzCheckbox.vue'
-import LoginLinks from '#src-nuxt/components/login/LoginLinks.vue'
-import { onMounted, ref } from 'vue'
+import CrzSquareIconButton from '#src-common/components/buttons/CrzSquareIconButton.vue'
+import CrzLogo2 from '#src-common/components/ui/CrzLogo2.vue'
 import type { Credentials, SystemOSInfo } from '#src-core/services/TauriService'
 import { TauriService } from '#src-core/services/TauriService'
-import type { Ref } from 'vue'
+import LoginForm from '#src-nuxt/components/forms/LoginForm.vue'
+import LoginLinks from '#src-nuxt/components/login/LoginLinks.vue'
+import WindowBar from '#src-nuxt/components/window-bar/WindowBar.vue'
 import { useWindowStore } from '#src-nuxt/stores/window.store'
-import CrzSquareIconButton from '#src-common/components/buttons/CrzSquareIconButton.vue'
+import { onMounted, ref } from 'vue'
+import type { Ref } from 'vue'
 
 /* REFS */
 const stayLoggedIn: Ref<boolean> = ref(false)

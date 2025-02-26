@@ -1,9 +1,9 @@
 import { BaseModel } from '#src-common/core/models/BaseModel'
+import type FileModel from '#src-common/core/models/FileModel'
+import type GameModel from '#src-common/core/models/GameModel'
 import type GameServerModel from '#src-common/core/models/GameServerModel'
 import type ProductCategoryModel from '#src-common/core/models/ProductCategoryModel'
 import type ProductDiscountModel from '#src-common/core/models/ProductDiscountModel'
-import type FileModel from '#src-common/core/models/FileModel'
-import type GameModel from '#src-common/core/models/GameModel'
 
 /**
  * @interface iProduct

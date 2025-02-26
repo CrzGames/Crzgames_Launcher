@@ -1,5 +1,5 @@
-import { GameCarouselService } from '#src-common/core/services/GameCarouselService'
 import { GameCarouselModel } from '#src-common/core/models/GameCarouselModel'
+import { GameCarouselService } from '#src-common/core/services/GameCarouselService'
 
 /**
  * Game carousel loader

@@ -49,8 +49,8 @@
 </template>
 
 <script lang="ts" setup>
-import CrzIcon from '#src-common/components/ui/CrzIcon.vue'
 import CrzButton from '#src-common/components/buttons/CrzButton.vue'
+import CrzIcon from '#src-common/components/ui/CrzIcon.vue'
 
 /**
  * Modal component

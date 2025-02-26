@@ -1,6 +1,6 @@
+import { UserRoles } from '#src-common/core/enums/UserRoles'
 import { BaseModel } from '#src-common/core/models/BaseModel'
 import type UserRoleModel from '#src-common/core/models/UserRoleModel'
-import { UserRoles } from '#src-common/core/enums/UserRoles'
 
 /**
  * @class UserModel

@@ -57,18 +57,14 @@
 </template>
 
 <script lang="ts" setup>
-import type { ComputedRef, Ref } from 'vue'
-import { ref } from 'vue'
-import type { ActiveDownloadGame, CompleteDownloadGame } from '#src-nuxt/stores/downloads.store'
-import { useDownloadsStore } from '#src-nuxt/stores/downloads.store'
-import ActiveDownloadCard from '#src-nuxt/components/cards/ActiveDownloadCard.vue'
-import CompleteDownloadCard from '#src-nuxt/components/cards/CompleteDownloadCard.vue'
 import CrzConfirmModal from '#src-common/components/modals/CrzConfirmModal.vue'
-import { bytesToSize } from '#src-core/utils/bytesToSize'
-import { useAuthStore } from '#src-nuxt/stores/auth.store'
-import type UserModel from '#src-common/core/models/UserModel'
+import type GameBinaryModel from '#src-common/core/models/GameBinaryModel'
 import type GameModel from '#src-common/core/models/GameModel'
+import type GamePlatformModel from '#src-common/core/models/GamePlatformModel'
+import type { GameVersionModel } from '#src-common/core/models/GameVersionModel'
+import type UserModel from '#src-common/core/models/UserModel'
 import { GameService } from '#src-common/core/services/GameService'
+import { GameVersionService } from '#src-common/core/services/GameVersionService'
 import {
   type FileDetails,
   type GameManifestLocal,
@@ -76,10 +72,14 @@ import {
   type SystemOSInfo,
   TauriService,
 } from '#src-core/services/TauriService'
-import type GamePlatformModel from '#src-common/core/models/GamePlatformModel'
-import type GameBinaryModel from '#src-common/core/models/GameBinaryModel'
-import type { GameVersionModel } from '#src-common/core/models/GameVersionModel'
-import { GameVersionService } from '#src-common/core/services/GameVersionService'
+import { bytesToSize } from '#src-core/utils/bytesToSize'
+import ActiveDownloadCard from '#src-nuxt/components/cards/ActiveDownloadCard.vue'
+import CompleteDownloadCard from '#src-nuxt/components/cards/CompleteDownloadCard.vue'
+import { useAuthStore } from '#src-nuxt/stores/auth.store'
+import type { ActiveDownloadGame, CompleteDownloadGame } from '#src-nuxt/stores/downloads.store'
+import { useDownloadsStore } from '#src-nuxt/stores/downloads.store'
+import type { ComputedRef, Ref } from 'vue'
+import { ref } from 'vue'
 
 const { $notyf } = useNuxtApp()
 

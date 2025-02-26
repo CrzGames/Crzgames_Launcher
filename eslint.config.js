@@ -1,13 +1,13 @@
-import eslintConfigPrettier from 'eslint-config-prettier'
-import eslintPluginPrettier from 'eslint-plugin-prettier'
-import eslintPluginTypeScript from '@typescript-eslint/eslint-plugin'
 import eslintPluginStylistic from '@stylistic/eslint-plugin'
-import eslintPluginJSDoc from 'eslint-plugin-jsdoc'
-import eslintPluginUnusedImports from 'eslint-plugin-unused-imports'
+import eslintPluginTypeScript from '@typescript-eslint/eslint-plugin'
+import eslintParserTypeScript from '@typescript-eslint/parser'
+import eslintConfigPrettier from 'eslint-config-prettier'
 import eslintPluginImport from 'eslint-plugin-import'
+import eslintPluginJSDoc from 'eslint-plugin-jsdoc'
+import eslintPluginPrettier from 'eslint-plugin-prettier'
+import eslintPluginUnusedImports from 'eslint-plugin-unused-imports'
 import eslintPluginVue from 'eslint-plugin-vue'
 import eslintParserVue from 'vue-eslint-parser'
-import eslintParserTypeScript from '@typescript-eslint/parser'
 
 // Configuration principale
 const mainConfig = {
@@ -68,6 +68,8 @@ const mainConfig = {
     /**
      * ESLINT PLUGIN : eslint-plugin-import
      */
+
+    // Prévient les imports non résolus, aidant à identifier les dépendances manquantes.
     'eslint-plugin-import/no-unresolved': 'error',
 
     /**

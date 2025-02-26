@@ -1,7 +1,7 @@
 import type { Config } from 'tailwindcss'
 
 /** @type {import('tailwindcss').Config} */
-export default <Partial<Config>>{
+export default {
   content: ['./src-nuxt/**/*.vue', './src-common/**/*.vue', './error.vue', './app.vue'],
   theme: {
     screens: {
@@ -48,4 +48,4 @@ export default <Partial<Config>>{
     },
   },
   plugins: [],
-}
+} as Partial<Config>

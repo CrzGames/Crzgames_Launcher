@@ -1,5 +1,5 @@
-import BaseApiService from '#src-common/core/services/BaseApiService'
 import type GameBinaryModel from '#src-common/core/models/GameBinaryModel'
+import BaseApiService from '#src-common/core/services/BaseApiService'
 
 /**
  * iGameBinaryCommand

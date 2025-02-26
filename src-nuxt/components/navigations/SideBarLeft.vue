@@ -52,10 +52,10 @@
 </template>
 
 <script lang="ts" setup>
-import { useRoute } from 'vue-router'
 import CrzIcon from '#src-common/components/ui/CrzIcon.vue'
 import { ref } from 'vue'
 import type { Ref } from 'vue'
+import { useRoute } from 'vue-router'
 
 /* TYPES */
 /**

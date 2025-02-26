@@ -1,5 +1,5 @@
-import BaseApiService from '#src-common/core/services/BaseApiService'
 import type ProductModel from '#src-common/core/models/ProductModel'
+import BaseApiService from '#src-common/core/services/BaseApiService'
 
 /**
  * @interface ProductCommand

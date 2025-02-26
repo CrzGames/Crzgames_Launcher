@@ -73,15 +73,15 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue'
-import type { Ref } from 'vue'
 import CrzAvatar from '#src-common/components/ui/CrzAvatar.vue'
-import { useAuthStore } from '#src-nuxt/stores/auth.store'
 import CrzIcon from '#src-common/components/ui/CrzIcon.vue'
 import type UserModel from '#src-common/core/models/UserModel'
 import { TauriService } from '#src-core/services/TauriService'
 import type { UserConnectedStatus } from '#src-core/services/TauriService'
 import UserMenu from '#src-nuxt/components/menus/UserMenu.vue'
+import { useAuthStore } from '#src-nuxt/stores/auth.store'
+import { onMounted, ref } from 'vue'
+import type { Ref } from 'vue'
 
 /* REFS */
 const user: Ref<UserModel | undefined> = ref(useAuthStore().user)

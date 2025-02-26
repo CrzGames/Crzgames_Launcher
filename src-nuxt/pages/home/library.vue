@@ -199,12 +199,18 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref, watch, watchEffect } from 'vue'
 import CrzGameCard from '#src-common/components/cards/CrzGameCard.vue'
 import CrzSearchBar from '#src-common/components/inputs/CrzSearchBar.vue'
-import { useGameLibraryStore } from '#src-nuxt/stores/gameLibrary.store'
-import type { Ref } from 'vue'
+import CrzSpinner from '#src-common/components/loaders/CrzSpinner.vue'
+import CrzIcon from '#src-common/components/ui/CrzIcon.vue'
+import type GameBinaryModel from '#src-common/core/models/GameBinaryModel'
 import type GameModel from '#src-common/core/models/GameModel'
+import type GamePlatformModel from '#src-common/core/models/GamePlatformModel'
+import type { GameVersionModel } from '#src-common/core/models/GameVersionModel'
+import type UserModel from '#src-common/core/models/UserModel'
+import { CloudStorageS3Service, type TotalSizeResponse } from '#src-common/core/services/CloudStorageS3Service'
+import { GameService } from '#src-common/core/services/GameService'
+import { GameVersionService } from '#src-common/core/services/GameVersionService'
 import type {
   FileDetails,
   GameInstalled,
@@ -215,18 +221,12 @@ import type {
 } from '#src-core/services/TauriService'
 import { TauriService } from '#src-core/services/TauriService'
 import DownloadModal from '#src-nuxt/components/modals/DownloadModal.vue'
-import type GamePlatformModel from '#src-common/core/models/GamePlatformModel'
-import type GameBinaryModel from '#src-common/core/models/GameBinaryModel'
-import CrzSpinner from '#src-common/components/loaders/CrzSpinner.vue'
-import { GameService } from '#src-common/core/services/GameService'
-import { CloudStorageS3Service, type TotalSizeResponse } from '#src-common/core/services/CloudStorageS3Service'
-import type { GameVersionModel } from '#src-common/core/models/GameVersionModel'
-import { GameVersionService } from '#src-common/core/services/GameVersionService'
-import type UserModel from '#src-common/core/models/UserModel'
 import FixGameInstalledInLibraryModal from '#src-nuxt/components/modals/FixGameInstalledInLibraryModal.vue'
 import PlayGameNotFoundExecutableModal from '#src-nuxt/components/modals/PlayGameNotFoundExecutableModal.vue'
-import CrzIcon from '#src-common/components/ui/CrzIcon.vue'
 import { useAuthStore } from '#src-nuxt/stores/auth.store'
+import { useGameLibraryStore } from '#src-nuxt/stores/gameLibrary.store'
+import { onMounted, ref, watch, watchEffect } from 'vue'
+import type { Ref } from 'vue'
 
 const { $notyf } = useNuxtApp()
 

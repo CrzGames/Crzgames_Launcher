@@ -1,16 +1,16 @@
+import { CloudStorageS3Service } from '#src-common/core/services/CloudStorageS3Service'
 import { invoke } from '@tauri-apps/api/core'
-import { open } from '@tauri-apps/plugin-dialog'
+import { LogicalSize } from '@tauri-apps/api/dpi'
 import { appConfigDir, sep } from '@tauri-apps/api/path'
+import { Window } from '@tauri-apps/api/window'
+import { open } from '@tauri-apps/plugin-dialog'
 import type { RemoveOptions } from '@tauri-apps/plugin-fs'
 import { BaseDirectory, exists, mkdir, readTextFile, remove, writeTextFile } from '@tauri-apps/plugin-fs'
-import { Base64 } from 'js-base64'
-import { LogicalSize } from '@tauri-apps/api/dpi'
-import { Window } from '@tauri-apps/api/window'
+import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification'
 import type { Arch, OsType, Platform } from '@tauri-apps/plugin-os'
 import { arch, hostname, platform, type } from '@tauri-apps/plugin-os'
-import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification'
+import { Base64 } from 'js-base64'
 import { useWindowStore } from '~~/src-nuxt/stores/window.store'
-import { CloudStorageS3Service } from '#src-common/core/services/CloudStorageS3Service'
 
 /**
  * Statut de connexion de l'utilisateur

@@ -53,8 +53,8 @@
 
 <script lang="ts" setup>
 import CrzIcon from '#src-common/components/ui/CrzIcon.vue'
+import { ErrorMessage, Field } from 'vee-validate'
 import type { Ref } from 'vue'
-import { Field, ErrorMessage } from 'vee-validate'
 import { ref } from 'vue'
 
 /* INTERFACE */
