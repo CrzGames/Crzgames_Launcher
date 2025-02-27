@@ -1,9 +1,11 @@
+import { defineStore } from 'pinia'
+
 import type GameModel from '#src-common/core/models/GameModel'
 import type UserModel from '#src-common/core/models/UserModel'
 import { GameService } from '#src-common/core/services/GameService'
+
 import type { GameManifestLocal, GameProgressDownload } from '#src-core/services/TauriService'
 import { TauriService } from '#src-core/services/TauriService'
-import { defineStore } from 'pinia'
 
 // eslint-disable-next-line @typescript-eslint/typedef
 export const useDownloadsStore = defineStore('downloads', {

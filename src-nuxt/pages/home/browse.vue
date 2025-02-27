@@ -50,6 +50,10 @@
 </template>
 
 <script lang="ts" setup>
+import { onMounted, ref } from 'vue'
+import type { Ref } from 'vue'
+import { useGameStore } from '~~/src-nuxt/stores/game.store'
+
 import CrzGameCard from '#src-common/components/cards/CrzGameCard.vue'
 import CrzSearchBar from '#src-common/components/inputs/CrzSearchBar.vue'
 import CrzSpinner from '#src-common/components/loaders/CrzSpinner.vue'
@@ -57,11 +61,10 @@ import CrzBadge from '#src-common/components/ui/CrzBadge.vue'
 import CrzIcon from '#src-common/components/ui/CrzIcon.vue'
 import type GameModel from '#src-common/core/models/GameModel'
 import { type GamePaidAndOwnedStatus, ProductService } from '#src-common/core/services/ProductService'
+
 import type { ExtendedGameModel } from '#src-core/types/ExtendedGameModel'
+
 import { useGameLibraryStore } from '#src-nuxt/stores/gameLibrary.store'
-import { onMounted, ref } from 'vue'
-import type { Ref } from 'vue'
-import { useGameStore } from '~~/src-nuxt/stores/game.store'
 
 const { $notyf } = useNuxtApp()
 

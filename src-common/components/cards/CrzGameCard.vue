@@ -141,14 +141,16 @@
 </template>
 
 <script setup lang="ts">
+import { computed, ref, useSlots } from 'vue'
+import type { ComputedRef, PropType, Ref } from 'vue'
+
 import CrzSquareIconButton from '#src-common/components/buttons/CrzSquareIconButton.vue'
 import CrzIcon from '#src-common/components/ui/CrzIcon.vue'
 import CrzPlatformsIcons from '#src-common/components/ui/CrzPlatformsIcons.vue'
 import type GameCategoryModel from '#src-common/core/models/GameCategoryModel'
 import type GamePlatformModel from '#src-common/core/models/GamePlatformModel'
+
 import EllipsisDropdownMenu from '#src-nuxt/components/menus/EllipsisDropdownMenu.vue'
-import { computed, ref, useSlots } from 'vue'
-import type { ComputedRef, PropType, Ref } from 'vue'
 
 /* TYPES */
 /**

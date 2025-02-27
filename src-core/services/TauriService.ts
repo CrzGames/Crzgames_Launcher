@@ -1,4 +1,3 @@
-import { CloudStorageS3Service } from '#src-common/core/services/CloudStorageS3Service'
 import { invoke } from '@tauri-apps/api/core'
 import { LogicalSize } from '@tauri-apps/api/dpi'
 import { appConfigDir, sep } from '@tauri-apps/api/path'
@@ -11,6 +10,8 @@ import type { Arch, OsType, Platform } from '@tauri-apps/plugin-os'
 import { arch, hostname, platform, type } from '@tauri-apps/plugin-os'
 import { Base64 } from 'js-base64'
 import { useWindowStore } from '~~/src-nuxt/stores/window.store'
+
+import { CloudStorageS3Service } from '#src-common/core/services/CloudStorageS3Service'
 
 /**
  * Statut de connexion de l'utilisateur

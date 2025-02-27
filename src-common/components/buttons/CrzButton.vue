@@ -18,9 +18,10 @@
   </component>
 </template>
 <script lang="ts" setup>
-import CrzSpinner from '#src-common/components/loaders/CrzSpinner.vue'
 import { computed } from 'vue'
 import type { ComputedRef } from 'vue'
+
+import CrzSpinner from '#src-common/components/loaders/CrzSpinner.vue'
 
 /* PROPS */
 // eslint-disable-next-line @typescript-eslint/typedef

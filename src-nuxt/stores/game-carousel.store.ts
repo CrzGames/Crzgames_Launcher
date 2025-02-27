@@ -1,8 +1,10 @@
+import { defineStore } from 'pinia'
+
 import GameCarouselLoader from '#src-common/core/loaders/GameCarouselLoader'
 import type { GameCarouselModel } from '#src-common/core/models/GameCarouselModel'
 import { getS3FileUrl } from '#src-common/core/utils/s3Utils'
+
 import { useAppStore } from '#src-nuxt/stores/app.store'
-import { defineStore } from 'pinia'
 
 /**
  * Carousel item type
@@ -13,7 +15,6 @@ import { defineStore } from 'pinia'
  * @property {string} button_content - button content
  * @property {string} button_url - button URL
  */
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export type tCarouselItem = {
   imageUrl: string | null
   title?: string | null
@@ -37,7 +38,6 @@ export type tCarouselItem = {
  * @property {number | undefined} imageFilesId - image files ID
  * @property {number | undefined} logoFilesId - logo files ID
  */
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export interface iGameCarouselFormCommand {
   id: number
   title: string
@@ -174,14 +174,12 @@ export const useGameCarouselStore = defineStore('gameCarouselStore', {
      * @param {any} state - state
      * @returns {GameCarouselModel[]} - carousels
      */
-    // eslint-disable-next-line @typescript-eslint/typedef
     carousels: (state: any): GameCarouselModel[] => state._carousels,
     /**
      * Get carousel form commands
      * @param {any} state - state
      * @returns {iGameCarouselFormCommand[]} - carousel form commands
      */
-    // eslint-disable-next-line @typescript-eslint/typedef
     carouselFormCommands: (state: any): iGameCarouselFormCommand[] => state._carouselFormCommands,
     /**
      * Get carousel items

@@ -1,13 +1,16 @@
+import { defineStore } from 'pinia'
+
 import GameLibraryLoader from '#src-common/core/loaders/GameLibraryLoader'
 import type GameBinaryModel from '#src-common/core/models/GameBinaryModel'
 import type GameModel from '#src-common/core/models/GameModel'
 import type GamePlatformModel from '#src-common/core/models/GamePlatformModel'
 import type { iGameLibraryCommand } from '#src-common/core/services/GameLibraryService'
+
 import type { SystemOSInfo } from '#src-core/services/TauriService'
 import { TauriService } from '#src-core/services/TauriService'
+
 import { useAppStore } from '#src-nuxt/stores/app.store'
 import { useAuthStore } from '#src-nuxt/stores/auth.store'
-import { defineStore } from 'pinia'
 
 const { $notyf } = useNuxtApp()
 

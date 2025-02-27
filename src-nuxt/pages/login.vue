@@ -30,17 +30,20 @@
 </template>
 
 <script lang="ts" setup>
+import { onMounted, ref } from 'vue'
+import type { Ref } from 'vue'
+
 import CrzCheckbox from '#src-common/components/buttons/CrzCheckbox.vue'
 import CrzSquareIconButton from '#src-common/components/buttons/CrzSquareIconButton.vue'
 import CrzLogo2 from '#src-common/components/ui/CrzLogo2.vue'
+
 import type { Credentials, SystemOSInfo } from '#src-core/services/TauriService'
 import { TauriService } from '#src-core/services/TauriService'
+
 import LoginForm from '#src-nuxt/components/forms/LoginForm.vue'
 import LoginLinks from '#src-nuxt/components/login/LoginLinks.vue'
 import WindowBar from '#src-nuxt/components/window-bar/WindowBar.vue'
 import { useWindowStore } from '#src-nuxt/stores/window.store'
-import { onMounted, ref } from 'vue'
-import type { Ref } from 'vue'
 
 /* REFS */
 const stayLoggedIn: Ref<boolean> = ref(false)
@@ -59,9 +62,13 @@ onMounted(async (): Promise<void> => {
   osSystemCurrent = await TauriService.getSystemOSCurrent()
   if (osSystemCurrent) console.log(JSON.stringify(osSystemCurrent))
 
-  // Get Credentials saving in PC User
+  /**
+   * Récupération des identifiants de connexion sauvegarder sur le PC de l'utilisateur (stayLoggedIn.json)
+   * si l'utilisateur à cocher la case "Stay logged in" lors de la connexion précédente
+   */
   credentials.value = await TauriService.getStayLoggedIn()
   if (credentials.value) {
+    // Si les identifiants de connexion sont récupérés, on coche automatiquement la case "Stay logged in"
     stayLoggedIn.value = true
   }
 

@@ -31,9 +31,10 @@
 </template>
 
 <script setup lang="ts">
-import CrzSquareIconButton from '#src-common/components/buttons/CrzSquareIconButton.vue'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import type { Ref } from 'vue'
+
+import CrzSquareIconButton from '#src-common/components/buttons/CrzSquareIconButton.vue'
 
 /* REFS */
 const isOpen: Ref<boolean> = ref(false)

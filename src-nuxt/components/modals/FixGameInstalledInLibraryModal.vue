@@ -29,10 +29,13 @@
 </template>
 
 <script lang="ts" setup>
-import CrzModal from '#src-common/components/modals/CrzModal.vue'
-import type { PathInstallLocation } from '#src-core/services/TauriService'
-import FixGameInstalledInLibraryForm from '#src-nuxt/components/forms/FixGameInstalledInLibraryForm.vue'
 import type { PropType } from 'vue'
+
+import CrzModal from '#src-common/components/modals/CrzModal.vue'
+
+import type { PathInstallLocation } from '#src-core/services/TauriService'
+
+import FixGameInstalledInLibraryForm from '#src-nuxt/components/forms/FixGameInstalledInLibraryForm.vue'
 
 /* TYPES */
 /**

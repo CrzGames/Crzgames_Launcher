@@ -1,3 +1,6 @@
+import { defineStore } from 'pinia'
+import type { Router } from 'vue-router'
+
 import AuthLoader from '#src-common/core/loaders/AuthLoader'
 import type {
   AuthModel,
@@ -9,10 +12,10 @@ import type {
 import type { SuccessResponse } from '#src-common/core/models/BaseModel'
 import UserModel from '#src-common/core/models/UserModel'
 import CookieService from '#src-common/core/services/CookieService'
+
 import { TauriService } from '#src-core/services/TauriService'
+
 import { useAppStore } from '#src-nuxt/stores/app.store'
-import { defineStore } from 'pinia'
-import type { Router } from 'vue-router'
 
 const user: string | undefined = CookieService.getCookie('user')
 const tempVerifyEmail: string | undefined = CookieService.getCookie('temp_verify_email')

@@ -43,7 +43,9 @@
 
 <script lang="ts" setup>
 import CrzSquareIconButton from '#src-common/components/buttons/CrzSquareIconButton.vue'
+
 import { TauriService } from '#src-core/services/TauriService'
+
 import PlayPauseButton from '#src-nuxt/components/buttons/PlayPauseButton.vue'
 import ProgressBar from '#src-nuxt/components/ui/ProgressBar.vue'
 

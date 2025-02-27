@@ -19,6 +19,9 @@
 </template>
 
 <script lang="ts" setup>
+import { computed, defineProps } from 'vue'
+import type { ComputedRef, DefineComponent } from 'vue'
+
 import arrowRotate from '#src-common/components/icons/arrows-rotate.vue'
 import bookOpen from '#src-common/components/icons/book-open.vue'
 import cartPlus from '#src-common/components/icons/cart-plus.vue'
@@ -46,8 +49,6 @@ import titleBarMaximize from '#src-common/components/icons/title-bar-maximize.vu
 import titleBarMinimize from '#src-common/components/icons/title-bar-minimize.vue'
 import tooltip from '#src-common/components/icons/tool-tip.vue'
 import x from '#src-common/components/icons/x.vue'
-import { computed, defineProps } from 'vue'
-import type { ComputedRef, DefineComponent } from 'vue'
 
 /* INTERFACES */
 /**

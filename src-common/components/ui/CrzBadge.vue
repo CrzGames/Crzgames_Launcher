@@ -15,9 +15,10 @@
 </template>
 
 <script lang="ts" setup>
-import CrzIcon from '#src-common/components/ui/CrzIcon.vue'
 import { computed } from 'vue'
 import type { ComputedRef, PropType } from 'vue'
+
+import CrzIcon from '#src-common/components/ui/CrzIcon.vue'
 
 /* TYPES */
 /**

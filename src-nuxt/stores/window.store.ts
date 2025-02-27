@@ -10,7 +10,6 @@ export const useWindowStore = defineStore('window', {
     isLoading: false,
   }),
   actions: {
-    // eslint-disable-next-line jsdoc/require-returns
     /**
      * Set loading
      * @param {boolean} loading - loading

@@ -23,8 +23,9 @@
 </template>
 
 <script lang="ts" setup>
-import CrzIcon from '#src-common/components/ui/CrzIcon.vue'
 import { onMounted, onUnmounted, ref } from 'vue'
+
+import CrzIcon from '#src-common/components/ui/CrzIcon.vue'
 
 /* TYPES */
 /**

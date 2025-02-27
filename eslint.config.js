@@ -12,24 +12,11 @@ import eslintParserVue from 'vue-eslint-parser'
 // Configuration principale
 const mainConfig = {
   files: [
-    'tests/**/*.{ts,tsx}',
-    'pages/**/*.vue',
-    'components/**/*.vue',
-    'composables/**/*.{ts,tsx}',
-    'modules/**/*.{ts,tsx}',
-    'stores/**/*.{ts,tsx,vue}',
-    'plugins/**/*.{ts,tsx}',
-    'layouts/**/*.vue',
-    'middleware/**/*.{ts,tsx}',
-    'services/**/*.{ts,tsx}',
-    'models/**/*.{ts,tsx}',
-    'enums/**/*.{ts,tsx}',
-    'interfaces/**/*.{ts,tsx}',
-    'types/**/*.{ts,tsx}',
-    'filters/**/*.{ts,tsx}',
-    'utils/**/*.{ts,tsx}',
-    'directives/**/*.{ts,tsx}',
-    'common/**/*.{ts,tsx,vue}',
+    'src-common/**/*.{js,jsx,ts,tsx,vue}',
+    'src-core/**/*.{js,jsx,ts,tsx,vue}',
+    'src-nuxt/**/*.{js,jsx,ts,tsx,vue}',
+    'src-tauri/**/*.{js,jsx,ts,tsx,vue}',
+    'tests/**/*.{js,jsx,ts,tsx,vue}',
   ],
   plugins: {
     '@typescript-eslint': eslintPluginTypeScript,
@@ -96,7 +83,14 @@ const mainConfig = {
 
     // Encourage l'utilisation de la syntaxe import type {...} pour les importations de types uniquement.
     // Réduit le coût de l'importation de types en TypeScript, car les importations de types ne sont pas incluses dans le code généré.
-    '@typescript-eslint/consistent-type-imports': 'error',
+    '@typescript-eslint/consistent-type-imports': [
+      'error',
+      {
+        prefer: 'type-imports', // Toujours utiliser `import type {}`
+        fixStyle: 'separate-type-imports', // Séparer les `import type` et `import`
+        disallowTypeAnnotations: true, // Interdire les annotations de type sur les importations
+      },
+    ],
 
     // Cette règle vous aide à identifier les fonctions async qui n'utilisent pas await. Cela peut être utile pour éviter des erreurs
     // où une fonction est marquée comme async sans raison, ce qui peut conduire à des comportements inattendus ou à une consommation inutile de ressources.

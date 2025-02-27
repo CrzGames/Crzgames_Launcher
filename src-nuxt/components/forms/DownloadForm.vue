@@ -74,14 +74,16 @@
 </template>
 
 <script lang="ts" setup>
-import CrzButton from '#src-common/components/buttons/CrzButton.vue'
-import CrzCheckbox from '#src-common/components/ui/CrzCheckbox.vue'
-import CrzIcon from '#src-common/components/ui/CrzIcon.vue'
-import Divider from '#src-nuxt/components/ui/Divider.vue'
 import { Form } from 'vee-validate'
 import type { ComputedRef, PropType } from 'vue'
 import type { PathInstallLocation } from '~~/src-core/services/TauriService'
 import { bytesToSize } from '~~/src-core/utils/bytesToSize'
+
+import CrzButton from '#src-common/components/buttons/CrzButton.vue'
+import CrzCheckbox from '#src-common/components/ui/CrzCheckbox.vue'
+import CrzIcon from '#src-common/components/ui/CrzIcon.vue'
+
+import Divider from '#src-nuxt/components/ui/Divider.vue'
 
 /* TYPES */
 /**

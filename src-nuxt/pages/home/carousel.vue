@@ -9,11 +9,13 @@
 </template>
 
 <script lang="ts" setup>
+import { onMounted } from 'vue'
+
 import CrzSpinner from '#src-common/components/loaders/CrzSpinner.vue'
+
 import CrzSwiper from '#src-nuxt/components/carousel/CrzSwiper.vue'
 import { useGameCarouselStore } from '#src-nuxt/stores/game-carousel.store'
 import { useWindowStore } from '#src-nuxt/stores/window.store'
-import { onMounted } from 'vue'
 
 /* STORES */
 // eslint-disable-next-line @typescript-eslint/typedef

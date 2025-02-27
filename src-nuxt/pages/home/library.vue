@@ -199,6 +199,9 @@
 </template>
 
 <script lang="ts" setup>
+import { onMounted, ref, watch, watchEffect } from 'vue'
+import type { Ref } from 'vue'
+
 import CrzGameCard from '#src-common/components/cards/CrzGameCard.vue'
 import CrzSearchBar from '#src-common/components/inputs/CrzSearchBar.vue'
 import CrzSpinner from '#src-common/components/loaders/CrzSpinner.vue'
@@ -211,6 +214,7 @@ import type UserModel from '#src-common/core/models/UserModel'
 import { CloudStorageS3Service, type TotalSizeResponse } from '#src-common/core/services/CloudStorageS3Service'
 import { GameService } from '#src-common/core/services/GameService'
 import { GameVersionService } from '#src-common/core/services/GameVersionService'
+
 import type {
   FileDetails,
   GameInstalled,
@@ -220,13 +224,12 @@ import type {
   SystemOSInfo,
 } from '#src-core/services/TauriService'
 import { TauriService } from '#src-core/services/TauriService'
+
 import DownloadModal from '#src-nuxt/components/modals/DownloadModal.vue'
 import FixGameInstalledInLibraryModal from '#src-nuxt/components/modals/FixGameInstalledInLibraryModal.vue'
 import PlayGameNotFoundExecutableModal from '#src-nuxt/components/modals/PlayGameNotFoundExecutableModal.vue'
 import { useAuthStore } from '#src-nuxt/stores/auth.store'
 import { useGameLibraryStore } from '#src-nuxt/stores/gameLibrary.store'
-import { onMounted, ref, watch, watchEffect } from 'vue'
-import type { Ref } from 'vue'
 
 const { $notyf } = useNuxtApp()
 
@@ -339,11 +342,12 @@ const UninstallGame: (game: GameModel) => Promise<void> = async (game: GameModel
     gameNotInstalled.value = [...gameNotInstalled.value, game]
 
     $notyf.success(`The game ${game.title} has been uninstalled successfully`)
-  } catch (error) {
+  } catch (error: any) {
     showPlayGameNotFoundExecutableMessageError.value = 'uninstall game'
     gameToPlayNotFoundExecutable.value = game
     showPlayGameNotFoundExecutableModal.value = true
     showUnstallGame.value = true
+    console.error('Error occurred while uninstalling the game: ', error)
   }
 }
 
@@ -377,6 +381,7 @@ const createShortcutOnDesktop: (game: GameModel) => Promise<void> = async (game:
     showPlayGameNotFoundExecutableMessageError.value = 'could not create a desktop shortcut for the game'
     gameToPlayNotFoundExecutable.value = game
     showPlayGameNotFoundExecutableModal.value = true
+    console.error('Error occurred while creating a desktop shortcut for the game: ', error)
   }
 }
 
@@ -512,6 +517,7 @@ const onPlayGame: (game: GameModel) => Promise<Promise<void> | string> = async (
         showPlayGameNotFoundExecutableMessageError.value = 'play game'
         gameToPlayNotFoundExecutable.value = game
         showPlayGameNotFoundExecutableModal.value = true
+        console.error('Error occurred while launching the game: ', error)
       }
     }
   }
@@ -960,6 +966,7 @@ const verifyInstallationGame: (game: GameModel) => Promise<void> = async (game: 
     showFixInstallationInformationsError2.value = false
     showFixInstallationInformationsSuccess.value = false
     showFixInstallationInformationsError.value = true
+    console.error('Error occurred while getting the local manifest: ', error)
     return
   }
 

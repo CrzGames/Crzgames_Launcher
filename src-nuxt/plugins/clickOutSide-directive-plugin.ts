@@ -1,4 +1,5 @@
 import { defineNuxtPlugin } from '#app'
+
 import clickOutside from '#src-nuxt/directives/clickOutSide-directive'
 
 // eslint-disable-next-line @typescript-eslint/typedef

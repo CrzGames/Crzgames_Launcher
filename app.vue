@@ -1,7 +1,7 @@
 <template>
   <div class="h-full">
     <!-- Spinner affiché lorsque isLoading est vrai (changement de fenetre window) -->
-    <div v-if="windowStore.isLoading" class="spinner-overlay">
+    <div :class="['spinner-overlay', { show: windowStore.isLoading }]">
       <CrzSpinner />
     </div>
 
@@ -13,20 +13,23 @@
 </template>
 
 <script lang="ts" setup>
-import CrzSpinner from '#src-common/components/loaders/CrzSpinner.vue'
-import type GameModel from '#src-common/core/models/GameModel'
-import { GameService } from '#src-common/core/services/GameService'
-import { TauriService } from '#src-core/services/TauriService'
-import type { GameManifestLocal, GameProgressDownload } from '#src-core/services/TauriService'
-import { useDownloadsStore } from '#src-nuxt/stores/downloads.store'
-import type { ActiveDownloadGame } from '#src-nuxt/stores/downloads.store'
-import { useWindowStore } from '#src-nuxt/stores/window.store'
 import { listen } from '@tauri-apps/api/event'
 import type { UnlistenFn } from '@tauri-apps/api/event'
 import { enable, isEnabled } from '@tauri-apps/plugin-autostart'
 import { email } from '@vee-validate/rules'
 import { defineRule } from 'vee-validate'
 import { onBeforeUnmount, onMounted } from 'vue'
+
+import CrzSpinner from '#src-common/components/loaders/CrzSpinner.vue'
+import type GameModel from '#src-common/core/models/GameModel'
+import { GameService } from '#src-common/core/services/GameService'
+
+import { TauriService } from '#src-core/services/TauriService'
+import type { GameManifestLocal, GameProgressDownload } from '#src-core/services/TauriService'
+
+import { useDownloadsStore } from '#src-nuxt/stores/downloads.store'
+import type { ActiveDownloadGame } from '#src-nuxt/stores/downloads.store'
+import { useWindowStore } from '#src-nuxt/stores/window.store'
 
 // define global rules
 defineRule('email', email)
@@ -171,6 +174,17 @@ onBeforeUnmount((): void => {
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  background-color: rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.3s ease-in-out,
+    visibility 0.3s ease-in-out;
+}
+
+.spinner-overlay.show {
+  opacity: 1;
+  visibility: visible;
 }
 
 #__nuxt {

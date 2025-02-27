@@ -13,5 +13,8 @@ export default {
   tabWidth: 2, // Utilise des tabulations de 2 espaces.
   printWidth: 120, // Limite la largeur de la ligne à 120 caractères.
   bracketSpacing: true, // Ajoute un espace après les accolades ouvrantes et avant les accolades fermantes.
+  importOrder: ['<THIRD_PARTY_MODULES>', '^#src-common/(.*)$', '^#src-core/(.*)$', '^#src-nuxt/(.*)$', '^[./]'],
+  importOrderSeparation: true,
+  importOrderSortSpecifiers: true,
   plugins: ['prettier-plugin-tailwindcss', '@trivago/prettier-plugin-sort-imports'], // Utilise les plugins Prettier.
 }

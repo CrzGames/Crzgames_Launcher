@@ -57,7 +57,9 @@
 </template>
 
 <script lang="ts" setup>
-import CrzConfirmModal from '#src-common/components/modals/CrzConfirmModal.vue'
+import type { ComputedRef, Ref } from 'vue'
+import { ref } from 'vue'
+
 import type GameBinaryModel from '#src-common/core/models/GameBinaryModel'
 import type GameModel from '#src-common/core/models/GameModel'
 import type GamePlatformModel from '#src-common/core/models/GamePlatformModel'
@@ -65,21 +67,19 @@ import type { GameVersionModel } from '#src-common/core/models/GameVersionModel'
 import type UserModel from '#src-common/core/models/UserModel'
 import { GameService } from '#src-common/core/services/GameService'
 import { GameVersionService } from '#src-common/core/services/GameVersionService'
-import {
-  type FileDetails,
-  type GameManifestLocal,
-  type GameManifestRemote,
-  type SystemOSInfo,
-  TauriService,
-} from '#src-core/services/TauriService'
+
+import { TauriService } from '#src-core/services/TauriService'
+import type { FileDetails } from '#src-core/services/TauriService'
+import type { GameManifestLocal } from '#src-core/services/TauriService'
+import type { GameManifestRemote } from '#src-core/services/TauriService'
+import type { SystemOSInfo } from '#src-core/services/TauriService'
 import { bytesToSize } from '#src-core/utils/bytesToSize'
+
 import ActiveDownloadCard from '#src-nuxt/components/cards/ActiveDownloadCard.vue'
 import CompleteDownloadCard from '#src-nuxt/components/cards/CompleteDownloadCard.vue'
 import { useAuthStore } from '#src-nuxt/stores/auth.store'
 import type { ActiveDownloadGame, CompleteDownloadGame } from '#src-nuxt/stores/downloads.store'
 import { useDownloadsStore } from '#src-nuxt/stores/downloads.store'
-import type { ComputedRef, Ref } from 'vue'
-import { ref } from 'vue'
 
 const { $notyf } = useNuxtApp()
 
@@ -89,7 +89,6 @@ definePageMeta({
   middleware: ['auth'],
 })
 
-// eslint-disable-next-line eslint-plugin-unused-imports/no-unused-vars
 const user: UserModel | undefined = useAuthStore().user
 
 /* STORES */

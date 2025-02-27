@@ -36,10 +36,11 @@
 </template>
 
 <script lang="ts" setup>
-import CrzIcon from '#src-common/components/ui/CrzIcon.vue'
 import { Window } from '@tauri-apps/api/window'
 import { useRoute } from 'vue-router'
 import type { RouteLocationNormalizedLoaded } from 'vue-router'
+
+import CrzIcon from '#src-common/components/ui/CrzIcon.vue'
 
 const appWindow: Window = new Window('main')
 const route: RouteLocationNormalizedLoaded = useRoute()

@@ -53,7 +53,6 @@ const computedId: ComputedRef<string> = computed((): string => {
 
 /* EMIT */
 const emit: (evt: 'update:checked', checked: boolean) => void = defineEmits<{
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   'update:checked': [checked: boolean]
 }>()
 

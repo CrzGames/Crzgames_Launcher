@@ -22,6 +22,7 @@
 
 <script lang="ts" setup>
 import CrzModal from '#src-common/components/modals/CrzModal.vue'
+
 import PlayGameNotFoundExecutableForm from '#src-nuxt/components/forms/PlayGameNotFoundExecutableForm.vue'
 
 /* TYPES */

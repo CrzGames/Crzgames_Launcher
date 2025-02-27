@@ -12,12 +12,13 @@
 </template>
 
 <script lang="ts" setup>
+import { computed } from 'vue'
+import type { PropType } from 'vue'
+
 import CrzPlatformIcon from '#src-common/components/ui/CrzPlatformIcon.vue'
 import { platformsIcons } from '#src-common/components/ui/platforms-icons'
 import type { tPlatformsIcons } from '#src-common/components/ui/platforms-icons'
 import type GamePlatformModel from '#src-common/core/models/GamePlatformModel'
-import { computed } from 'vue'
-import type { PropType } from 'vue'
 
 /* TYPES */
 /**

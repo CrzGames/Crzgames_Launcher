@@ -31,11 +31,8 @@ interface Props {
  * @property {boolean} text-gray-900 - The gray color
  */
 interface Classes {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   'text-amber-400': boolean
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   'text-slate-100': boolean
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   'text-gray-900': boolean
 }
 
@@ -52,11 +49,8 @@ const style: ComputedRef<Record<string, string>> = computed(() => ({
 
 const classes: ComputedRef<Classes> = computed(
   (): Classes => ({
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     'text-amber-400': props.variant === 'primary',
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     'text-slate-100': props.variant === 'light',
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     'text-gray-900': props.variant === 'dark',
   }),
 )

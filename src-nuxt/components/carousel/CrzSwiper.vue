@@ -65,9 +65,6 @@
 </template>
 
 <script lang="ts" setup>
-import CrzButton from '#src-common/components/buttons/CrzButton.vue'
-import type { GameCarouselModel } from '#src-common/core/models/GameCarouselModel'
-import { useGameCarouselStore } from '#src-nuxt/stores/game-carousel.store'
 import { open } from '@tauri-apps/plugin-shell'
 import { DateTime } from 'luxon'
 // Import Swiper styles
@@ -76,11 +73,21 @@ import 'swiper/css/navigation'
 import 'swiper/css/pagination'
 // import required modules
 import { Autoplay, Navigation, Pagination } from 'swiper/modules'
-import type { AutoplayOptions, NavigationOptions, PaginationOptions, SwiperModule } from 'swiper/types'
-import type { Swiper as SwiperClass } from 'swiper/types'
+import type {
+  AutoplayOptions,
+  NavigationOptions,
+  PaginationOptions,
+  Swiper as SwiperClass,
+  SwiperModule,
+} from 'swiper/types'
 import { Swiper, SwiperSlide } from 'swiper/vue'
 import type { ComputedRef, Ref } from 'vue'
 import { computed, onMounted, ref } from 'vue'
+
+import CrzButton from '#src-common/components/buttons/CrzButton.vue'
+import type { GameCarouselModel } from '#src-common/core/models/GameCarouselModel'
+
+import { useGameCarouselStore } from '#src-nuxt/stores/game-carousel.store'
 
 // import Swiper core and required modules
 const modules: SwiperModule[] = [Pagination, Navigation, Autoplay]
