@@ -1,13 +1,8 @@
 <template>
-  <div class="h-full">
-    <!-- Spinner affiché lorsque isLoading est vrai (changement de fenetre window) -->
-    <div :class="['spinner-overlay', { show: windowStore.isLoading }]">
-      <CrzSpinner />
-    </div>
-
+  <div>
     <!-- Layout et pages de Nuxt -->
     <NuxtLayout>
-      <NuxtPage class="h-full" />
+      <NuxtPage />
     </NuxtLayout>
   </div>
 </template>
@@ -20,7 +15,6 @@ import { email } from '@vee-validate/rules'
 import { defineRule } from 'vee-validate'
 import { onBeforeUnmount, onMounted } from 'vue'
 
-import CrzSpinner from '#src-common/components/loaders/CrzSpinner.vue'
 import type GameModel from '#src-common/core/models/GameModel'
 import { GameService } from '#src-common/core/services/GameService'
 
@@ -29,16 +23,14 @@ import type { GameManifestLocal, GameProgressDownload } from '#src-core/services
 
 import { useDownloadsStore } from '#src-nuxt/stores/downloads.store'
 import type { ActiveDownloadGame } from '#src-nuxt/stores/downloads.store'
-import { useWindowStore } from '#src-nuxt/stores/window.store'
 
 // define global rules
 defineRule('email', email)
 
 /* STORES */
-const windowStore = useWindowStore()
 const downloadsStore = useDownloadsStore()
 
-/* VARS */
+/* DATA */
 let unlisten: UnlistenFn | undefined = undefined
 let unlisten2: UnlistenFn | undefined = undefined
 
@@ -134,6 +126,8 @@ onMounted(async (): Promise<void> => {
       await downloadsStore.addCompleteDownload(gameManifest.gameId)
     }
   })
+
+  console.log('App.vue : mounted')
 })
 
 /**
@@ -150,44 +144,3 @@ onBeforeUnmount((): void => {
   }
 })
 </script>
-
-<style lang="scss">
-/* Transition Nuxt pour les pages */
-.page-enter-active,
-.page-leave-active {
-  transition: all 0.4s;
-}
-.page-enter-from,
-.page-leave-to {
-  opacity: 0;
-  filter: blur(1rem);
-}
-
-/* Spinner de chargement entre les fenetre window */
-.spinner-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  background-color: rgba(0, 0, 0, 0.6);
-  opacity: 0;
-  visibility: hidden;
-  transition:
-    opacity 0.3s ease-in-out,
-    visibility 0.3s ease-in-out;
-}
-
-.spinner-overlay.show {
-  opacity: 1;
-  visibility: visible;
-}
-
-#__nuxt {
-  height: 100%;
-}
-</style>

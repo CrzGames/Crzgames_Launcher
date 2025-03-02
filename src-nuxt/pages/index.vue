@@ -1,9 +1,15 @@
 <template>
   <main class="relative">
+    <!-- Spinner affiché lorsque isLoading est vrai (changement de fenetre window) -->
+    <div v-if="windowStore.isLoading" class="spinner-overlay bg-blue-800">
+      <CrzSpinner />
+    </div>
+
+    <!-- Logo CrzGames -->
     <CrzLogo2 />
 
     <div class="relative flex h-full flex-col items-center justify-center">
-      <!-- Loader de mise à jour automatique -->
+      <!-- Loader -->
       <AutoUpdateLoader />
 
       <!-- Affichage du statut de la mise à jour -->
@@ -33,23 +39,52 @@ import { TauriService } from '#src-core/services/TauriService'
 
 import AutoUpdateLoader from '#src-nuxt/components/loaders/AutoUpdateLoader.vue'
 
+/* STORE */
+const windowStore: any = useWindowStore()
+
 /* REFS */
+/**
+ * Le statut de la mise à jour.
+ * @type {Ref<string>}
+ */
 const updateStatus: Ref<string> = ref('Check for update...')
+
+/**
+ * Le statut du téléchargement de la mise à jour.
+ * @type {Ref<string>}
+ */
 const updateStatusDownload: Ref<string> = ref('')
+
+/**
+ * La progression du téléchargement de la mise à jour en pourcentage (0-100).
+ * @type {Ref<number>}
+ */
 const downloadProgress: Ref<number> = ref(0)
-const updateAvailable: Ref<boolean> = ref(false) // Indique si une MAJ est disponible
+
+/**
+ * Indique si une mise à jour est disponible.
+ * @type {Ref<boolean>}
+ */
+const updateAvailable: Ref<boolean> = ref(false)
 
 /* DATA */
-// Taille total de la mise à jour qui à était trouvé
+/**
+ * La taille du contenu de la mise à jour.
+ * @type {number | undefined}
+ */
 let contentLengthUpdate: number | undefined = undefined
 
 /* METHODS */
 /**
- * Check for updates and update the launcher if available.
+ * Check si une mise à jour est disponible et la télécharge et l'installe si c'est le cas.
  * @returns {Promise<void>}
  */
 const autoUpdateLauncher: () => Promise<void> = async (): Promise<void> => {
-  // ByPass auto update in development mode
+  /**
+   * Si l'application est en mode développement, on bypass la vérification de mise à jour.
+   * On ajuste la taille de la fenêtre de l'application pour la page de connexion et
+   * on va sur la page de connexion.
+   */
   if (import.meta.env.VITE_NODE_ENV === 'development') {
     try {
       await TauriService.adjustWindowToLogin(400, 585)
@@ -61,13 +96,28 @@ const autoUpdateLauncher: () => Promise<void> = async (): Promise<void> => {
   }
 
   try {
+    /**
+     * On vérifie si une mise à jour est disponible.
+     */
     const update: Update | null = await check()
 
+    /**
+     * Si une mise à jour est disponible, on télécharge et on installe la mise à jour, puis on relance l'application.
+     * Sinon, on affiche un message indiquant que le launcher est déjà à jour et on redirige l'utilisateur sur la page de connexion.
+     */
     if (update?.available) {
       updateAvailable.value = true
       updateStatus.value = `Update v${update.version} found.`
 
+      /**
+       * On télécharge et on installe la mise à jour.
+       */
       await update.downloadAndInstall((downloadEvent: DownloadEvent): void => {
+        /**
+         * STARTED: Le téléchargement de la mise à jour à commencé
+         * PROGRESS: Le téléchargement de la mise à jour est en cours
+         * FINISHED: Le téléchargement de la mise à jour est terminé
+         */
         if (downloadEvent.event === 'Started') {
           updateStatusDownload.value = 'Download started...'
           contentLengthUpdate = downloadEvent.data.contentLength
@@ -86,12 +136,18 @@ const autoUpdateLauncher: () => Promise<void> = async (): Promise<void> => {
         }
       })
 
+      /**
+       * On relance l'application pour appliquer la mise à jour.
+       */
       await relaunch()
     } else {
       updateStatus.value = 'Launcher already up to date.'
     }
 
-    // Adjust window size and navigate to login page
+    /**
+     * On ajuste la taille de la fenêtre de l'application pour la page de connexion
+     * après la mise à jour du launcher et on redirige l'utilisateur sur la page de connexion.
+     */
     await TauriService.adjustWindowToLogin(400, 585)
   } catch (error) {
     console.error('Update error:', error)
@@ -104,7 +160,22 @@ const autoUpdateLauncher: () => Promise<void> = async (): Promise<void> => {
  * Lifecycle hook: mounted
  * @returns {void}
  */
-onMounted((): void => {
-  autoUpdateLauncher()
+onMounted(async (): Promise<void> => {
+  await autoUpdateLauncher()
 })
 </script>
+
+<style lang="scss" scoped>
+/* Spinner de chargement entre les fenetre window */
+.spinner-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999999;
+}
+</style>

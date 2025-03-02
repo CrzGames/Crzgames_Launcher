@@ -6,7 +6,8 @@
     </div>
 
     <!-- Boutons de la barre window de l'application -->
-    <div class="flex h-full items-center space-x-1 pr-1">
+    <div class="flex h-full items-center space-x-1">
+      <!-- Bouton de minimisation -->
       <div
         @click="btnMinimizeWindow"
         class="titlebar-button flex h-full w-8 items-center justify-center hover:bg-gray-800"
@@ -15,6 +16,7 @@
         <CrzIcon name="title-bar-minimize" color="#85868a" mode="stroke" :width="17" :height="17" />
       </div>
 
+      <!-- Bouton de maximisation -->
       <div
         v-if="route.path !== '/login'"
         @click="btnMaximizeWindow"
@@ -24,6 +26,7 @@
         <CrzIcon name="title-bar-maximize" color="#85868a" mode="stroke" :width="13" :height="13" />
       </div>
 
+      <!-- Bouton de fermeture de la fenêtre -->
       <div
         @click="btnCloseWindow"
         class="titlebar-button ml-1 flex h-full w-8 items-center justify-center hover:bg-gray-800"

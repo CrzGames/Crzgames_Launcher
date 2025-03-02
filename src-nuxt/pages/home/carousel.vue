@@ -1,10 +1,15 @@
 <template>
   <div class="container">
-    <!-- Afficher le loader lorsque isLoading est vrai -->
-    <CrzSpinner v-if="isLoading" />
+    <!-- Spinner affiché lorsque isLoading est vrai (changement de fenetre window) -->
+    <div v-if="windowStore.isLoading" class="spinner-overlay bg-blue-800">
+      <CrzSpinner />
+    </div>
 
     <!-- Carrousel -->
-    <CrzSwiper v-if="!isLoading && carouselsStore.carouselItems.length > 0" :carousels="carouselsStore.carouselItems" />
+    <CrzSwiper
+      v-if="!isLoadingCarousels && carouselsStore.carouselItems.length > 0"
+      :carousels="carouselsStore.carouselItems"
+    />
   </div>
 </template>
 
@@ -17,40 +22,65 @@ import CrzSwiper from '#src-nuxt/components/carousel/CrzSwiper.vue'
 import { useGameCarouselStore } from '#src-nuxt/stores/game-carousel.store'
 import { useWindowStore } from '#src-nuxt/stores/window.store'
 
-/* STORES */
-// eslint-disable-next-line @typescript-eslint/typedef
-const windowStore = useWindowStore()
-
 /* LAYOUT - MIDDLEWARE */
 definePageMeta({
   layout: 'layout-home',
   middleware: ['auth'],
+  pageTransition: {
+    name: 'fade-scale',
+    mode: 'out-in',
+  },
+  layoutTransition: {
+    name: 'slide-up',
+    mode: 'out-in',
+  },
 })
 
 /* REFS */
-const isLoading: Ref<boolean> = ref(true)
+/**
+ * isLoadingCarousels permet de savoir si les carrousels sont en cours de chargement
+ * @type {Ref<boolean>}
+ */
+const isLoadingCarousels: Ref<boolean> = ref(true)
 
-/*STORE*/
-// eslint-disable-next-line @typescript-eslint/typedef
-const carouselsStore = useGameCarouselStore()
+/* STORE */
+const carouselsStore: any = useGameCarouselStore()
+const windowStore: any = useWindowStore()
 
 /* HOOKS CYCLE */
+/**
+ * Lifecycle hook: mounted
+ * @returns {Promise<void>}
+ */
+onMounted(async (): Promise<void> => {
+  await fetchCarousels()
+
+  /**
+   * IMPORTANT: Mettre à la fin de la méthode onMounted(), quand la page est totalement chargée.
+   * On utilise cela si on vient de la page login et qu'on est redirigé sur la page home carrousel.
+   */
+  await nextTick(() => {
+    windowStore.setLoading(false)
+  })
+})
+
+/* METHODS */
 /**
  * Fetch all carousels
  * @returns {Promise<void>}
  */
-onMounted(async (): Promise<void> => {
-  windowStore.setLoading(false) // Pour la fenetre window
-  isLoading.value = true // Pour les données de la page
-
+const fetchCarousels: () => Promise<void> = async (): Promise<void> => {
   try {
     await carouselsStore.getAllCarousels()
-  } catch (error) {
+  } catch (error: any) {
     console.error('Carrousel page : ', error)
   } finally {
-    isLoading.value = false
+    /**
+     * A la fin du chargement des carrousels, isLoadingCarousels est mis à false
+     */
+    isLoadingCarousels.value = false
   }
-})
+}
 </script>
 
 <style lang="scss" scoped>
@@ -61,5 +91,18 @@ onMounted(async (): Promise<void> => {
     align-items: center;
     min-height: 100vh;
   }
+}
+
+/* Spinner de chargement entre les fenetre window */
+.spinner-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999999;
 }
 </style>

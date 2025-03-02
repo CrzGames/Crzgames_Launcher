@@ -3,7 +3,6 @@ import { fileURLToPath } from 'url'
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   app: {
-    layoutTransition: { name: 'layout', mode: 'out-in' },
     head: {
       meta: [{ name: 'viewport', content: 'width=device-width, initial-scale=1' }, { charset: 'utf-8' }],
       script: [],
@@ -53,7 +52,7 @@ export default defineNuxtConfig({
 
     // tauri expects a fixed port, fail if that port is not available
     server: {
-      port: 1460,
+      port: 3555,
       // Tauri requires a consistent port
       strictPort: true,
       // Enables the development server to be discoverable by other devices for mobile development
