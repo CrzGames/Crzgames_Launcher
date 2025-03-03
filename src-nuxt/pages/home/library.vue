@@ -8,7 +8,7 @@
         :value="searchTerm"
         @update:value="searchTerm = $event"
       />
-      <!-- Bouton Check for Updates caché uniquement si tous les jeux sont non installés -->
+      <!-- Bouton "Check for Updates" caché si aucun jeux est installé -->
       <button
         v-if="gameInstalled.length > 0 || gameNeedsUpdate.length > 0"
         @click="checkForUpdatesGames"
@@ -248,10 +248,8 @@ definePageMeta({
 })
 
 /*STORE*/
-// eslint-disable-next-line @typescript-eslint/typedef
-const gameLibraryStore = useGameLibraryStore()
-// eslint-disable-next-line @typescript-eslint/typedef
-const authStore = useAuthStore()
+const gameLibraryStore: any = useGameLibraryStore()
+const authStore: any = useAuthStore()
 
 /* DATAS */
 const gamesInstalled: Ref<GameInstalled[] | undefined> = ref(undefined)

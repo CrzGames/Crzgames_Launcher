@@ -38,18 +38,21 @@ import AutoUpdateLoader from '#src-nuxt/components/loaders/AutoUpdateLoader.vue'
 /**
  * Le statut de la mise à jour.
  * @type {Ref<string>}
+ * @example 'Check for update...', 'Update v1.0.0 found.', 'Launcher already up to date.'
  */
 const updateStatus: Ref<string> = ref('Check for update...')
 
 /**
  * Le statut du téléchargement de la mise à jour.
  * @type {Ref<string>}
+ * @example 'Download started...', 'Download progress: 50%', 'Download completed.'
  */
 const updateStatusDownload: Ref<string> = ref('')
 
 /**
  * La progression du téléchargement de la mise à jour en pourcentage (0-100).
  * @type {Ref<number>}
+ * @example 0, 50, 100
  */
 const downloadProgress: Ref<number> = ref(0)
 
