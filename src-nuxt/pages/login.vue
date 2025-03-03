@@ -1,10 +1,5 @@
 <template>
   <main class="mx-auto max-w-xl bg-blue-800">
-    <!-- Spinner affiché lorsque isLoading est vrai (changement de fenetre window) -->
-    <div v-if="windowStore.isLoading" class="spinner-overlay bg-blue-800">
-      <CrzSpinner />
-    </div>
-
     <!-- Barre Window -->
     <WindowBar />
 
@@ -46,10 +41,8 @@
 </template>
 
 <script lang="ts" setup>
-import { getCurrentWindow } from '@tauri-apps/api/window'
 import { onMounted, ref } from 'vue'
 import type { Ref } from 'vue'
-import CrzSpinner from '~~/src-common/components/loaders/CrzSpinner.vue'
 
 import CrzCheckbox from '#src-common/components/buttons/CrzCheckbox.vue'
 import CrzSquareIconButton from '#src-common/components/buttons/CrzSquareIconButton.vue'
@@ -184,18 +177,3 @@ const preventDefault: (event: Event) => void = (event: Event): void => {
   event.preventDefault()
 }
 </script>
-
-<style lang="scss" scoped>
-/* Spinner de chargement entre les fenetre window */
-.spinner-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999999;
-}
-</style>

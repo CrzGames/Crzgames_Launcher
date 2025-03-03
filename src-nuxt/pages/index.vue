@@ -1,10 +1,5 @@
 <template>
   <main class="relative">
-    <!-- Spinner affiché lorsque isLoading est vrai (changement de fenetre window) -->
-    <div v-if="windowStore.isLoading" class="spinner-overlay bg-blue-800">
-      <CrzSpinner />
-    </div>
-
     <!-- Logo CrzGames -->
     <CrzLogo2 />
 
@@ -38,9 +33,6 @@ import CrzLogo2 from '#src-common/components/ui/CrzLogo2.vue'
 import { TauriService } from '#src-core/services/TauriService'
 
 import AutoUpdateLoader from '#src-nuxt/components/loaders/AutoUpdateLoader.vue'
-
-/* STORE */
-const windowStore: any = useWindowStore()
 
 /* REFS */
 /**
@@ -164,18 +156,3 @@ onMounted(async (): Promise<void> => {
   await autoUpdateLauncher()
 })
 </script>
-
-<style lang="scss" scoped>
-/* Spinner de chargement entre les fenetre window */
-.spinner-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999999;
-}
-</style>
