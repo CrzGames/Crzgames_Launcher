@@ -18,7 +18,7 @@
         :style="{ backgroundColor: 'rgb(224, 161, 0)' }"
       >
         <CrzIcon color="#000000" name="arrows-rotate" view-box="0 0 512 512" :width="18" :height="18" class="mr-2" />
-        Check for Updates
+        Search for Game Updates
       </button>
     </div>
 
