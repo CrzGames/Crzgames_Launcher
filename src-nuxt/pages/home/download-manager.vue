@@ -1,7 +1,9 @@
 <template>
   <section class="grid gap-4 px-4 py-5 pb-12 text-white">
+    <!-- Titre de la page -->
     <h1 class="font-serif text-xl font-semibold sm:text-2xl">Download Manager</h1>
 
+    <!-- Aucun téléchargement en cours ou terminé, on affiche cela quand il n'y a pas de téléchargement en cours ou terminé -->
     <p
       v-if="activeDownloadGames.length <= 0 && completeDownloadGames.length <= 0"
       class="text-center text-base font-semibold text-gray-400 md:text-xl"
@@ -10,6 +12,7 @@
       Browse games to start downloading !
     </p>
 
+    <!-- Téléchargements en cours -->
     <div v-if="activeDownloadGames && activeDownloadGames.length > 0" class="mb-20 grid gap-4">
       <h4 class="font-serif text-sm font-medium">Active download</h4>
 
@@ -32,6 +35,7 @@
       />
     </div>
 
+    <!-- Téléchargements terminés -->
     <div v-if="completeDownloadGames && completeDownloadGames.length > 0" class="grid gap-4">
       <h4 class="font-serif text-sm font-medium">Complete download</h4>
 
@@ -45,6 +49,7 @@
       </div>
     </div>
 
+    <!-- Modal d'annulation de téléchargement -->
     <CrzConfirmModal
       :show="showCancelDownloadModal"
       @update:show="showCancelDownloadModal = $event"
@@ -60,6 +65,7 @@
 import type { ComputedRef, Ref } from 'vue'
 import { ref } from 'vue'
 
+import CrzConfirmModal from '#src-common/components/modals/CrzConfirmModal.vue'
 import type GameBinaryModel from '#src-common/core/models/GameBinaryModel'
 import type GameModel from '#src-common/core/models/GameModel'
 import type GamePlatformModel from '#src-common/core/models/GamePlatformModel'
@@ -97,20 +103,50 @@ definePageMeta({
   },
 })
 
+/* DATA */
 const user: UserModel | undefined = useAuthStore().user
 
 /* STORES */
-// eslint-disable-next-line @typescript-eslint/typedef
-const downloadsStore = useDownloadsStore()
+const downloadsStore: any = useDownloadsStore()
 
+/* REFS */
+/**
+ * C'est le jeu actuel pour lequel l'utilisateur souhaite annuler le téléchargement
+ * @type {Ref<ActiveDownloadGame | null>}
+ */
 const gameCurrentCancelDownloadModal: Ref<ActiveDownloadGame | null> = ref(null)
+/**
+ * Permet de savoir si la modal d'annulation de téléchargement doit être affichée
+ * @type {Ref<boolean>}
+ */
 const showCancelDownloadModal: Ref<boolean> = ref(false)
 
+/**
+ * C'est la liste des jeux en cours de téléchargement
+ * @type {ComputedRef<ActiveDownloadGame[]>}
+ */
 const activeDownloadGames: ComputedRef<ActiveDownloadGame[]> = computed(() => downloadsStore.activeDownloads)
-const completeDownloadGames: ComputedRef<CompleteDownloadGame[]> = computed(() => downloadsStore.completedDownloads)
 
 /**
- * On cancel download
+ * C'est la liste des jeux dont le téléchargement est terminé
+ * @type {ComputedRef<CompleteDownloadGame[]>}
+ */
+const completeDownloadGames: ComputedRef<CompleteDownloadGame[]> = computed(() => downloadsStore.completedDownloads)
+
+/* HOOKS */
+/**
+ * On mounted
+ * @returns {Promise<void>}
+ */
+onMounted(async (): Promise<void> => {
+  if (user) {
+    await downloadsStore.loadActiveDownloadsPersisted(user)
+  }
+})
+
+/* METHODS */
+/**
+ * Celui-ci permet d'ouvrir la modal d'annulation de téléchargement
  * @param {ActiveDownloadGame} game - The game
  * @returns {void}
  */
@@ -120,7 +156,8 @@ const openModalCancelDownload: (game: ActiveDownloadGame) => void = (game: Activ
 }
 
 /**
- * Cancel download
+ * C'est lorsque l'utilisateur confirme l'annulation du téléchargement d'un jeu en cours,
+ * il est supprimé de la liste des téléchargements actifs et le téléchargement est annulé
  * @returns {void}
  */
 const confirmCancelDownload: () => Promise<void> = async (): Promise<void> => {
@@ -231,14 +268,4 @@ const resumeDownload: (gameActiveDownload: ActiveDownloadGame) => Promise<void> 
 const pauseDownload: (game: ActiveDownloadGame) => void = (game: ActiveDownloadGame): void => {
   game.isPlaying = false
 }
-
-/**
- * On mounted
- * @returns {Promise<void>}
- */
-onMounted(async (): Promise<void> => {
-  if (user) {
-    await downloadsStore.loadActiveDownloadsPersisted(user)
-  }
-})
 </script>
