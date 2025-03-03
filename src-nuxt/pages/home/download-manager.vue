@@ -146,7 +146,7 @@ onMounted(async (): Promise<void> => {
 
 /* METHODS */
 /**
- * Celui-ci permet d'ouvrir la modal d'annulation de téléchargement
+ * Permet d'ouvrir la modal d'annulation de téléchargement d'un jeu en cours de téléchargement
  * @param {ActiveDownloadGame} game - The game
  * @returns {void}
  */
