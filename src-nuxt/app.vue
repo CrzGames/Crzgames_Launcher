@@ -14,9 +14,13 @@
 
 <script lang="ts" setup>
 import { enable, isEnabled } from '@tauri-apps/plugin-autostart'
-import { onMounted } from 'vue'
+import { onBeforeUnmount, onMounted } from 'vue'
 
 import CrzSpinner from '#src-common/components/loaders/CrzSpinner.vue'
+
+import { useWindowStore } from '#src-nuxt/stores/window.store'
+
+const { $unlistenTauriEvents } = useNuxtApp()
 
 /* STORES */
 const windowStore: any = useWindowStore()
@@ -39,7 +43,6 @@ onBeforeUnmount(() => {
    * On arrête d'écouter les événements Tauri lorsqu'on quitte l'application.
    * Cela permet de ne pas avoir de fuites mémoires.
    */
-  const { $unlistenTauriEvents } = useNuxtApp()
   $unlistenTauriEvents()
 })
 

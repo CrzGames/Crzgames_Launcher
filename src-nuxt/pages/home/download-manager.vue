@@ -83,7 +83,7 @@ import { useDownloadsStore } from '#src-nuxt/stores/downloads.store'
 
 const { $notyf } = useNuxtApp()
 
-/* LAYOUT - MIDDLEWARE */
+/* LAYOUT - MIDDLEWARE - TRANSITIONS */
 definePageMeta({
   layout: 'layout-home',
   middleware: ['auth'],
