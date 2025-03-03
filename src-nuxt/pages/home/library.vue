@@ -1,6 +1,6 @@
 <template>
   <div :class="{ 'launching-cursor': isLaunchingGame }" class="grid gap-8 px-4 py-5 pb-12 text-white">
-    <!-- Div qui contient l'input de recherche et le bouton "Check for Updates" -->
+    <!-- Div qui contient l'input de recherche et le boutton "Check for Updates" -->
     <div class="flex items-center justify-between">
       <!-- Barre de recherche -->
       <CrzSearchBar
@@ -10,7 +10,7 @@
         :value="searchTerm"
         @update:value="searchTerm = $event"
       />
-      <!-- Bouton "Check for Updates", qui es caché si aucun jeux est installé -->
+      <!-- Boutton "Check for Updates", qui es caché si aucun jeux est installé -->
       <button
         v-if="gameInstalled.length > 0 || gameNeedsUpdate.length > 0"
         @click="checkForUpdatesGames"
@@ -126,7 +126,7 @@
       </div>
     </div>
 
-    <!-- Messages pour l'absence de jeux -->
+    <!-- Messages pour l'absence de jeux lors la recherche via l'input -->
     <p
       v-if="
         gameInstalled.length === 0 &&
@@ -138,6 +138,7 @@
     >
       There are no games available for this search.
     </p>
+    <!-- Messages pour l'absence de jeux, si aucun jeux est dans la bibliothèque de l'utilisateur -->
     <p
       v-if="
         gameInstalled.length === 0 &&
