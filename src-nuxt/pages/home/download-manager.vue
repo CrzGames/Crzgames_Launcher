@@ -49,7 +49,7 @@
       </div>
     </div>
 
-    <!-- Modal d'annulation de téléchargement -->
+    <!-- Modal d'annulation de téléchargement d'un jeu en cours de téléchargement -->
     <CrzConfirmModal
       :show="showCancelDownloadModal"
       @update:show="showCancelDownloadModal = $event"
