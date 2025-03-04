@@ -2,11 +2,11 @@
 
 ## IMPORTANT :
 
-1. Pour que les jeux sois affiché et téléchargeable sur le launcher il faut :
-   - Crée le jeu
-   - Ajouter la plateforme au jeu
-   - Ajout le binaire par rapport a la plateforme
-   - Ajouter des game version
+1. Pour que les jeux sois affiché et téléchargeable sur le launcher il faut sur le site "Crzgames_WebSite_FrontEnd" :
+   - Crée le jeu via la page "Game Manager" en ajoutant : 
+      - Ajouter la plateforme souhaité au jeu via l'input "Platforms" (Windows, macOS..)
+      - Ajouter les binaires par rapport a la plateforme tout en bas de la page, exemple Windows le path : games/binaries/world-of-warcraft/windows/, quand on publie notre jeu dans ce dossier "windows" on ajoutera un dossier "1.2.0/x86_64" (version du jeu/l'architecture du processeur), donc le launcher quand il fera la demande à l'API il rajoutera le numéro de version du jeu + l'architecture de l'utilisateur actuellement connecté au Launcher.
+   - Ajouter une version d'un jeu téléchargeable via la page "Game Version Manager", spécifier le jeu, la version et choses IMPORTANT tant que c'est pas coché pour "Available Download" l'utilisateur ne pourra pas voir la mise à jour, ce qui permet lors de la publication sur AppStore/PlayStore d'attendre que les Stores sois accepter et de synchroniser les plateformes Desktop / Mobile voir Consoles en MEME TEMPS il y aura plus qu'à cocher "Available Download" quand le PlayStore/AppStore on VALIDER. Permet également si une version est déffectueuse de REVENIR EN ARRIERE donc de décocher "Available Download".
 2. Les jeux ne sont affiché seulement par rapport a la plateforme qui es executer, donc si le jeu est disponible que Windows il sera affiché que sur Windows
 3. Pour le jeu Linux, pour les seeders, il faut installer : sudo apt install libsdl2-2.0-0 (pour qu'il puisse ce lancé le jeu)
 
