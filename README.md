@@ -14,12 +14,12 @@
 
 ## 🛠 Tech Stack
 
-- Tauri (framework)
-- Nuxt.js (framework front-end in Tauri)
-- Rust (back-end in Tauri)
-- NodeJS (environnement)
-- Vitest (tests unitaire)
-- CI / CD (Github actions)
+- Language (Rust and TypeScript)
+- Tauri (Framework backend)
+- Nuxt.js (Framework frontend in Tauri)
+- NodeJS (Environment)
+- Vitest (Unit Tests)
+- CI / CD (Github Actions)
 
 <br /><br /><br /><br />
 
@@ -48,12 +48,11 @@ git commit --allow-empty -m "chore: release 1.1.0-rc.0" -m "Release-As: 1.1.0-rc
 2. Download and Install WebView2 (if windows < 10) : https://developer.microsoft.com/en-us/microsoft-edge/webview2/#download-section
 3. Download and Install Rust version >= 1.85.0 : https://www.rust-lang.org/tools/install
 4. Spécifiquement pour build du ARM64 il faut installer LLVM et ajouté au PATH : https://github.com/llvm/llvm-project/releases
-5. Install NodeJS latest LTS for Vue.js/Tauri :
+5. Install nvm for NodeJS : https://github.com/coreybutler/nvm-windows/releases
+6. Install NodeJS latest LTS for Nuxt.js/Tauri :
 
 ```bash
 # nvm
-# nvm install : https://github.com/coreybutler/nvm-windows/releases
-# Install Node.js latest LTS
 nvm install lts && nvm use lts
 ```
 
@@ -61,7 +60,6 @@ nvm install lts && nvm use lts
 
 ```bash
  # npm
- # Install dependencies
  npm install
 ```
 
@@ -95,34 +93,52 @@ xcode-select --install
 2. Download and Install Rust version >= 1.85.0 :
 
 ```bash
-#curl
+# curl
 curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh
 ```
 
-3. Install NodeJS LTS latest for Vue.js/Tauri :
+3. Install `brew` :
+```bash
+# open terminal and execute
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+4. Install `nvm` for NodeJS with brew :
+```bash
+# brew
+brew install nvm
+
+# open terminal and execute
+mkdir ~/.nvm
+
+# open terminal : ~/.profile or ~/.zshrc
+export NVM_DIR="$HOME/.nvm"
+    [ -s "$HOMEBREW_PREFIX/opt/nvm/nvm.sh" ] && \. "$HOMEBREW_PREFIX/opt/nvm/nvm.sh" # This loads nvm
+    [ -s "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm" ] && \. "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm" # This loads nvm bash_completion
+```
+
+5. Install NodeJS LTS latest for Nuxt.js/Tauri :
 
 ```bash
 # nvm
-# nvm install : https://github.com/coreybutler/nvm-windows/releases
-# Install Node.js latest LTS
 nvm install lts && nvm use lts
 ```
 
-4. Install dependencies for Vue.js/Tauri
+6. Install dependencies for Vue.js/Tauri
 
 ```bash
  # npm
- # Install dependencies
  npm install
 ```
 
-5. Install targets rust for build/compile Tauri :
+7. Install targets rust for build/compile Tauri :
 
 ```bash
+# npm
 npm run desktop:install:target:macos
 ```
 
-6. Il y a toujours une chaine d'outils qui est utilisé par défault, c'est celui qui est choisi lors de la compilation
+8. Il y a toujours une chaine d'outils qui est utilisé par défault, c'est celui qui est choisi lors de la compilation
 
 ```bash
 # Pour connaitre la chaine d'outils actuellement utilisé :
@@ -156,34 +172,52 @@ sudo apt install -y libwebkit2gtk-4.1-dev \
 2. Install Rust version >= 1.85.0 :
 
 ```bash
-#curl
+# curl
 curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh
 ```
 
-3. Install NodeJS latest LTS for Vue.js/Tauri :
+3. Install `brew` :
+```bash
+# open terminal and execute
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+4. Install `nvm` for NodeJS with brew :
+```bash
+# brew
+brew install nvm
+
+# open terminal and execute
+mkdir ~/.nvm
+
+# open terminal : ~/.profile or ~/.zshrc
+export NVM_DIR="$HOME/.nvm"
+    [ -s "$HOMEBREW_PREFIX/opt/nvm/nvm.sh" ] && \. "$HOMEBREW_PREFIX/opt/nvm/nvm.sh" # This loads nvm
+    [ -s "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm" ] && \. "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm" # This loads nvm bash_completion
+```
+
+5. Install NodeJS latest LTS for Nuxt.js/Tauri :
 
 ```bash
 # nvm
-# nvm install : https://github.com/coreybutler/nvm-windows/releases
-# Install Node.js latest LTS
- nvm install lts && nvm use lts
+nvm install lts && nvm use lts
 ```
 
-4. Install dependencies for Vue.js/Tauri
+6. Install dependencies for Nuxt.js/Tauri
 
 ```bash
- # npm
- # Install dependencies
- npm install
+# npm
+npm install
 ```
 
-5. Install targets rust for build/compile Tauri :
+7. Install targets rust for build/compile Tauri :
 
 ```bash
+# npm
 npm run desktop:install:target:linux
 ```
 
-6. Il y a toujours une chaine d'outils qui est utilisé par défault, c'est celui qui est choisi lors de la compilation
+8. Il y a toujours une chaine d'outils qui est utilisé par défault, c'est celui qui est choisi lors de la compilation
 
 ```bash
 # Pour connaitre la chaine d'outils actuellement utilisé :
@@ -202,11 +236,11 @@ Cette commande vérifie rapidement votre code Rust pour s'assurer qu'il se compi
 
 ```bash
 # npm
-npm run desktop:run:check-compile
+npm run desktop:check:compile
 ```
 
-Application type : Desktop (.exe) <br />
-Start the development server on http://localhost:1460/
+Application type : Desktop <br />
+Start the development server on http://localhost:3555/
 
 ```bash
 # npm
@@ -221,7 +255,6 @@ npm run desktop:run:dev
 
 ```sh
 # npm
-# test unit (Vitest)
 # No GUI
 npm run test:unit:dev
 
@@ -233,7 +266,6 @@ npm run test:unit:dev:gui
 
 ```sh
 # npm
-# test unit (Vitest)
 npm run test:unit:staging-prod
 ```
 
@@ -253,6 +285,7 @@ npm run test:unit:staging-prod
 
 Par défaut, Rust installe uniquement les chaînes d'outils pour la cible de votre machine. <br />
 Vous devez donc d'abord installer la chaîne d'outils pour le system souhaiter. <br /><br />
+
 Exemple pour ajouter/installer la chaine d'outils Windows 32bit :
 
 ```bash
@@ -282,7 +315,7 @@ Pour connaitre la chaine d'outils actuellement utilisé :
 rustup default
 ```
 
-Pour changer la chaine d'outils par défault utilisé, exemple pour Windows-32bit :
+Pour changer la chaine d'outils par défault utilisé, exemple pour Windows-32bit (x86) :
 
 ```bash
 rustup default stable-i686-pc-windows-msvc
