@@ -23,9 +23,8 @@ const logger: Logger = createLogger('TauriEvents')
  * Gestionnaire de téléchargements actifs et terminés pour les jeux
  * - Utilise le store 'downloadsStore' pour ajouter, mettre à jour et supprimer les téléchargements actifs et terminés
  * - Utilise les services 'GameService' et 'TauriService' pour récupérer les informations des jeux et les sauvegarder
- * @returns {Promise<any>}
  */
-export default defineNuxtPlugin(async (): Promise<any> => {
+export default defineNuxtPlugin(async () => {
   let unlistenDownload: UnlistenFn | undefined = undefined
   let unlistenInstall: UnlistenFn | undefined = undefined
 
