@@ -47,7 +47,7 @@ git commit --allow-empty -m "chore: release 1.1.0-rc.0" -m "Release-As: 1.1.0-rc
 1. Download and Install Microsoft Visual Studio 2022 (MSVC >= v143 and Windows SDK >= 10): https://visualstudio.microsoft.com/fr/vs/
 2. Download and Install WebView2 (if windows < 10) : https://developer.microsoft.com/en-us/microsoft-edge/webview2/#download-section
 3. Download and Install Rust version >= 1.85.0 : https://www.rust-lang.org/tools/install
-4. Spécifiquement pour build du Windows pour `arm64`, il faut installer LLVM et l'ajouté au PATH : https://github.com/llvm/llvm-project/releases
+4. Spécifiquement pour build du Windows pour `arm64`, il faut télécharger et installer LLVM, puis l'ajouté au PATH : https://github.com/llvm/llvm-project/releases
 ```bash
 # 1. Télécharger le fichier "LLVM-x.x.x-win64.exe" dans les assets github de la dernière version Release (si vous êtes sur Windows-x64 et que vous voulez compiler du Windows-arm64)
 # 2. Ouvrir le fichier télécharger et lancer l'installation
