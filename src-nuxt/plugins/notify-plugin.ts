@@ -1,7 +1,12 @@
 import { Notyf } from 'notyf'
 
-// eslint-disable-next-line @typescript-eslint/typedef
-export default defineNuxtPlugin((nuxtApp): void => {
+/**
+ * Permet d'ajouter `notyf` à l'ensemble de l'application en tant que plugin
+ * utilisé pour afficher des notifications à l'utilisateur comme des messages d'erreur, de succès, etc.
+ * @param {any} nuxtApp - L'application Nuxt
+ * @returns {void}
+ */
+export default defineNuxtPlugin((nuxtApp: any): void => {
   const notyf: Notyf = new Notyf({
     dismissible: true,
     position: {
@@ -10,6 +15,6 @@ export default defineNuxtPlugin((nuxtApp): void => {
     },
   })
 
-  // Fournir `notyf` à l'ensemble de l'application
+  // Fournir `notyf` à l'ensemble de l'application en tant que plugin
   nuxtApp.provide('notyf', notyf)
 })

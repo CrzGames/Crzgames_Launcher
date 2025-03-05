@@ -149,7 +149,7 @@ const handleGameInstallationComplete: (event: any) => Promise<void> = async (eve
      * Log
      * Afficher le jeu téléchargé et installé avec succès
      */
-    logger.info('GAME DOWNLOAD SUCCESS and game is : ' + JSON.stringify(event.payload))
+    logger.info('Game downloaded and installed successfully:' + JSON.stringify(event.payload))
 
     /**
      * On construit l'objet 'GameManifestLocal' pour l'utiliser dans la méthode 'finalizeDownload' en-dessous
