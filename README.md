@@ -379,8 +379,8 @@ npm run desktop:build:windows:arm64
 <span style="color: red;">IMPORTANT (3)</span> : L'utilisateur doit rendre le fichier exécutable pour l'executable .AppImage et installer fuse. <br />
 
 ```bash
-chmod a+x MyApp.AppImage
 sudo apt install fuse
+chmod a+x MyApp.AppImage
 
 # and run application :
 ./MyApp.AppImage

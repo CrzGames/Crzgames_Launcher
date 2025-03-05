@@ -1,9 +1,12 @@
 html,
 body {
-  @apply h-full overflow-hidden bg-blue-800;
-  height: 100vh;
-  width: 100vw;
-  cursor: default; /* Ajouté pour désactiver le curseur de texte */
+  @apply h-full overflow-hidden bg-blue-800; // TailwindCSS
+  height: 100vh; // Hauteur totale de la fenêtre
+  width: 100vw; // Largeur totale de la fenêtre
+  cursor: default; // Désactive le curseur de texte
+  margin: 0; // Supprime toute marge par défaut
+  padding: 0; // Supprime tout padding par défaut
+  box-sizing: border-box; // Inclut padding/bordures dans les calculs de taille
 }
 
 /* SCROLL BAR - BODY */
