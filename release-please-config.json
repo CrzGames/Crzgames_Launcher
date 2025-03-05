@@ -11,7 +11,5 @@
     { "type": "test", "section": "🧪 Tests", "hidden": false },
     { "type": "perf", "section": "⏱ Performance Improvements", "hidden": false },
     { "type": "build", "section": "🏗 Build System", "hidden": false }
-  ],
-  "versioning": "prerelease",
-  "prerelease": "rc"
+  ]
 }
