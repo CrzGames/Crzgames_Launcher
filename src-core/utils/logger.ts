@@ -66,12 +66,10 @@ class Logger {
    * @returns {string} - Message formaté
    */
   private formatMessage(level: string, message: string): string {
-    // Ajoute le timestamp actuel
-    const timestamp: string = new Date().toISOString()
     // Ajoute le contexte s'il est défini
     const context: string = this.options.context ? `[${this.options.context}] ` : ''
     // Retourne le message formaté
-    return `${timestamp} [${level.toUpperCase()}] ${context}${message}`
+    return `[${level.toUpperCase()}] ${context}${message}`
   }
 
   /**
@@ -81,8 +79,8 @@ class Logger {
   public debug(message: string): void {
     // Vérifie si le niveau "debug" est autorisé
     if (this.isLogLevelAllowed('debug')) {
-      // Affiche le message dans la console avec une couleur grise
-      console.log(`%c${this.formatMessage('debug', message)}`, 'color: #888')
+      // Affiche le message dans la console avec une couleur cyan
+      console.log(`%c${this.formatMessage('debug', message)}`, 'color: #32CD32')
     }
   }
 

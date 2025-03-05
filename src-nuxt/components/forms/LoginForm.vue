@@ -1,22 +1,10 @@
 <template>
   <Form v-slot="{ meta }" class="flex flex-col gap-6" @submit="signIn">
     <!-- Input pour l'email -->
-    <CrzInput
-      v-model:value="credentials.email"
-      type="email"
-      id="email"
-      placeholder="email@crzgames.com"
-      @keyup.enter="signIn"
-    />
+    <CrzInput v-model:value="credentials.email" type="email" id="email" placeholder="email@crzgames.com" />
 
     <!-- Input pour le mot de passe -->
-    <CrzInput
-      v-model:value="credentials.password"
-      type="password"
-      id="password"
-      placeholder="**************"
-      @keyup.enter="signIn"
-    />
+    <CrzInput v-model:value="credentials.password" type="password" id="password" placeholder="**************" />
 
     <!-- Slot pour insérer des éléments entre les inputs et le bouton de connexion -->
     <slot />

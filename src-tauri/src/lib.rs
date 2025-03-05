@@ -867,6 +867,13 @@ pub fn run() {
                 .build(),
         )
         .setup(|app| {
+            // Ouvre DevTools uniquement en mode debug (This is true for `tauri dev` and `tauri build --debug`)
+            #[cfg(debug_assertions)]
+            {
+                let window = app.get_webview_window("main").unwrap();
+                window.open_devtools();
+            }
+
             // Plugin de mise à jour pour les applications de bureau
             #[cfg(desktop)]
             app.handle()

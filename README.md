@@ -3,9 +3,9 @@
 ## IMPORTANT :
 
 1. Pour que les jeux sois affiché et téléchargeable sur le launcher il faut sur le site "Crzgames_WebSite_FrontEnd" :
-   - Crée le jeu via la page "Game Manager" en ajoutant : 
-      - Ajouter la plateforme souhaité au jeu via l'input "Platforms" (Windows, macOS..)
-      - Ajouter les binaires par rapport a la plateforme tout en bas de la page, exemple Windows le path : games/binaries/world-of-warcraft/windows/, quand on publie notre jeu dans ce dossier "windows" on ajoutera un dossier "1.2.0/x86_64" (version du jeu/l'architecture du processeur), donc le launcher quand il fera la demande à l'API il rajoutera le numéro de version du jeu + l'architecture de l'utilisateur actuellement connecté au Launcher.
+   - Crée le jeu via la page "Game Manager" en ajoutant :
+     - Ajouter la plateforme souhaité au jeu via l'input "Platforms" (Windows, macOS..)
+     - Ajouter les binaires par rapport a la plateforme tout en bas de la page, exemple Windows le path : games/binaries/world-of-warcraft/windows/, quand on publie notre jeu dans ce dossier "windows" on ajoutera un dossier "1.2.0/x86_64" (version du jeu/l'architecture du processeur), donc le launcher quand il fera la demande à l'API il rajoutera le numéro de version du jeu + l'architecture de l'utilisateur actuellement connecté au Launcher.
    - Ajouter une version d'un jeu téléchargeable via la page "Game Version Manager", spécifier le jeu, la version et choses IMPORTANT tant que c'est pas coché pour "Available Download" l'utilisateur ne pourra pas voir la mise à jour, ce qui permet lors de la publication sur AppStore/PlayStore d'attendre que les Stores sois accepter et de synchroniser les plateformes Desktop / Mobile voir Consoles en MEME TEMPS il y aura plus qu'à cocher "Available Download" quand le PlayStore/AppStore on VALIDER. Permet également si une version est déffectueuse de REVENIR EN ARRIERE donc de décocher "Available Download".
 2. Les jeux ne sont affiché seulement par rapport a la plateforme qui es executer, donc si le jeu est disponible que Windows il sera affiché que sur Windows
 3. Pour le jeu Linux, pour les seeders, il faut installer : sudo apt install libsdl2-2.0-0 (pour qu'il puisse ce lancé le jeu)
@@ -48,16 +48,20 @@ git commit --allow-empty -m "chore: release 1.1.0-rc.0" -m "Release-As: 1.1.0-rc
 2. Download and Install WebView2 (if windows < 10) : https://developer.microsoft.com/en-us/microsoft-edge/webview2/#download-section
 3. Download and Install Rust version >= 1.85.0 : https://www.rust-lang.org/tools/install
 4. Spécifiquement pour build du Windows pour `arm64`, il faut télécharger et installer LLVM, puis l'ajouté au PATH : https://github.com/llvm/llvm-project/releases
+
 ```bash
 # 1. Télécharger le fichier "LLVM-x.x.x-win64.exe" dans les assets github de la dernière version Release (si vous êtes sur Windows-x64 et que vous voulez compiler du Windows-arm64)
 # 2. Ouvrir le fichier télécharger et lancer l'installation
 # 3. Pendant l'installation coché la case "Add LLVM to the system PATH for all users" ET terminer l'installation
 ```
+
 5. Install nvm for NodeJS : https://github.com/coreybutler/nvm-windows/releases
+
 ```bash
 # 1. Télécharger le fichier "nvm-setup.exe"
 # 2. Ouvrir le fichier téléchargeer et l'installer
 ```
+
 6. Install NodeJS latest LTS for Nuxt.js/Tauri :
 
 ```bash
@@ -107,12 +111,14 @@ curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh
 ```
 
 3. Install `brew` :
+
 ```bash
 # open terminal and execute
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
 4. Install `nvm` for NodeJS with brew :
+
 ```bash
 # brew
 brew install nvm
@@ -186,12 +192,14 @@ curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh
 ```
 
 3. Install `brew` :
+
 ```bash
 # open terminal and execute
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
 4. Install `nvm` for NodeJS with brew :
+
 ```bash
 # brew
 brew install nvm

@@ -28,8 +28,6 @@ export default defineNuxtPlugin(async () => {
     void handleGameInstallationComplete(event)
   })
 
-  console.log('✅ Tauri events listener registered')
-
   /**
    * Nettoyage des événements quand l'application est détruite
    */
