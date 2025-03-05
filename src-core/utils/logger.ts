@@ -14,7 +14,7 @@ type LoggerOptions = {
 /**
  * Classe Logger pour gérer les logs avec différents niveaux et environnements
  */
-class Logger {
+export class Logger {
   /**
    * Options de configuration du logger
    * @type {LoggerOptions}
@@ -133,6 +133,3 @@ export const createLogger: (context: string) => Logger = (context: string): Logg
   // Retourne une nouvelle instance avec le contexte spécifié
   return new Logger({ context })
 }
-
-// Instance par défaut sans contexte spécifique
-export const logger: Logger = new Logger()

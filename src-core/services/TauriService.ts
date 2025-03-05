@@ -411,7 +411,7 @@ export class TauriService {
   }
 
   /**
-   * Récupère les progressions de téléchargement des jeux
+   * Récupère les progressions de téléchargement des jeux sur le système de l'utilisateur
    * @param {number} userId - Identifiant de l'utilisateur
    * @returns {Promise<GameProgressDownload[] | undefined>} - Progressions de téléchargement des jeux
    */
@@ -439,7 +439,8 @@ export class TauriService {
   }
 
   /**
-   * Sauvegarde la progression du téléchargement du jeu
+   * Sauvegarde la progression du téléchargement du jeu dans un fichier JSON,
+   * sur le système de l'utilisateur
    * @param {GameProgressDownload} gameProgressDownload - Progression du téléchargement du jeu
    * @returns {Promise<void>} - Promesse résolue
    */
@@ -887,7 +888,7 @@ export class TauriService {
 
   /**
    * Finalise le téléchargement du jeu en supprimant le jeu des progressions de téléchargement
-   * et en sauvegardant le jeu dans la liste des jeux installés
+   * et en sauvegardant le jeu dans la liste des jeux installés sur le système de l'utilisateur
    * @param {number} userId - Identifiant de l'utilisateur
    * @param {GameManifestLocal} gameManifest - Fichier manifest.json du jeu côté client
    * @returns {Promise<void>} - Promesse résolue
