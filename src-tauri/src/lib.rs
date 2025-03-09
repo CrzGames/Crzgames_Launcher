@@ -842,6 +842,37 @@ async fn uninstall_game(path_install_location: String) -> Result<(), String> {
     }
 }
 
+// Commande Tauri pour vérifier la connexion internet
+#[tauri::command]
+async fn check_internet_connection() -> Result<bool, String> {
+    // Crée un client HTTP avec des paramètres optimisés
+    let client = match reqwest::Client::builder()
+        .timeout(Duration::from_secs(2))
+        .build() // Appel terminé ici
+    {
+        Ok(client) => client,
+        Err(_e) => {
+            // En cas d'erreur de création du client, on considère cela comme hors ligne
+            return Ok(false);
+        }
+    }; // Point-virgule pour terminer l'expression let
+
+    // URL légère à tester
+    let url = "https://1.1.1.1";
+
+    // Effectue une requête HEAD
+    let response = match client.head(url).send().await {
+        Ok(resp) => resp,
+        Err(_) => {
+            // Toute erreur réseau (timeout, DNS, etc.) est considérée comme hors ligne
+            return Ok(false);
+        }
+    };
+
+    // Retourne true si la requête réussit (status 2xx)
+    Ok(response.status().is_success())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -934,7 +965,8 @@ pub fn run() {
             uninstall_game,
             resume_download,
             pause_download,
-            cancel_download
+            cancel_download,
+            check_internet_connection,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

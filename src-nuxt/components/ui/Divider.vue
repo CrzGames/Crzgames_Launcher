@@ -1,5 +1,5 @@
 <template>
-  <div class="separator flex w-full items-center" :class="{ empty: !text }">
+  <div class="separator flex w-[95%] mx-auto items-center" :class="{ empty: !text }">
     {{ props.text }}
   </div>
 </template>
@@ -21,13 +21,13 @@ const props: Props = defineProps({
 </script>
 
 <style lang="scss" scoped>
-$border_color: #7c7c7c;
+$border_color: rgb(52, 54, 71);
 
 .separator::before,
 .separator::after {
   content: '';
   flex: 1;
-  border-bottom: 2px solid $border_color;
+  border-bottom: 3px solid $border_color;
 }
 
 .separator:not(.empty)::before {

@@ -48,6 +48,7 @@ import titleBarClose from '#src-common/components/icons/title-bar-close.vue'
 import titleBarMaximize from '#src-common/components/icons/title-bar-maximize.vue'
 import titleBarMinimize from '#src-common/components/icons/title-bar-minimize.vue'
 import tooltip from '#src-common/components/icons/tool-tip.vue'
+import wifioff from '#src-common/components/icons/wifi-off.vue'
 import x from '#src-common/components/icons/x.vue'
 
 /* INTERFACES */
@@ -130,6 +131,7 @@ const iconsMap: Record<string, IconComponent> = {
   fix: fix,
   ellipsis: ellipsis,
   'arrows-rotate': arrowRotate,
+  'wifi-off': wifioff,
 }
 
 const iconComponent: ComputedRef<IconComponent> = computed(() => iconsMap[props.name])

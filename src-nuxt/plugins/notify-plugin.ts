@@ -1,3 +1,4 @@
+import { defineNuxtPlugin } from '#app'
 import { Notyf } from 'notyf'
 
 /**

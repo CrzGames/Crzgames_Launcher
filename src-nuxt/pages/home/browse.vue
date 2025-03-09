@@ -67,7 +67,7 @@ const { $notyf } = useNuxtApp()
 /* LAYOUT - MIDDLEWARE - TRANSITIONS */
 definePageMeta({
   layout: 'layout-home',
-  middleware: ['auth'],
+  middleware: ['auth', 'navigation'],
   pageTransition: {
     name: 'fade-scale',
     mode: 'out-in',
