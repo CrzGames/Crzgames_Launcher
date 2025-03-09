@@ -12,7 +12,7 @@
     <main class="flex h-full flex-1">
       <SideBarLeft />
 
-      <div class="mx-[80px] flex-grow overflow-y-auto">
+      <div class="mx-[80px] flex-grow overflow-y-auto overflow-x-hidden">
         <!-- Loader à l'intérieur de la page si une requête est en cours -->
         <div v-if="useAppStore().pending" class="absolute left-1/2 top-1/2">
           <CrzSpinner />
