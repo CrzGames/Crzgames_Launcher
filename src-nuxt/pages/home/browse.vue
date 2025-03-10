@@ -18,8 +18,9 @@
     <h1 class="font-serif text-xl font-semibold sm:text-2xl">Browse</h1>
 
     <div class="flex items-center justify-between w-full" style="margin-top: -1rem">
-      <!-- Boutons "All Games" et "Featured Games" (cachés pendant une recherche) -->
+      <!-- Les boutons "All Games" et "Featured Games" (cachés pendant une recherche) -->
       <div class="flex gap-2">
+        <!-- Bouton "All Games" -->
         <CrzButton
           size="sm"
           :variant="searchTerm ? 'disabled' : activeFilter === 'all' ? 'active' : 'primary2'"
@@ -27,6 +28,7 @@
         >
           All Games
         </CrzButton>
+        <!-- Bouton "Featured Games" -->
         <CrzButton
           size="sm"
           :variant="searchTerm ? 'disabled' : activeFilter === 'featured' ? 'active' : 'primary2'"
@@ -38,7 +40,9 @@
 
       <!-- Affichage des résultats de recherche -->
       <div v-if="searchTerm && filteredGames" class="flex items-center gap-2">
+        <!-- Résultats de la saisie de l'utilisateur lors de la recherche via l'input -->
         <span class="text-lg font-medium text-white">Search results for "{{ searchTerm }}"</span>
+        <!-- Badge avec le nombre de jeux trouvés, rajoute un "s" si le nombre est supérieur à 1 -->
         <CrzBadge variant="yellow" size="sm">
           {{ filteredGames.length }} game{{ filteredGames.length === 1 ? '' : 's' }}
         </CrzBadge>
@@ -136,6 +140,15 @@ definePageMeta({
 const gameStore: any = useGameStore()
 const gameLibraryStore: any = useGameLibraryStore()
 
+/* TYPES */
+/**
+ * Filtre actif pour les jeux à afficher.
+ * @type {object} filter
+ * @property {string} all - Tous les jeux
+ * @property {string} featured - Jeux à la une (nouveaux ou à venir)
+ */
+type filter = 'all' | 'featured'
+
 /* REFS */
 /**
  * searchTerm permet de stocker la valeur de la recherche de l'utilisateur,
@@ -152,18 +165,16 @@ const searchTerm: Ref<string> = ref('')
 const isLoadingGames: Ref<boolean> = ref(true)
 
 /**
- * Les jeux enrichis avec le statut de possession et de paiement.
+ * Les jeux de base et enrichis avec le statut de possession et de paiement.
  * @type {Ref<ExtendedGameModel[]>}
  */
 const games: Ref<ExtendedGameModel[]> = ref([])
 
 /**
  * activeFilter permet de savoir quel filtre est actif.
- * @type {Ref<string>}
- * @default 'all'
- * @example 'all', 'featured'
+ * @type {Ref<filter>}
  */
-const activeFilter: Ref<string> = ref('all')
+const activeFilter: Ref<filter> = ref('all')
 
 /* CYCLE - HOOKS */
 /**
@@ -177,16 +188,17 @@ onMounted(async (): Promise<void> => {
 /* METHODS */
 /**
  * Permet de définir le filtre actif.
- * @param {string} filter - Filtre actif
+ * @param {filter} filter - Filtre actif ('all' ou 'featured')
  * @returns {void}
  */
-const setFilter: (filter: string) => void = (filter: string): void => {
+const setFilter: (filter: filter) => void = (filter: filter): void => {
   activeFilter.value = filter
   searchTerm.value = ''
 }
 
 /**
- * Permet de filtrer les jeux en fonction de la recherche de l'utilisateur.
+ * Permet de filtrer les jeux en fonction de la recherche de l'utilisateur
+ * ou du filtre actif.
  * @returns {ExtendedGameModel[]}
  */
 const filteredGames: ComputedRef<ExtendedGameModel[]> = computed((): ExtendedGameModel[] => {
@@ -197,11 +209,16 @@ const filteredGames: ComputedRef<ExtendedGameModel[]> = computed((): ExtendedGam
     )
   } else {
     if (activeFilter.value === 'all') {
+      // Afficher tous les jeux
       return games.value
-    } else if (activeFilter.value === 'featured') {
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    else if (activeFilter.value === 'featured') {
       // Afficher seulement les jeux "featured" (nouveaux ou à venir)
       return games.value.filter((game: ExtendedGameModel): boolean => game.new_game || game.upcoming_game)
     }
+
+    // Par défaut, on retourne tous les jeux si aucun filtre n'est actif et qu'il n'y a pas de recherche
     return games.value
   }
 })
@@ -243,7 +260,8 @@ const enrichGame: (game: GameModel) => Promise<ExtendedGameModel> = async (
 }
 
 /**
- * Recupere tout les jeux et enrichit chaque jeu
+ * Recupere tout les jeux et enrichit chaque jeu via enrichGame
+ * qui ajoute le statut de possession et de paiement du jeu.
  * @param {string} title - Title of the game
  * @returns {Promise<void>} - Promise void
  */
