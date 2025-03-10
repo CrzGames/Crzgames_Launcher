@@ -37,6 +37,7 @@ import eye from '#src-common/components/icons/eye.vue'
 import fix from '#src-common/components/icons/fix.vue'
 import friend from '#src-common/components/icons/friend.vue'
 import grid from '#src-common/components/icons/grid.vue'
+import heart from '#src-common/components/icons/heart.vue'
 import layers from '#src-common/components/icons/layers.vue'
 import logOut from '#src-common/components/icons/log-out.vue'
 import pause from '#src-common/components/icons/pause.vue'
@@ -132,6 +133,7 @@ const iconsMap: Record<string, IconComponent> = {
   ellipsis: ellipsis,
   'arrows-rotate': arrowRotate,
   'wifi-off': wifioff,
+  heart: heart,
 }
 
 const iconComponent: ComputedRef<IconComponent> = computed(() => iconsMap[props.name])

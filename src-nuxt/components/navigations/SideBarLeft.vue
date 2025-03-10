@@ -128,3 +128,23 @@ const onMouseLeave: () => void = (): void => {
   menuIsExpanded.value = false
 }
 </script>
+
+<style scoped>
+/* Personnalisation de la croix native pour WebKit (Chrome, Safari, Edge) */
+input[type='search']::-webkit-search-cancel-button {
+  -webkit-appearance: none; /* Supprime le style par défaut */
+  height: 16px;
+  width: 16px;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23F59E0B' stroke-width='2'><path d='M6 18L18 6M6 6l12 12'/></svg>")
+    no-repeat center;
+  background-size: contain;
+  cursor: pointer;
+}
+
+/* Pour Firefox (qui n'utilise pas ::-webkit-search-cancel-button) */
+input[type='search']::-moz-search-clear {
+  /* Firefox utilise un style différent, mais il est moins personnalisable */
+  /* On peut essayer de masquer et de styliser autrement si nécessaire */
+  display: none; /* Désactive la croix par défaut de Firefox si non stylisée */
+}
+</style>

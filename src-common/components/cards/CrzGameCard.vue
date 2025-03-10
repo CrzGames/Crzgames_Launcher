@@ -1,8 +1,12 @@
 <template>
   <component :is="tag" :to="to" class="grid max-w-sm gap-4">
     <div
-      class="relative aspect-[3/4] transform transition-transform duration-300 ease-in-out hover:scale-102"
-      :class="[props.visualGroupClass, !props.pictureFileUrl ? 'rounded-md bg-zinc-100' : '']"
+      class="relative aspect-[3/4] transform transition-transform duration-300 ease-in-out"
+      :class="[
+        props.enableHoverEffect ? 'hover:scale-105 hover:-translate-y-2' : '',
+        props.visualGroupClass,
+        !props.pictureFileUrl ? 'rounded-md bg-zinc-100' : '',
+      ]"
       @mouseover="playVideo"
       @mouseout="resetVideo"
     >
@@ -32,19 +36,36 @@
       <!-- Vidéo du jeu -->
       <video
         v-if="showVideo && props.trailerFileUrl"
-        muted
         loop
         ref="gameVideoElement"
         class="h-full w-full rounded-md object-cover"
         v-show="hover"
         :src="props.trailerFileUrl"
       />
+
+      <!-- Logo du jeu -->
       <img
         v-if="props.logoFileUrl"
         class="absolute bottom-2 left-1/2 h-auto -translate-x-1/2 transform"
         :src="props.logoFileUrl"
         :alt="`${props.title} game logo`"
       />
+
+      <!-- Bouton pour ajouter le jeu à la liste d'envie -->
+      <CrzSquareIconButton
+        v-if="props.showFavoritesGameButton"
+        class="absolute bottom-2 border border-blue-900"
+        :class="{
+          'right-12': props.showPaidGameButton || props.showAddGameInLibraryButton,
+          'right-2': !props.showPaidGameButton && !props.showAddGameInLibraryButton,
+        }"
+        tooltip="Add to my wishlist"
+        variant="primary"
+        iconMode="stroke"
+        iconName="heart"
+      />
+
+      <!-- Bouton de téléchargement -->
       <CrzSquareIconButton
         v-if="props.showDownloadButton"
         class="absolute bottom-2 right-2 border border-blue-900"
@@ -54,6 +75,8 @@
         iconName="download"
         @click="emit('download')"
       />
+
+      <!-- Bouton pour lance le jeu -->
       <CrzSquareIconButton
         v-if="props.showPlayButton"
         class="absolute bottom-2 right-2 border border-blue-900"
@@ -63,6 +86,8 @@
         iconName="play"
         @click="emit('play')"
       />
+
+      <!-- Bouton pour ajouter le jeu à la bibliothèque -->
       <CrzSquareIconButton
         v-if="props.showAddGameInLibraryButton"
         class="absolute bottom-2 right-2 border border-blue-900"
@@ -72,6 +97,8 @@
         iconName="plus"
         @click="emit('add-to-library')"
       />
+
+      <!-- Bouton pour réparer le jeu installé dans la bibliothèque -->
       <CrzSquareIconButton
         v-if="props.showFixGameInstalledInLibraryButton"
         class="absolute bottom-2 right-12 border border-blue-900"
@@ -81,12 +108,15 @@
         iconName="fix"
         @click="emit('fixGameInstalledInLibrary')"
       />
+
+      <!-- Bouton pour ouvrir le menu "..." -->
       <EllipsisDropdownMenu
         v-if="props.showEllipsisButton"
         class="absolute right-20 border border-blue-900"
         @createDesktopShortcut="emit('createDesktopShortcut')"
         @uninstallGame="emit('uninstallGame')"
       />
+      <!-- Bouton pour acheter le jeu -->
       <a
         v-if="props.showPaidGameButton"
         :href="urlShop"
@@ -115,6 +145,7 @@
       <span>Update Available</span>
     </div>
 
+    <!-- Titre, sous-titre et plateformes -->
     <div>
       <h3
         v-if="props.title"
@@ -177,6 +208,8 @@ import EllipsisDropdownMenu from '#src-nuxt/components/menus/EllipsisDropdownMen
  * @property {boolean} showFixGameInstalledInLibraryButton - Show fix game installed in library button
  * @property {boolean} showEllipsisButton - Show ellipsis button
  * @property {boolean} showUpdateIndicator - Show update indicator
+ * @property {boolean} showFavoritesGameButton - Affiche le boutton "coeur" pour ajouter le jeu a la liste d'envie
+ * @property {boolean} enableHoverEffect - Enable lors du survol de la carte de jeu un effet de zoom et de translation ou non
  */
 type Props = {
   visualGroupClass: string | null
@@ -200,11 +233,14 @@ type Props = {
   showUpdateIndicator: boolean
   upcomingGame: boolean
   newGame: boolean
+  showFavoritesGameButton: boolean
+  enableHoverEffect: boolean
 }
 
 /* REFS */
 const hover: Ref<boolean> = ref(false)
 const gameVideoElement: Ref<HTMLVideoElement | null> = ref(null)
+const resetTimeout: Ref<NodeJS.Timeout | null> = ref(null)
 
 /* PROPS */
 const props: Props = defineProps({
@@ -300,6 +336,14 @@ const props: Props = defineProps({
     type: Boolean,
     default: false,
   },
+  showFavoritesGameButton: {
+    type: Boolean,
+    default: false,
+  },
+  enableHoverEffect: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 /* DATA */
@@ -343,25 +387,37 @@ const tag: ComputedRef<'div' | 'RouterLink'> = computed(() => {
 const playVideo: () => void = (): void => {
   if (!props.showVideo) return
 
+  // Annule tout timeout de réinitialisation en attente
+  if (resetTimeout.value !== null) {
+    clearTimeout(resetTimeout.value)
+    resetTimeout.value = null
+  }
+
   hover.value = true
   const video: HTMLVideoElement | null = gameVideoElement.value
-
-  if (video !== null) {
-    video.play()
+  if (video) {
+    video.play().catch((error: any) => console.error('Error playing video:', error))
   }
 }
 
 /**
- * Reset the video
+ * Reset the video with debounce
  * @returns {void}
  */
 const resetVideo: () => void = (): void => {
-  hover.value = false
-  const video: HTMLVideoElement | null = gameVideoElement.value
+  if (!props.showVideo) return
 
-  if (video) {
-    video.pause()
-    video.currentTime = 0
+  // Ajoute un léger délai avant de réinitialiser la vidéo
+  if (resetTimeout.value === null) {
+    resetTimeout.value = setTimeout(() => {
+      hover.value = false
+      const video: HTMLVideoElement | null = gameVideoElement.value
+      if (video) {
+        video.pause()
+        video.currentTime = 0
+      }
+      resetTimeout.value = null
+    }, 100) // Délai de 100ms
   }
 }
 </script>

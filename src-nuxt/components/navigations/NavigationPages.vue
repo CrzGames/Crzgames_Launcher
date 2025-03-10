@@ -20,7 +20,6 @@ import { useRouter } from 'vue-router'
 import type { Router } from 'vue-router'
 import { useNavigationStore } from '~/stores/navigation.store'
 
-console.log('NavigationPages.vue')
 /* DATA */
 const router: Router = useRouter()
 

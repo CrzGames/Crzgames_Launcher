@@ -146,8 +146,10 @@ const signInAuto: () => Promise<void> = async (): Promise<void> => {
  * @returns {Promise<void>}
  */
 const signIn: () => Promise<void> = async (): Promise<void> => {
-  // Si la connexion est en cours, on ne fait rien
-  if (buttonLoading.value) return
+  // Si la connexion est en cours ou si le formulaire est invalide, on ne fait rien
+  if (buttonLoading.value || isFormInvalid.value) {
+    return
+  }
 
   // On désactive le bouton de connexion pour éviter les double clics et les envois multiples du formulaire
   buttonLoading.value = true
@@ -182,8 +184,8 @@ const signIn: () => Promise<void> = async (): Promise<void> => {
       return
     }
 
-    // Cas où les identifiants sont incorrects (401, 403)
-    if (statusCode === 401 || statusCode === 403) {
+    // Cas où les identifiants sont incorrects (400+)
+    if (statusCode >= 400 || statusCode < 500) {
       $notyf.error({
         message: `
           <div style="font-size: 14px; line-height: 1.4; max-width: 280px;">

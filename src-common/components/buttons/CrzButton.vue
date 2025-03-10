@@ -69,6 +69,12 @@ const sizeClasses: ComputedRef<string> = computed((): string => {
 const hoverBgClass: ComputedRef<string> = computed((): string => {
   if (props.variant === 'none') return '' // Aucun arrière-plan au survol pour "none"
   switch (props.variant) {
+    case 'active':
+      return 'bg-amber-400' // bouton actif en jaune
+    case 'primary2':
+      return 'bg-gray-300' // bouton inactif en gris
+    case 'disabled':
+      return 'bg-gray-300' // bouton désactivé en gris
     case 'primary':
       return 'hover:bg-amber-500'
     case 'red':

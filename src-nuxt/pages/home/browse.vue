@@ -1,7 +1,52 @@
 <template>
   <div class="grid gap-8 px-4 py-5 pb-12 text-white">
-    <!-- Barre de recherche -->
-    <CrzSearchBar :value="searchTerm" @update:value="searchTerm = $event" />
+    <!-- Barre de recherche et boutons de navigation -->
+    <div class="flex items-center w-full">
+      <!-- Boutons de navigation gauche / droite -->
+      <NavigationPages class="mr-5" />
+
+      <!-- Barre de recherche -->
+      <CrzSearchBar
+        :height="40"
+        :value="searchTerm"
+        :placeholder="'Search for games (CTRL + E)'"
+        @update:value="searchTerm = $event"
+      />
+    </div>
+
+    <!-- Titre principal de la page "Browse" -->
+    <h1 class="font-serif text-xl font-semibold sm:text-2xl">Browse</h1>
+
+    <div class="flex items-center justify-between w-full" style="margin-top: -1rem">
+      <!-- Boutons "All Games" et "Featured Games" (cachés pendant une recherche) -->
+      <div class="flex gap-2">
+        <CrzButton
+          size="sm"
+          :variant="searchTerm ? 'disabled' : activeFilter === 'all' ? 'active' : 'primary2'"
+          @click="setFilter('all')"
+        >
+          All Games
+        </CrzButton>
+        <CrzButton
+          size="sm"
+          :variant="searchTerm ? 'disabled' : activeFilter === 'featured' ? 'active' : 'primary2'"
+          @click="setFilter('featured')"
+        >
+          Featured Games
+        </CrzButton>
+      </div>
+
+      <!-- Affichage des résultats de recherche -->
+      <div v-if="searchTerm && filteredGames" class="flex items-center gap-2">
+        <span class="text-lg font-medium text-white">Search results for "{{ searchTerm }}"</span>
+        <CrzBadge variant="yellow" size="sm">
+          {{ filteredGames.length }} game{{ filteredGames.length === 1 ? '' : 's' }}
+        </CrzBadge>
+      </div>
+    </div>
+
+    <!-- Diviseur -->
+    <Divider />
 
     <!-- Contenu principal : s'affiche seulement quand le chargement est terminé et qu'il y a des données (donc des jeux) -->
     <div
@@ -26,6 +71,8 @@
             :smallText="true"
             :upcomingGame="game.upcoming_game"
             :newGame="game.new_game"
+            :showFavoritesGameButton="true"
+            :enableHoverEffect="true"
             @add-to-library="addGameInUserGameLibrary(game.id)"
           />
           <CrzBadge v-if="game.isOwned" variant="gray" size="sm">
@@ -36,13 +83,17 @@
       </template>
     </div>
 
-    <!-- Message s'affiche seulement après le chargement et s'il n'y a pas de données -->
-    <p
+    <!-- Messages pour l'absence de jeux lors la recherche via l'input -->
+    <div
       v-if="!isLoadingGames && (!filteredGames || filteredGames.length === 0)"
-      class="text-center text-base font-semibold text-gray-400 md:text-xl"
+      class="flex flex-col items-center justify-center w-full max-w-3xl mx-auto bg-[#141724] text-center p-6 rounded-xl"
     >
-      There are no games available for this search.
-    </p>
+      <CrzIcon name="search" color="#6b7280" view-box="0 0 24 24" class="w-12 h-12 mb-4" />
+      <h2 class="text-lg font-semibold text-white">No results found</h2>
+      <p class="text-sm text-gray-400 mt-2">No games match your search.</p>
+      <p class="text-sm text-gray-400 mt-2">Try searching with different keywords.</p>
+      <CrzButton @click="setFilter('all')" class="mt-4"> Browse all games </CrzButton>
+    </div>
   </div>
 </template>
 
@@ -51,6 +102,7 @@ import { onMounted, ref } from 'vue'
 import type { Ref } from 'vue'
 import { useGameStore } from '~~/src-nuxt/stores/game.store'
 
+import CrzButton from '#src-common/components/buttons/CrzButton.vue'
 import CrzGameCard from '#src-common/components/cards/CrzGameCard.vue'
 import CrzSearchBar from '#src-common/components/inputs/CrzSearchBar.vue'
 import CrzBadge from '#src-common/components/ui/CrzBadge.vue'
@@ -60,6 +112,8 @@ import { type GamePaidAndOwnedStatus, ProductService } from '#src-common/core/se
 
 import type { ExtendedGameModel } from '#src-core/types/ExtendedGameModel'
 
+import NavigationPages from '#src-nuxt/components/navigations/NavigationPages.vue'
+import Divider from '#src-nuxt/components/ui/Divider.vue'
 import { useGameLibraryStore } from '#src-nuxt/stores/gameLibrary.store'
 
 const { $notyf } = useNuxtApp()
@@ -103,6 +157,14 @@ const isLoadingGames: Ref<boolean> = ref(true)
  */
 const games: Ref<ExtendedGameModel[]> = ref([])
 
+/**
+ * activeFilter permet de savoir quel filtre est actif.
+ * @type {Ref<string>}
+ * @default 'all'
+ * @example 'all', 'featured'
+ */
+const activeFilter: Ref<string> = ref('all')
+
 /* CYCLE - HOOKS */
 /**
  * Lifecycle hook mounted
@@ -114,19 +176,34 @@ onMounted(async (): Promise<void> => {
 
 /* METHODS */
 /**
+ * Permet de définir le filtre actif.
+ * @param {string} filter - Filtre actif
+ * @returns {void}
+ */
+const setFilter: (filter: string) => void = (filter: string): void => {
+  activeFilter.value = filter
+  searchTerm.value = ''
+}
+
+/**
  * Permet de filtrer les jeux en fonction de la recherche de l'utilisateur.
  * @returns {ExtendedGameModel[]}
  */
 const filteredGames: ComputedRef<ExtendedGameModel[]> = computed((): ExtendedGameModel[] => {
-  // Si la recherche est vide, on retourne tous les jeux
-  if (!searchTerm.value) {
+  if (searchTerm.value.trim()) {
+    // Si la recherche n'est pas vide, on filtre les jeux en fonction du terme de recherche
+    return games.value.filter((game: ExtendedGameModel): boolean =>
+      game.title.toLowerCase().includes(searchTerm.value.toLowerCase()),
+    )
+  } else {
+    if (activeFilter.value === 'all') {
+      return games.value
+    } else if (activeFilter.value === 'featured') {
+      // Afficher seulement les jeux "featured" (nouveaux ou à venir)
+      return games.value.filter((game: ExtendedGameModel): boolean => game.new_game || game.upcoming_game)
+    }
     return games.value
   }
-
-  // Sinon, on filtre les jeux en fonction de la recherche
-  return games.value.filter((game: ExtendedGameModel): boolean =>
-    game.title.toLowerCase().includes(searchTerm.value.toLowerCase()),
-  )
 })
 
 /**
