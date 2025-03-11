@@ -9,12 +9,21 @@
       </span>
     </WindowBar>
 
-    <main class="flex h-full flex-1">
-      <SideBarLeft />
+    <main class="flex h-full flex-1 overflow-hidden">
+      <SideBarLeft class="h-full" />
 
-      <div class="mx-[80px] flex-grow overflow-y-auto overflow-x-hidden">
+      <div
+        class="flex-grow overflow-x-hidden transition-all duration-300"
+        :class="{
+          'overflow-y-auto': !isCarouselPage,
+          'overflow-y-hidden': isCarouselPage,
+          'ml-[80px] mr-[80px]': windowWidth < 1125,
+          'ml-[256px] mr-[80px]': windowWidth >= 1125 && windowWidth < 1448,
+          'ml-[256px] mr-[256px]': windowWidth >= 1448,
+        }"
+      >
         <!-- Loader à l'intérieur de la page si une requête est en cours -->
-        <div v-if="useAppStore().pending" class="absolute left-1/2 top-1/2">
+        <div v-if="useAppStore().pending" class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
           <CrzSpinner />
         </div>
 
@@ -22,18 +31,59 @@
         <NuxtPage v-show="!useAppStore().pending" />
       </div>
 
-      <SideBarRight />
+      <SideBarRight class="h-full" />
     </main>
   </div>
 </template>
 
 <script lang="ts" setup>
+import { onMounted, onUnmounted, ref } from 'vue'
+import type { RouteLocationNormalizedLoadedGeneric } from 'vue-router'
+
 import CrzSpinner from '#src-common/components/loaders/CrzSpinner.vue'
 
 import SideBarLeft from '#src-nuxt/components/navigations/SideBarLeft.vue'
 import SideBarRight from '#src-nuxt/components/navigations/SideBarRight.vue'
 import WindowBar from '#src-nuxt/components/window-bar/WindowBar.vue'
 import { useAppStore } from '#src-nuxt/stores/app.store'
+
+/* DATA */
+const route: RouteLocationNormalizedLoadedGeneric = useRoute()
+
+/* REFS */
+const windowWidth: Ref<number> = ref(window.innerWidth)
+const isCarouselPage: Ref<boolean> = ref(route.path.includes('/home/carousel'))
+
+/* LIFECYCLE HOOKS */
+onMounted((): void => {
+  // Mettre à jour la largeur initiale
+  windowWidth.value = window.innerWidth
+
+  // Ajouter un écouteur pour les redimensionnements
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted((): void => {
+  // Nettoyer l'écouteur pour éviter les fuites de mémoire
+  window.removeEventListener('resize', handleResize)
+})
+
+watch(
+  (): string => route.path,
+  (newPath: string): void => {
+    // Mettre à jour la page actuelle pour savoir si c'est une page de carrousel, pour enlever le scroll vertical
+    isCarouselPage.value = newPath.includes('/home/carousel')
+  },
+)
+
+/* METHODS */
+/**
+ * Gérer le redimensionnement de la fenêtre
+ * @returns {void}
+ */
+const handleResize: () => void = (): void => {
+  windowWidth.value = window.innerWidth
+}
 </script>
 
 <style lang="scss">

@@ -2,7 +2,7 @@
   <div
     id="application-sidebar-right"
     :class="menuIsExpanded ? '' : 'w-[80px]'"
-    class="fixed right-0 z-10 flex h-screen w-[256px] flex-col items-center justify-start overflow-hidden bg-blue-900 py-4 text-white transition-all duration-300"
+    class="fixed right-0 z-10 flex h-screen w-[256px] flex-col items-center justify-start overflow-hidden bg-blue-900/90 py-4 text-white transition-all duration-300"
     @mouseenter="onMouseEnter"
     @mouseleave="onMouseLeave"
     style="height: calc(100vh - 35px)"
@@ -73,7 +73,8 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
+// Ajout de onUnmounted
 import type { Ref } from 'vue'
 
 import CrzAvatar from '#src-common/components/ui/CrzAvatar.vue'
@@ -91,7 +92,7 @@ const user: Ref<UserModel | undefined> = ref(useAuthStore().user)
 
 const isMyProfileModalOpen: Ref<boolean> = ref(false)
 
-const menuIsExpanded: Ref<boolean> = ref(false)
+const menuIsExpanded: Ref<boolean> = ref(window.innerWidth >= 1448) // Modifié à 1448
 const showUserMenu: Ref<boolean> = ref(false)
 
 const statusConnected: Ref<string> = ref('Online')
@@ -107,16 +108,37 @@ onMounted(async (): Promise<void> => {
   if (savedStatusConnected) {
     statusConnected.value = savedStatusConnected
   }
+
+  // Ajouter un écouteur pour les redimensionnements
+  window.addEventListener('resize', updateSidebarState)
+})
+
+/**
+ * On unmounted
+ * @returns {void}
+ */
+onUnmounted((): void => {
+  window.removeEventListener('resize', updateSidebarState)
 })
 
 /* METHODS */
+/**
+ * Update sidebar state
+ * @returns {void}
+ */
+const updateSidebarState: () => void = (): void => {
+  menuIsExpanded.value = window.innerWidth >= 1448 || showUserMenu.value
+}
+
 /**
  * Close the user menu
  * @returns {void}
  */
 const onClickOutsideUserMenu: () => void = (): void => {
   showUserMenu.value = false
+  updateSidebarState()
 }
+
 /**
  * On mouse enter
  * @returns {void}
@@ -130,7 +152,7 @@ const onMouseEnter: () => void = (): void => {
  * @returns {void}
  */
 const onMouseLeave: () => void = (): void => {
-  menuIsExpanded.value = false
+  menuIsExpanded.value = window.innerWidth >= 1448
   showUserMenu.value = false
 }
 

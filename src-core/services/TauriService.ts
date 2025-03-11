@@ -745,7 +745,7 @@ export class TauriService {
     const newSize: LogicalSize = new LogicalSize(width, height)
     await appWindow.setSize(newSize)
     await appWindow.setResizable(true)
-    await appWindow.setMinSize(new LogicalSize(1030, 660))
+    await appWindow.setMinSize(new LogicalSize(1038, 660))
     await appWindow.center()
 
     navigateTo('/home/carousel')

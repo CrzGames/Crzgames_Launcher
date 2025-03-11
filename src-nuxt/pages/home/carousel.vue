@@ -2,8 +2,8 @@
   <div class="container">
     <!-- Carrousel -->
     <CrzSwiper
-      v-if="!isLoadingCarousels && carouselsStore.carouselItems.length > 0"
-      :carousels="carouselsStore.carouselItems"
+      v-if="!isLoadingCarousels && carouselsStore.carousels.length > 0"
+      :carousels="carouselsStore.carousels"
     />
   </div>
 </template>
@@ -13,7 +13,7 @@ import { onMounted } from 'vue'
 import type { Ref } from 'vue'
 
 import CrzSwiper from '#src-nuxt/components/carousel/CrzSwiper.vue'
-import { useGameCarouselStore } from '#src-nuxt/stores/game-carousel.store'
+import { useGameCarouselStore } from '#src-nuxt/stores/gameCarousel.store'
 import { useWindowStore } from '#src-nuxt/stores/window.store'
 
 /* LAYOUT - MIDDLEWARE */

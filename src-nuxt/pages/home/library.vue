@@ -1,26 +1,46 @@
 <template>
-  <div :class="{ 'launching-cursor': isLaunchingGame }" class="grid gap-8 px-4 py-5 pb-12 text-white">
-    <!-- Div qui contient l'input de recherche et le boutton "Check for Updates" -->
+  <div :class="{ 'launching-cursor': isLaunchingGame }" class="grid gap-8 px-4 py-5 pb-12 text-white relative">
     <div class="flex items-center justify-between">
-      <!-- Barre de recherche -->
-      <CrzSearchBar
-        v-if="
-          gameInstalled.length > 0 || gameNotInstalled.length > 0 || gameNeedsUpdate.length > 0 || searchTerm.length > 0
-        "
-        :value="searchTerm"
-        @update:value="searchTerm = $event"
-      />
-      <!-- Boutton "Check for Updates", qui es caché si aucun jeux est installé -->
-      <button
-        v-if="gameInstalled.length > 0 || gameNeedsUpdate.length > 0"
-        @click="checkForUpdatesGames"
-        class="flex items-center rounded px-4 py-2 text-black"
-        :style="{ backgroundColor: 'rgb(224, 161, 0)' }"
-      >
-        <CrzIcon color="#000000" name="arrows-rotate" view-box="0 0 512 512" :width="18" :height="18" class="mr-2" />
-        Search for Game Updates
-      </button>
+      <div class="flex flex-wrap items-center w-full">
+        <!-- Boutons de navigation gauche / droite -->
+        <NavigationPages class="mr-5" />
+
+        <!-- Barre de recherche -->
+        <CrzSearchBar
+          class="flex-grow min-w-[200px]"
+          :height="40"
+          :value="searchTerm"
+          :placeholder="'Search for games (CTRL + E)'"
+          @update:value="searchTerm = $event"
+        />
+
+        <!-- Bouton "Check for Updates" -->
+        <button
+          v-if="gameInstalled.length > 0 || gameNeedsUpdate.length > 0"
+          @click="checkForUpdatesGames"
+          class="flex-shrink-0 min-w-[180px] flex items-center rounded px-4 py-2 text-black ml-auto pl-2"
+          :style="{ backgroundColor: 'rgb(224, 161, 0)' }"
+        >
+          <CrzIcon color="#000000" name="arrows-rotate" view-box="0 0 512 512" :width="18" :height="18" class="mr-2" />
+          Search for Game Updates
+        </button>
+
+        <!-- Logo CrzGames (déplacé en position absolue) -->
+        <div class="relative w-full">
+          <img
+            src="/images/logo_fond_transparent_whitout_text.png"
+            alt="CrzGames Logo"
+            class="w-20 h-20 object-contain absolute top-0 right-0 mt-2 mr-2 z-10"
+          />
+        </div>
+      </div>
     </div>
+
+    <!-- Titre principal de la page "My Library" -->
+    <h1 class="font-serif text-xl font-semibold sm:text-2xl">My Library</h1>
+
+    <!-- Diviseur -->
+    <Divider />
 
     <!-- Affichage du loader unique pour tous les jeux en chargement -->
     <CrzSpinner v-if="isLoading" />
@@ -31,9 +51,7 @@
         Games needing updates
         <span class="font-sans font-normal opacity-40">({{ gameNeedsUpdate.length }})</span>
       </h4>
-      <div
-        class="grid grid-cols-1 items-start justify-center gap-3 text-sm sm:grid sm:grid-cols-3 md:grid-cols-4 md:gap-6 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-7 3xl:grid-cols-8 4xl:grid-cols-10"
-      >
+      <div class="grid grid-cols-auto-fit gap-8" style="grid-template-columns: repeat(auto-fit, minmax(180px, 220px))">
         <template v-for="game in gameNeedsUpdate" :key="game.id">
           <CrzGameCard
             :pictureFileUrl="game.pictureFile?.url"
@@ -67,9 +85,7 @@
         My games installed
         <span class="font-sans font-normal opacity-40">({{ gameInstalled.length }})</span>
       </h4>
-      <div
-        class="grid grid-cols-1 items-start justify-center gap-3 text-sm sm:grid sm:grid-cols-3 md:grid-cols-4 md:gap-6 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-7 3xl:grid-cols-8 4xl:grid-cols-10"
-      >
+      <div class="grid grid-cols-auto-fit gap-8" style="grid-template-columns: repeat(auto-fit, minmax(180px, 220px))">
         <template v-for="game in gameInstalled" :key="game.id">
           <CrzGameCard
             :pictureFileUrl="game.pictureFile?.url"
@@ -102,9 +118,7 @@
         My games not installed
         <span class="font-sans font-normal opacity-40">({{ gameNotInstalled.length }})</span>
       </h4>
-      <div
-        class="grid grid-cols-1 items-start justify-center gap-3 text-sm sm:grid sm:grid-cols-3 md:grid-cols-4 md:gap-6 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-7 3xl:grid-cols-8 4xl:grid-cols-10"
-      >
+      <div class="grid grid-cols-auto-fit gap-8" style="grid-template-columns: repeat(auto-fit, minmax(180px, 220px))">
         <template :key="game.id" v-for="game in gameNotInstalled">
           <CrzGameCard
             :pictureFileUrl="game.pictureFile?.url"
@@ -127,29 +141,35 @@
     </div>
 
     <!-- Messages pour l'absence de jeux lors la recherche via l'input -->
-    <p
+    <div
       v-if="
         gameInstalled.length === 0 &&
         gameNotInstalled.length === 0 &&
         gameNeedsUpdate.length === 0 &&
         searchTerm.length > 0
       "
-      class="text-center text-base font-semibold text-gray-400 md:text-xl"
+      class="flex flex-col items-center justify-center w-full max-w-3xl mx-auto bg-[#141724] text-center p-6 rounded-xl"
     >
-      There are no games available for this search.
-    </p>
+      <CrzIcon name="search" color="#6b7280" view-box="0 0 24 24" class="w-12 h-12 mb-4" />
+      <h2 class="text-lg font-semibold text-white">No results found</h2>
+      <p class="text-sm text-gray-400 mt-2">No games or extensions match your search.</p>
+      <p class="text-sm text-gray-400 mt-2">Try searching with different keywords.</p>
+    </div>
     <!-- Messages pour l'absence de jeux, si aucun jeux est dans la bibliothèque de l'utilisateur -->
-    <p
+    <div
       v-if="
         gameInstalled.length === 0 &&
         gameNotInstalled.length === 0 &&
         gameNeedsUpdate.length === 0 &&
-        searchTerm.length === 0
+        gameNeedsUpdate.length === 0
       "
-      class="text-center text-base font-semibold text-gray-400 md:text-xl"
+      class="flex flex-col items-center justify-center w-full max-w-3xl mx-auto bg-[#141724] text-center p-6 rounded-xl"
     >
-      There are no games available in your library, at the moment.
-    </p>
+      <h2 class="text-lg font-semibold text-white">Your library is empty</h2>
+      <p class="text-sm text-gray-400 mt-2">
+        Purchase a game or add a free game to your library to start building your library.
+      </p>
+    </div>
 
     <!-- Modal de téléchargement -->
     <DownloadModal
@@ -202,6 +222,7 @@
 </template>
 
 <script lang="ts" setup>
+import { is } from '@vee-validate/rules'
 import { onMounted, ref, watch, watchEffect } from 'vue'
 import type { Ref } from 'vue'
 
@@ -231,15 +252,17 @@ import { TauriService } from '#src-core/services/TauriService'
 import DownloadModal from '#src-nuxt/components/modals/DownloadModal.vue'
 import FixGameInstalledInLibraryModal from '#src-nuxt/components/modals/FixGameInstalledInLibraryModal.vue'
 import PlayGameNotFoundExecutableModal from '#src-nuxt/components/modals/PlayGameNotFoundExecutableModal.vue'
+import NavigationPages from '#src-nuxt/components/navigations/NavigationPages.vue'
+import Divider from '#src-nuxt/components/ui/Divider.vue'
 import { useAuthStore } from '#src-nuxt/stores/auth.store'
-import { useGameLibraryStore } from '#src-nuxt/stores/gameLibrary.store'
+import { useUserGameLibrariesStore } from '#src-nuxt/stores/userGameLibraries.store'
 
 const { $notyf } = useNuxtApp()
 
 /* LAYOUT - MIDDLEWARE */
 definePageMeta({
   layout: 'layout-home',
-  middleware: ['auth'],
+  middleware: ['auth', 'navigation'],
   pageTransition: {
     name: 'fade-scale',
     mode: 'out-in',
@@ -251,7 +274,7 @@ definePageMeta({
 })
 
 /*STORE*/
-const gameLibraryStore: any = useGameLibraryStore()
+const userGameLibrariesStore: any = useUserGameLibrariesStore()
 const authStore: any = useAuthStore()
 
 /* DATAS */
@@ -302,8 +325,6 @@ onMounted(async (): Promise<void> => {
     await loadGames()
   } catch (error) {
     console.error('Error occurred while loading games: ', error)
-  } finally {
-    isLoading.value = false
   }
 })
 
@@ -417,7 +438,7 @@ const checkForGameUpdate: (game: GameModel) => Promise<boolean> = async (game: G
   )
 
   if (installedGame && latestGameVersionAvailable.version !== installedGame.gameManifest.version) {
-    const gameModel: GameModel | undefined = gameLibraryStore.libraryGamesPlatforms.find(
+    const gameModel: GameModel | undefined = userGameLibrariesStore.userGameLibrariesSortedByPlatform.find(
       (game: GameModel) => game.id === installedGame.gameManifest.gameId,
     )
 
@@ -447,7 +468,9 @@ const checkForUpdatesGames: () => Promise<void> = async (): Promise<void> => {
  * @returns {Promise<void>} - The promise
  */
 const loadGames: () => Promise<void> = async (): Promise<void> => {
-  await gameLibraryStore.getLibraryGames()
+  isLoading.value = true
+
+  await userGameLibrariesStore.getUserGameLibraries()
 
   // Réinitialiser les listes avant de les remplir
   gamesInstalled.value = []
@@ -465,7 +488,7 @@ const loadGames: () => Promise<void> = async (): Promise<void> => {
 
       // Vérifier si la version du jeu installé est différente de la version la plus récente disponible
       if (latestGameVersionAvailable.version !== installedGame.gameManifest.version) {
-        const gameModel: GameModel | undefined = gameLibraryStore.libraryGamesPlatforms.find(
+        const gameModel: GameModel | undefined = userGameLibrariesStore.userGameLibrariesSortedByPlatform.find(
           (game: GameModel) => game.id === installedGame.gameManifest.gameId,
         )
 
@@ -484,6 +507,8 @@ const loadGames: () => Promise<void> = async (): Promise<void> => {
   }
 
   refreshLibrary()
+
+  isLoading.value = false
 }
 
 /**
@@ -538,19 +563,22 @@ const onPlayGame: (game: GameModel) => Promise<Promise<void> | string> = async (
  */
 const refreshLibrary: () => void = (): void => {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (gameLibraryStore.libraryGamesPlatforms && gameLibraryStore.libraryGamesPlatforms.length > 0) {
+  if (
+    userGameLibrariesStore.userGameLibrariesSortedByPlatform &&
+    userGameLibrariesStore.userGameLibrariesSortedByPlatform.length > 0
+  ) {
     // Jeux installés
-    gameInstalled.value = gameLibraryStore.libraryGamesPlatforms.filter((game: GameModel) => {
+    gameInstalled.value = userGameLibrariesStore.userGameLibrariesSortedByPlatform.filter((game: GameModel) => {
       return gamesInstalled.value?.some((installedGame: GameInstalled) => installedGame.gameManifest.gameId === game.id)
     })
 
     // Jeux nécessitant une mise à jour
-    gameNeedsUpdate.value = gameLibraryStore.libraryGamesPlatforms.filter((game: GameModel) => {
+    gameNeedsUpdate.value = userGameLibrariesStore.userGameLibrariesSortedByPlatform.filter((game: GameModel) => {
       return gameNeedsUpdate.value.some((gameUpdate: GameModel) => gameUpdate.id === game.id)
     })
 
     // Jeux non installés
-    gameNotInstalled.value = gameLibraryStore.libraryGamesPlatforms.filter((game: GameModel) => {
+    gameNotInstalled.value = userGameLibrariesStore.userGameLibrariesSortedByPlatform.filter((game: GameModel) => {
       return (
         !gamesInstalled.value?.some((installedGame: GameInstalled) => installedGame.gameManifest.gameId === game.id) &&
         !gameNeedsUpdate.value.some((gameUpdate: GameModel) => gameUpdate.id === game.id)
@@ -1071,11 +1099,14 @@ const verifyInstallationGame: (game: GameModel) => Promise<void> = async (game: 
  * @returns {void}
  */
 watch(searchTerm, async (newValue: string): Promise<void> => {
-  await gameLibraryStore.getLibraryGames(newValue)
+  await userGameLibrariesStore.getUserGameLibraries(newValue)
 
   // Vérification après la recherche
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (newValue && (gameLibraryStore.libraryGamesPlatforms.length === 0 || !gameLibraryStore.libraryGamesPlatforms)) {
+  if (
+    newValue &&
+    (userGameLibrariesStore.userGameLibrariesSortedByPlatform.length === 0 ||
+      !userGameLibrariesStore.userGameLibrariesSortedByPlatform)
+  ) {
     gameInstalled.value = []
     gameNotInstalled.value = []
     gameNeedsUpdate.value = []

@@ -1,8 +1,13 @@
+import type { DateTime } from 'luxon'
+
 import { BaseModel } from '#src-common/core/models/BaseModel'
 import type FileModel from '#src-common/core/models/FileModel'
 import type GameBinaryModel from '#src-common/core/models/GameBinaryModel'
 import type GameCategoryModel from '#src-common/core/models/GameCategoryModel'
 import type GamePlatformModel from '#src-common/core/models/GamePlatformModel'
+
+import type GameConfigurationModel from './GameConfigurationModel'
+import type { LanguageModel } from './LanguageModel'
 
 const PCPlatforms: string[] = [
   'windows',
@@ -35,26 +40,33 @@ const ConsolePlatforms: string[] = [
 const MobilePlatforms: string[] = ['android', 'ios']
 
 /**
- * Interface for the new game object
- * @interface iNewGame
- * @property {number} id - The id of the game
- * @property {string} title - The title of the game
- * @property {string} description - The description of the game
- * @property {number | null} trailer_files_id - The id of the trailer file
- * @property {FileModel} trailerFile - The trailer file
- * @property {number | null} picture_files_id - The id of the picture file
- * @property {FileModel} pictureFile - The picture file
- * @property {number | null} logo_files_id - The id of the logo file
- * @property {FileModel} logoFile - The logo file
- * @property {GameCategoryModel[]} gameCategory - The game category
- * @property {GamePlatformModel[]} gamePlatform - The game platform
- * @property {GameBinaryModel[]} gameBinary - The game binary
- * @property {boolean} upcoming_game - The upcoming game
- * @property {boolean} new_game - The new game
- * @property {string} created_at - The created date
- * @property {string} updated_at - The updated date
+ * Interface représentant les données complètes d’un jeu.
+ * @interface IGameModel
+ * @property {number} id - L’identifiant du jeu.
+ * @property {string} title - Le titre du jeu.
+ * @property {string} description - La description du jeu.
+ * @property {number | null} trailer_files_id - L’identifiant du fichier trailer (ou null).
+ * @property {FileModel} trailerFile - L’objet représentant le fichier trailer.
+ * @property {number | null} picture_files_id - L’identifiant du fichier image (ou null).
+ * @property {FileModel} pictureFile - L’objet représentant le fichier image.
+ * @property {number | null} logo_files_id - L’identifiant du fichier logo (ou null).
+ * @property {FileModel} logoFile - L’objet représentant le fichier logo.
+ * @property {GameCategoryModel[]} gameCategory - La liste des catégories du jeu.
+ * @property {GamePlatformModel[]} gamePlatform - La liste des plateformes sur lesquelles le jeu est disponible.
+ * @property {GameBinaryModel[]} gameBinary - La liste des binaires associés au jeu.
+ * @property {boolean} upcoming_game - Indique si le jeu est à venir.
+ * @property {boolean} new_game - Indique si le jeu est nouveau.
+ * @property {DateTime | null} release_date - La date de sortie du jeu (peut être null).
+ * @property {'solo' | 'multiplayer' | 'both'} game_mode - Le mode de jeu.
+ * @property {string} publisher - L’éditeur du jeu.
+ * @property {string} developer - Le développeur du jeu.
+ * @property {GameConfigurationModel | null} gameConfigurationMinimal - La configuration minimale requise (peut être null).
+ * @property {GameConfigurationModel | null} gameConfigurationRecommended - La configuration recommandée (peut être null).
+ * @property {LanguageModel[]} languages - La liste des langues disponibles.
+ * @property {string} created_at - La date de création.
+ * @property {string} updated_at - La date de dernière mise à jour.
  */
-interface iNewGame {
+export type IGameModel = {
   id: number
   title: string
   description: string
@@ -69,30 +81,24 @@ interface iNewGame {
   gameBinary: GameBinaryModel[]
   upcoming_game: boolean
   new_game: boolean
+  release_date: DateTime | null
+  game_mode: 'solo' | 'multiplayer' | 'both'
+  publisher: string
+  developer: string
+  gameConfigurationMinimal: GameConfigurationModel | null
+  gameConfigurationRecommended: GameConfigurationModel | null
+  languages: LanguageModel[]
   created_at: string
   updated_at: string
 }
 
 /**
- * Class for the game model
+ * Classe représentant un jeu.
  * @class GameModel
  * @augments BaseModel
- * @property {number} id - The id of the game
- * @property {string} title - The title of the game
- * @property {string} description - The description of the game
- * @property {number | null} trailer_files_id - The id of the trailer file
- * @property {FileModel} trailerFile - The trailer file
- * @property {number | null} picture_files_id - The id of the picture file
- * @property {FileModel} pictureFile - The picture file
- * @property {number | null} logo_files_id - The id of the logo file
- * @property {FileModel} logoFile - The logo file
- * @property {GameCategoryModel[]} gameCategory - The game category
- * @property {GamePlatformModel[]} gamePlatform - The game platform
- * @property {GameBinaryModel[]} gameBinary - The game binary
- * @property {boolean} upcoming_game - The upcoming game
- * @property {boolean} new_game - The new game
+ * @implements {IGameModel}
  */
-export default class GameModel extends BaseModel {
+export default class GameModel extends BaseModel implements IGameModel {
   public id: number
   public title: string
   public description: string
@@ -107,12 +113,20 @@ export default class GameModel extends BaseModel {
   public gameBinary: GameBinaryModel[]
   public upcoming_game: boolean
   public new_game: boolean
+  public release_date: DateTime | null
+  public game_mode: 'solo' | 'multiplayer' | 'both'
+  public publisher: string
+  public developer: string
+  public gameConfigurationMinimal: GameConfigurationModel | null
+  public gameConfigurationRecommended: GameConfigurationModel | null
+  public languages: LanguageModel[]
 
   /**
-   * Creates an instance of the game model
-   * @param {iNewGame} game - The game object
+   * Crée une instance de GameModel.
+   * @class
+   * @param {IGameModel} game - Les données du jeu.
    */
-  constructor(game: iNewGame) {
+  constructor(game: IGameModel) {
     super(game.created_at, game.updated_at)
     this.id = game.id
     this.title = game.title
@@ -128,6 +142,15 @@ export default class GameModel extends BaseModel {
     this.gameBinary = game.gameBinary
     this.upcoming_game = Boolean(game.upcoming_game)
     this.new_game = Boolean(game.new_game)
+    this.release_date = game.release_date
+    this.game_mode = game.game_mode
+    this.publisher = game.publisher
+    this.developer = game.developer
+    this.gameConfigurationMinimal = game.gameConfigurationMinimal
+    this.gameConfigurationRecommended = game.gameConfigurationRecommended
+    this.languages = game.languages
+    this.created_at = game.created_at
+    this.updated_at = game.updated_at
   }
 
   /**

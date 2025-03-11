@@ -1,19 +1,20 @@
 import { BaseModel } from '#src-common/core/models/BaseModel'
 
 /**
- * GameLibraryModel
- * @class GameLibraryModel
+ * UserGameLibraryModel
+ * @class UserGameLibraryModel
  */
-export default class GameLibraryModel extends BaseModel {
+export default class UserGameLibraryModel extends BaseModel {
   public id: number
   public user_id: number
   public game_id: number
 
   /**
    * constructor
-   * @param {GameLibraryModel} game - game
+   * @class
+   * @param {UserGameLibraryModel} game - game
    */
-  constructor(game: GameLibraryModel) {
+  constructor(game: UserGameLibraryModel) {
     super(game.created_at, game.updated_at)
     this.id = game.id
     this.user_id = game.user_id

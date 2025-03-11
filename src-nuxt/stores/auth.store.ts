@@ -1,49 +1,42 @@
 import { defineStore } from 'pinia'
-import type { Router } from 'vue-router'
 
-import AuthLoader from '#src-common/core/loaders/AuthLoader'
-import type {
-  AuthModel,
-  LoginCommand,
-  ResetEmailCommand,
-  ResetPasswordCommand,
-  SignUpCommand,
-} from '#src-common/core/models/AuthModel'
-import type { SuccessResponse } from '#src-common/core/models/BaseModel'
+import type { AuthModel, LoginCommand } from '#src-common/core/models/AuthModel'
 import UserModel from '#src-common/core/models/UserModel'
+import AuthService from '#src-common/core/services/AuthService'
 import CookieService from '#src-common/core/services/CookieService'
 
 import { TauriService } from '#src-core/services/TauriService'
 
 import { useAppStore } from '#src-nuxt/stores/app.store'
 
+/* DATA */
 const user: string | undefined = CookieService.getCookie('user')
 const tempVerifyEmail: string | undefined = CookieService.getCookie('temp_verify_email')
 const authToken: string | undefined = CookieService.getCookie('authToken')
 
-const router: Router = useRouter()
-const { $notyf } = useNuxtApp()
-
+/* TYPES */
 /**
- * Type for state of the AuthStore
- * @interface AuthStore
+ * Type for state of the AuthStoreState
+ * @interface AuthStoreState
  * @property {UserModel | undefined} user - The user
  * @property {string | undefined} authToken - The auth token
  * @property {string | undefined} tempVerifyEmail - The temp verify email
  */
-interface AuthStore {
+type AuthStoreState = {
   user: UserModel | undefined
   authToken: string | undefined
   tempVerifyEmail: string | undefined
 }
 
-// eslint-disable-next-line @typescript-eslint/typedef
-export const useAuthStore = defineStore('authStore', {
+/**
+ * AuthStore permet de gérer l'authentification de l'utilisateur, la connexion, l'inscription, la déconnexion, etc.
+ */
+export const useAuthStore: any = defineStore('authStore', {
   /**
-   * Get the state of the AuthStore
-   * @returns {AuthStore} - The state of the AuthStore
+   * Permet de définir l'état du store de l'authentification.
+   * @returns {AuthStoreState} - Retourne l'état initial du store de l'authentification
    */
-  state: (): AuthStore => ({
+  state: (): AuthStoreState => ({
     user: (user ? JSON.parse(user) : undefined) as UserModel | undefined,
     authToken: authToken as string | undefined,
     tempVerifyEmail: tempVerifyEmail as string | undefined,
@@ -77,19 +70,6 @@ export const useAuthStore = defineStore('authStore', {
 
       this.authToken = token
     },
-    /**
-     * Set the temp verify email in the store and save it in the cookie
-     * @param {string | undefined} email - The email to set
-     * @returns {void} - Nothing
-     */
-    setTempVerifyEmail(email: string | undefined): void {
-      if (email) {
-        CookieService.setCookie('temp_verify_email', email)
-      } else {
-        CookieService.deleteCookie('temp_verify_email')
-      }
-      this.tempVerifyEmail = email
-    },
     /* API */
     /**
      * Sign in the user
@@ -99,7 +79,7 @@ export const useAuthStore = defineStore('authStore', {
     async signIn(auth: LoginCommand): Promise<AuthModel | null> {
       try {
         return await useAppStore().execWithPending<AuthModel>(async (): Promise<AuthModel> => {
-          const result: AuthModel = await AuthLoader.signIn(auth)
+          const result: AuthModel = await AuthService.signIn(auth)
           this.setAuthToken(result.token)
           await this.fetchUser()
 
@@ -111,46 +91,6 @@ export const useAuthStore = defineStore('authStore', {
       }
     },
     /**
-     * Sign up the user
-     * @param {SignUpCommand} auth - The auth to sign up
-     * @returns {Promise<void>} - Nothing
-     */
-    async signUp(auth: SignUpCommand): Promise<void> {
-      try {
-        await useAppStore().execWithPending<void>(async (): Promise<void> => {
-          await AuthLoader.signUp(auth)
-          this.setTempVerifyEmail(auth.email)
-          await router.push({ name: 'account-validate' })
-        })
-      } catch (e) {
-        console.error(e)
-        $notyf.error('Failed to sign up')
-      }
-    },
-    /**
-     * Validate the account
-     * @param {number} code - The code to validate
-     * @returns {Promise<void>} - Nothing
-     */
-    async validateAccount(code: number): Promise<void> {
-      if (!this.tempVerifyEmail) {
-        $notyf.error('The validation code has expired, please request a new code')
-        return
-      }
-      try {
-        const res: SuccessResponse = await AuthLoader.validateAccount({
-          code,
-          email: this.tempVerifyEmail,
-        })
-        $notyf.success(res.message)
-        this.setTempVerifyEmail(undefined)
-        navigateTo('login')
-      } catch (e) {
-        console.error(e)
-        $notyf.error('Failed to validate account')
-      }
-    },
-    /**
      * Fetch the user
      * @returns {Promise<UserModel | null>} - The user model or null
      */
@@ -158,7 +98,7 @@ export const useAuthStore = defineStore('authStore', {
       if (!this.authToken) return null
       try {
         return await useAppStore().execWithPending<UserModel>(async (): Promise<UserModel> => {
-          const result: UserModel = await AuthLoader.getUser()
+          const result: UserModel = await AuthService.getUser()
           this.setUser(result)
           return result
         })
@@ -177,72 +117,6 @@ export const useAuthStore = defineStore('authStore', {
       this.setAuthToken(undefined)
       this.setUser(undefined)
       await TauriService.adjustWindowHomeToLogin(400, 585)
-    },
-    /**
-     * forgot password
-     * @param {string} email - The email to send the forgot password
-     * @returns {Promise<void>} - Nothing
-     */
-    async forgotPassword(email: string): Promise<void> {
-      try {
-        await useAppStore().execWithPending<void>(async (): Promise<void> => {
-          const res: SuccessResponse = await AuthLoader.forgotPassword(email)
-          $notyf.success(res.message)
-        })
-      } catch (e) {
-        console.error(e)
-        $notyf.error('Failed to send forgot password email')
-      }
-    },
-    /**
-     * Reset password
-     * @param {ResetPasswordCommand} data - The data to reset the password
-     * @returns {Promise<void>} - Nothing
-     */
-    async resetPassword(data: ResetPasswordCommand): Promise<void> {
-      try {
-        await useAppStore().execWithPending<void>(async (): Promise<void> => {
-          await AuthLoader.resetPassword(data)
-          navigateTo('login')
-          $notyf.success('Password reset successfully')
-        })
-      } catch (e) {
-        console.error(e)
-        $notyf.error('Failed to reset password')
-      }
-    },
-    /**
-     * Modify email
-     * @param {string} email - The email to modify
-     * @returns {Promise<void>} - Nothing
-     */
-    async modifyEmail(email: string): Promise<void> {
-      try {
-        await useAppStore().execWithPending<void>(async (): Promise<void> => {
-          await AuthLoader.modifyEmail(email)
-          $notyf.success('An Email was sent to your old email address')
-        })
-      } catch (e) {
-        console.error(e)
-        $notyf.error('Failed to send email')
-      }
-    },
-    /**
-     * Reset email
-     * @param {ResetEmailCommand} data - The data to reset the email
-     * @returns {Promise<void>} - Nothing
-     */
-    async resetEmail(data: ResetEmailCommand): Promise<void> {
-      try {
-        await useAppStore().execWithPending<void>(async (): Promise<void> => {
-          await AuthLoader.resetEmail(data)
-          navigateTo('login')
-          $notyf.success('Email reset successfully')
-        })
-      } catch (e) {
-        console.error(e)
-        $notyf.error('Failed to reset email')
-      }
     },
   },
   getters: {

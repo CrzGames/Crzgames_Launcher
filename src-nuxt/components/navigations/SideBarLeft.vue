@@ -2,14 +2,14 @@
   <div
     id="application-sidebar-left"
     :class="menuIsExpanded ? '' : 'w-[80px]'"
-    class="fixed z-10 flex h-screen w-[256px] flex-col items-center justify-start overflow-hidden bg-blue-900 p-4 text-white transition-all duration-300"
+    class="fixed z-10 flex h-screen w-[256px] flex-col items-center justify-start overflow-hidden bg-blue-900/90 p-4 text-white transition-all duration-300"
     style="height: calc(100vh - 35px)"
     @mouseenter="onMouseEnter"
     @mouseleave="onMouseLeave"
   >
     <nav class="flex h-full w-full flex-col flex-wrap">
       <div class="flex h-full w-full flex-col items-center justify-between">
-        <!--  START LINKS -->
+        <!-- START LINKS -->
         <div class="grid w-full gap-3">
           <div v-for="link in startLinks" :key="link.name" class="inline w-full">
             <RouterLink
@@ -18,17 +18,17 @@
                 isActive(link.to) ? 'bg-amber-400 text-zinc-900' : 'hover:bg-gray-700',
                 menuIsExpanded ? 'px-3' : 'w-[45px] justify-center',
               ]"
-              class="flex h-[45px] items-center gap-x-3.5 rounded-md text-sm"
+              class="flex h-[45px] items-center gap-x-3.5 rounded-md text-sm bg-opacity-100 text-opacity-100"
             >
               <CrzIcon v-if="link.icon" :name="link.icon" mode="stroke" />
-              <span v-if="menuIsExpanded">
+              <span v-if="menuIsExpanded" class="bg-opacity-100 text-opacity-100">
                 {{ link.name }}
               </span>
             </RouterLink>
           </div>
         </div>
 
-        <!--  BOTTOM LINKS      -->
+        <!-- BOTTOM LINKS -->
         <div class="grid w-full gap-3">
           <div v-for="link in bottomLinks" :key="link.name" class="inline w-full">
             <RouterLink
@@ -37,10 +37,10 @@
                 isActive(link.to) ? 'bg-amber-400 text-zinc-900' : 'hover:bg-gray-700',
                 menuIsExpanded ? 'px-3' : 'w-[45px] justify-center',
               ]"
-              class="flex h-[45px] items-center gap-x-3.5 rounded-md text-sm"
+              class="flex h-[45px] items-center gap-x-3.5 rounded-md text-sm bg-opacity-100 text-opacity-100"
             >
               <CrzIcon v-if="link.icon" :name="link.icon" mode="stroke" />
-              <span v-if="menuIsExpanded">
+              <span v-if="menuIsExpanded" class="bg-opacity-100 text-opacity-100">
                 {{ link.name }}
               </span>
             </RouterLink>
@@ -52,7 +52,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import type { Ref } from 'vue'
 import { useRoute } from 'vue-router'
 
@@ -60,11 +60,11 @@ import CrzIcon from '#src-common/components/ui/CrzIcon.vue'
 
 /* TYPES */
 /**
- * Link for routing in the sidebar
- * @type {object} Link
+ * Link type
+ * @type {object} - The link type
  * @property {string} name - The name of the link
  * @property {string} icon - The icon of the link
- * @property {string} to - The route of the link
+ * @property {string} to - The path of the link
  */
 type Link = {
   name: string
@@ -73,7 +73,8 @@ type Link = {
 }
 
 /* REFS */
-const menuIsExpanded: Ref<boolean> = ref(false)
+const menuIsExpanded: Ref<boolean> = ref(window.innerWidth >= 1125)
+const isHovered: Ref<boolean> = ref(false)
 
 /* VARS */
 const startLinks: Link[] = [
@@ -102,7 +103,7 @@ const bottomLinks: Link[] = [
   },
 ]
 
-/*METHODS*/
+/* METHODS */
 /**
  * Check if the link is active
  * @param {string} to - The link to check
@@ -113,20 +114,41 @@ const isActive: (to: string) => boolean = (to: string): boolean => {
 }
 
 /**
- * On mouse enter for the sidebar
+ * Update sidebar state
  * @returns {void}
  */
-const onMouseEnter: () => void = (): void => {
-  menuIsExpanded.value = true
+const updateSidebarState: () => void = (): void => {
+  const isLargeScreen: boolean = window.innerWidth >= 1125
+  menuIsExpanded.value = isLargeScreen || isHovered.value
 }
 
 /**
- * On mouse leave for the sidebar
+ * On mouse enter
+ * @returns {void}
+ */
+const onMouseEnter: () => void = (): void => {
+  isHovered.value = true
+  updateSidebarState()
+}
+
+/**
+ * On mouse leave
  * @returns {void}
  */
 const onMouseLeave: () => void = (): void => {
-  menuIsExpanded.value = false
+  isHovered.value = false
+  updateSidebarState()
 }
+
+/* LIFECYCLE HOOKS */
+onMounted((): void => {
+  updateSidebarState()
+  window.addEventListener('resize', updateSidebarState)
+})
+
+onUnmounted((): void => {
+  window.removeEventListener('resize', updateSidebarState)
+})
 </script>
 
 <style scoped>
@@ -139,12 +161,5 @@ input[type='search']::-webkit-search-cancel-button {
     no-repeat center;
   background-size: contain;
   cursor: pointer;
-}
-
-/* Pour Firefox (qui n'utilise pas ::-webkit-search-cancel-button) */
-input[type='search']::-moz-search-clear {
-  /* Firefox utilise un style différent, mais il est moins personnalisable */
-  /* On peut essayer de masquer et de styliser autrement si nécessaire */
-  display: none; /* Désactive la croix par défaut de Firefox si non stylisée */
 }
 </style>

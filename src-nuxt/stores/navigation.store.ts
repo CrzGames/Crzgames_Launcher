@@ -1,26 +1,28 @@
 import { defineStore } from 'pinia'
 
+/* TYPES */
 /**
  * Interface définissant l'état du store de navigation.
  * @type {object} NavigationState
  * @property {string[]} history - Liste des URLs visitées par l'utilisateur
  * @property {number} currentIndex - Index actuel dans l'historique
  */
-type NavigationState = {
-  history: string[] // Liste des URLs visitées par l'utilisateur
-  currentIndex: number // Index actuel dans l'historique
+type NavigationStoreState = {
+  history: string[]
+  currentIndex: number
 }
 
 /**
  * Store de navigation permettant de gérer l'historique de navigation.
  * Cela permet de naviguer en arrière et en avant dans l'historique.
  */
-export const useNavigationStore: any = defineStore('navigation', {
+// eslint-disable-next-line @typescript-eslint/typedef
+export const useNavigationStore = defineStore('navigation', {
   /**
    * Initialise l'état du store de navigation.
-   * @returns {NavigationState} - Retourne l'état initial du store de navigation
+   * @returns {NavigationStoreState} - Retourne l'état initial du store de navigation
    */
-  state: (): NavigationState => ({
+  state: (): NavigationStoreState => ({
     history: [], // Initialise l'historique vide
     currentIndex: -1, // L'index commence à -1 car aucun historique au départ
   }),

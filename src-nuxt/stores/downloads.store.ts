@@ -7,15 +7,31 @@ import { GameService } from '#src-common/core/services/GameService'
 import type { GameManifestLocal, GameProgressDownload } from '#src-core/services/TauriService'
 import { TauriService } from '#src-core/services/TauriService'
 
+/* TYPES */
+/**
+ * DownloadsStoreState permet de gérer les téléchargements actifs et complétés de l'utilisateur.
+ * @type {object} DownloadsStoreState
+ * @property {ActiveDownloadGame[]} activeDownloads - Les téléchargements actifs
+ * @property {CompleteDownloadGame[]} completedDownloads - Les téléchargements complétés
+ */
+type DownloadsStoreState = {
+  activeDownloads: ActiveDownloadGame[]
+  completedDownloads: CompleteDownloadGame[]
+}
+
+/**
+ * Downloads store state permet de gérer les téléchargements actifs et complétés
+ * de l'utilisateur.
+ */
 // eslint-disable-next-line @typescript-eslint/typedef
 export const useDownloadsStore = defineStore('downloads', {
-  // eslint-disable-next-line jsdoc/require-returns
   /**
-   * State
+   * Permet de définir l'état du store des téléchargements.
+   * @returns {DownloadsStoreState} - Retourne l'état initial du store des téléchargements
    */
-  state: () => ({
-    activeDownloads: [] as ActiveDownloadGame[],
-    completedDownloads: [] as CompleteDownloadGame[],
+  state: (): DownloadsStoreState => ({
+    activeDownloads: [],
+    completedDownloads: [],
   }),
   actions: {
     /**

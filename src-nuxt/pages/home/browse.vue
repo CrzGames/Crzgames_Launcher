@@ -1,5 +1,5 @@
 <template>
-  <div class="grid gap-8 px-4 py-5 pb-12 text-white">
+  <div class="grid gap-8 px-4 py-5 pb-12 text-white relative">
     <!-- Barre de recherche et boutons de navigation -->
     <div class="flex items-center w-full">
       <!-- Boutons de navigation gauche / droite -->
@@ -12,6 +12,15 @@
         :placeholder="'Search for games (CTRL + E)'"
         @update:value="searchTerm = $event"
       />
+
+      <!-- Logo CrzGames (déplacé en position absolue) -->
+      <div class="relative w-full">
+        <img
+          src="/images/logo_fond_transparent_whitout_text.png"
+          alt="CrzGames Logo"
+          class="w-20 h-20 object-contain absolute top-0 right-0 mt-2 mr-2 z-10"
+        />
+      </div>
     </div>
 
     <!-- Titre principal de la page "Browse" -->
@@ -55,10 +64,11 @@
     <!-- Contenu principal : s'affiche seulement quand le chargement est terminé et qu'il y a des données (donc des jeux) -->
     <div
       v-if="!isLoadingGames && filteredGames && filteredGames.length > 0"
-      class="grid grid-cols-1 items-start justify-center gap-3 text-sm sm:grid sm:grid-cols-3 md:grid-cols-4 md:gap-6 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-7 3xl:grid-cols-8 4xl:grid-cols-10"
+      class="grid grid-cols-auto-fit gap-8"
+      style="grid-template-columns: repeat(auto-fit, minmax(180px, 220px))"
     >
       <template v-for="game in filteredGames" :key="game.id">
-        <div v-if="game" class="grid gap-2">
+        <div v-if="game">
           <CrzGameCard
             :pictureFileUrl="game.pictureFile?.url"
             :trailerFileUrl="game.trailerFile?.url"
@@ -79,13 +89,15 @@
             :enableHoverEffect="true"
             @add-to-library="addGameInUserGameLibrary(game.id)"
           />
-          <CrzBadge v-if="game.isOwned" variant="gray" size="sm">
+          <CrzBadge v-if="game.isOwned" variant="gray" size="sm" class="mt-2">
             <CrzIcon color="#00ff84" name="circle-check" view-box="0 0 512 512" :width="12" :height="12" />
             In your library
           </CrzBadge>
         </div>
       </template>
     </div>
+
+    <CrzSpinner v-else-if="isLoadingGames" />
 
     <!-- Messages pour l'absence de jeux lors la recherche via l'input -->
     <div
@@ -104,6 +116,7 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue'
 import type { Ref } from 'vue'
+import CrzSpinner from '~~/src-common/components/loaders/CrzSpinner.vue'
 import { useGameStore } from '~~/src-nuxt/stores/game.store'
 
 import CrzButton from '#src-common/components/buttons/CrzButton.vue'
@@ -118,7 +131,7 @@ import type { ExtendedGameModel } from '#src-core/types/ExtendedGameModel'
 
 import NavigationPages from '#src-nuxt/components/navigations/NavigationPages.vue'
 import Divider from '#src-nuxt/components/ui/Divider.vue'
-import { useGameLibraryStore } from '#src-nuxt/stores/gameLibrary.store'
+import { useUserGameLibrariesStore } from '#src-nuxt/stores/userGameLibraries.store'
 
 const { $notyf } = useNuxtApp()
 
@@ -138,7 +151,7 @@ definePageMeta({
 
 /* STORE */
 const gameStore: any = useGameStore()
-const gameLibraryStore: any = useGameLibraryStore()
+const userGameLibrariesStore: any = useUserGameLibrariesStore()
 
 /* TYPES */
 /**
@@ -230,7 +243,7 @@ const filteredGames: ComputedRef<ExtendedGameModel[]> = computed((): ExtendedGam
  */
 const addGameInUserGameLibrary: (gameId: number) => Promise<void> = async (gameId: number): Promise<void> => {
   // Ajoute le jeu dans la bibliothèque de l'utilisateur
-  await gameLibraryStore.addGameToUserLibrary(gameId)
+  await userGameLibrariesStore.createGameInUserGameLibrariesByGameId(gameId)
 
   // Met à jour les jeux et enrichit chaque jeu
   await fetchGamesAndEnrichGame()
@@ -275,7 +288,7 @@ const fetchGamesAndEnrichGame: (title?: string) => Promise<void> = async (title?
 
     // Récupère tout les jeux en fonction de la plateforme
     games.value = await Promise.all(
-      gameStore.gamesPlatforms.map((game: GameModel): Promise<ExtendedGameModel> => enrichGame(game)),
+      gameStore.gamesSortedByPlatform.map((game: GameModel): Promise<ExtendedGameModel> => enrichGame(game)),
     )
   } catch (error) {
     console.error('Error fetchGames:', error)

@@ -18,7 +18,7 @@
     <swiper-slide
       v-for="(carousel, index) in displayedCarousels"
       :key="index"
-      class="flex h-[480px] flex-col justify-center md:h-[720px]"
+      class="flex items-center justify-center h-[480px] flex-col md:h-[720px]"
       @mouseover="handleMouseover($event)"
       @mouseleave="handleMouseleave"
       @click="onClickSlide(index, $event)"
@@ -32,17 +32,22 @@
         class="absolute h-full max-h-full w-full max-w-full object-cover"
         :alt="(carousel.title ?? 'home-slide-image') + index"
       />
-      <div data-swiper-parallax="-360" class="flex items-center text-center md:pl-28 md:text-left">
+      <div
+        data-swiper-parallax="-360"
+        class="flex items-center justify-center h-full text-center md:pl-28 md:text-left"
+      >
         <div class="flex max-w-3xl flex-col items-center px-3 md:block md:px-0">
           <h1
             v-if="carousel.title"
             data-swiper-parallax="-150"
+            id="carousel-title"
             class="mb-6 font-serif text-4xl font-semibold leading-tight text-white drop-shadow-2xl md:text-6xl"
           >
             {{ carousel.title }}
           </h1>
           <p
             v-if="carousel.content"
+            id="carousel-content"
             data-swiper-parallax="-300"
             class="mb-8 text-lg font-semibold text-gray-200 drop-shadow-2xl md:text-2xl"
           >
@@ -83,11 +88,10 @@ import type {
 import { Swiper, SwiperSlide } from 'swiper/vue'
 import type { ComputedRef, Ref } from 'vue'
 import { computed, onMounted, ref } from 'vue'
+import { useGameCarouselStore } from '~/stores/gameCarousel.store'
 
 import CrzButton from '#src-common/components/buttons/CrzButton.vue'
 import type { GameCarouselModel } from '#src-common/core/models/GameCarouselModel'
-
-import { useGameCarouselStore } from '#src-nuxt/stores/game-carousel.store'
 
 // import Swiper core and required modules
 const modules: SwiperModule[] = [Pagination, Navigation, Autoplay]
@@ -188,11 +192,12 @@ const fakeSlide: GameCarouselModel = {
  * @returns {Promise<void>}
  */
 onMounted((): void => {
+  updateArrowsPosition()
   window.addEventListener('resize', handleResize)
+})
 
-  onUnmounted((): void => {
-    window.removeEventListener('resize', handleResize)
-  })
+onUnmounted((): void => {
+  window.removeEventListener('resize', handleResize)
 })
 
 /* METHODS */
@@ -218,7 +223,7 @@ const handleResize: () => void = (): void => {
   if (width > 1600) {
     slidesPerView.value = 1.5
     spaceBetween = 20
-  } else if (width > 1025) {
+  } else if (width > 1000) {
     slidesPerView.value = 1.2
     spaceBetween = 20
   } else if (width > 720) {
@@ -228,7 +233,10 @@ const handleResize: () => void = (): void => {
     slidesPerView.value = 1
   }
 
-  updateArrowsPosition()
+  // Obligatoire lors de la maximisation de la fenêtre window de Tauri
+  setTimeout((): void => {
+    updateArrowsPosition()
+  }, 200)
 
   if (mySwiper2) {
     mySwiper2.update()
@@ -304,7 +312,7 @@ const onClickSlide: (clickedIndex: number, event: MouseEvent) => void = (
       open(url).catch((error: any) => {
         console.error('Erreur lors de l’ouverture du lien:', error)
       })
-    } else if (window.innerWidth < 1025) {
+    } else if (window.innerWidth < 1000) {
       return
     }
     // Gestion des slides fictifs
@@ -412,7 +420,7 @@ const resetAllSlidesTransformations: () => void = (): void => {
  * @returns {void}
  */
 const handleMouseover: (event: MouseEvent) => void = (event: MouseEvent): void => {
-  if (gameCarouselStore.carousels.length <= 1 || window.innerWidth < 1025) return
+  if (gameCarouselStore.carousels.length <= 1 || window.innerWidth < 1000) return
 
   resetAllSlidesOpacity()
 
@@ -547,18 +555,6 @@ const maintainActiveSlideOpacity: () => void = (): void => {
   }
 }
 
-@media (max-width: 767px) {
-  .swiper-pagination .swiper-pagination-bullet {
-    height: 8px;
-    width: 52px;
-    border-radius: 2px;
-  }
-  .swiper-button-prev,
-  .swiper-button-next {
-    display: none;
-  }
-}
-
 .swiper-slide {
   transition:
     transform 0.5s,
@@ -584,34 +580,41 @@ const maintainActiveSlideOpacity: () => void = (): void => {
   display: none;
 }
 
+// TODO: A enlever si besoin à tester
 @media (min-width: 1600px) {
-  .swiper-button-prev {
+  /*.swiper-button-prev {
     left: calc(15%) !important;
   }
 
   .swiper-button-next {
     right: calc(15%) !important;
-  }
+  }*/
 }
 
-@media (max-width: 1024px) {
-  .swiper-button-prev,
-  .swiper-button-next {
-    display: none;
-  }
-}
-
-/* Media query pour les appareils avec une hauteur inférieure à 720px */
+/* Media query pour les appareils avec une hauteur inférieure à 740px */
 @media screen and (max-height: 740px) {
   .swiper {
-    height: calc(100vh - 35px); /* Le carousel prendra toute la hauteur disponible et ajoutera 35px */
+    height: calc(100vh - 35px); /* Le carousel prendra toute la hauteur disponible - 35px (pour les 3 petit points) */
   }
 }
 
-/* LAUNCHER NUXT AJOUT TEST */
+/* Media query pour les appareils avec une hauteur supérieure à 740px */
 @media screen and (min-height: 741px) {
   .swiper {
-    height: calc(70vh - 35px);
+    height: calc(70vh); /* Le carousel prendra 70% de la hauteur disponible */
   }
+}
+
+#carousel-title {
+  font-size: clamp(1.2rem, 3vw, 2.5rem) !important; /* Réduit la taille max */
+}
+#carousel-content {
+  font-size: clamp(0.9rem, 1.8vw, 1.3rem) !important; /* Diminue légèrement */
+}
+
+.swiper {
+  width: 100%;
+  aspect-ratio: 16 / 9; /* Maintient un ratio stable pour toutes les tailles d'écran */
+  max-height: 720px; /* Limite la hauteur pour les grands écrans */
 }
 </style>

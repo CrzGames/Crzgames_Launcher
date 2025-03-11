@@ -1,55 +1,69 @@
 import { defineStore } from 'pinia'
+import { createLogger } from '~~/src-core/utils/logger'
+import type { Logger } from '~~/src-core/utils/logger'
 
 /**
- * Type for state of the AppStore
- * @interface AppStore
+ * Instance du logger pour tracer des événements du store de l'application
+ * - Utilise createLogger avec un contexte spécifique à "AppStore"
+ * @type {Logger}
+ */
+const logger: Logger = createLogger('AppStore')
+
+/* TYPES */
+/**
+ * AppStoreState permet de définir l'état du store de l'application.
+ * @type {object} AppStoreState
  * @property {boolean} pending - The pending state
  * @property {string | null} previousUrl - The previous URL
  */
-interface AppStore {
+type AppStoreState = {
   pending: boolean
   previousUrl: string | null
 }
 
+/**
+ * AppStore permet de gérer l'état de l'application, le chargement entre les requêtes, etc.
+ */
+
 // eslint-disable-next-line @typescript-eslint/typedef
 export const useAppStore = defineStore('appStore', {
   /**
-   * Store the pending state
-   * @returns {AppStore} - The state of the App Store
+   * Initialise l'état du store de l'application.
+   * @returns {AppStoreState} - Retourne l'état initial du store de l'application
    */
-  state: (): AppStore => ({
+  state: (): AppStoreState => ({
     pending: false,
     previousUrl: null,
   }),
   actions: {
     /**
-     * Set the pending state
-     * @param {boolean} pending - The pending state to set
-     * @returns {void} - Nothing
+     * Permet de définir l'état de chargement
+     * @param {boolean} pending - Le statut de chargement
+     * @returns {void}
      */
     setPending(pending: boolean): void {
       this.pending = pending
     },
     /**
-     * Set the previous URL
-     * @param {string} url - The previous URL
-     * @returns {void} - Nothing
+     * Set l'url précédente
+     * @param {string} url - L'url précédente
+     * @returns {void}
      */
     setPreviousUrl(url: string): void {
       this.previousUrl = url
     },
     /**
-     * Execute a function with a pending state
+     * Execute une fonction avec un état de chargement
      * @template T
-     * @param {() => Promise<T>} func - The function to execute
-     * @returns {Promise<T>} - The result of the function
+     * @param {() => Promise<T>} func - La fonction à exécuter
+     * @returns {Promise<T>} - Retourne une promesse de type T
      */
     async execWithPending<T>(func: () => Promise<T>): Promise<T> {
       try {
         this.setPending(true)
         return await func()
-      } catch (error) {
-        console.error(error)
+      } catch (error: unknown) {
+        logger.error('[execWithPending] error', error as Error)
         this.setPending(false)
         return Promise.reject(error)
       } finally {
