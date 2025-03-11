@@ -1,12 +1,19 @@
 <template>
-  <div class="flex h-9 select-none items-center justify-between bg-black text-center">
-    <!-- Logo / Texte au centre avec zone de drag -->
-    <div class="flex h-full flex-grow items-center justify-center" data-tauri-drag-region>
+  <div class="flex h-9 select-none items-center justify-between bg-black text-center relative"       data-tauri-drag-region
+  >
+    <!-- Fake div pour équilibrer l'espace à gauche -->
+    <div class="w-[96px]"></div>
+
+    <!-- Texte CrzGames parfaitement centré -->
+    <div
+      class="absolute left-1/2 transform -translate-x-1/2 flex items-center justify-center h-full"
+      data-tauri-drag-region
+    >
       <slot></slot>
     </div>
 
     <!-- Boutons de la barre window de l'application -->
-    <div class="flex h-full items-center space-x-1">
+    <div class="flex h-full items-center space-x-1 flex-shrink-0">
       <!-- Bouton de minimisation -->
       <div
         @click="btnMinimizeWindow"

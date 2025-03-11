@@ -32,6 +32,7 @@ const windowStore: any = useWindowStore()
  */
 onMounted(async (): Promise<void> => {
   await checkAndEnableAutostart()
+  disabledContextMeuRightClick()
 })
 
 /**
@@ -61,6 +62,26 @@ const checkAndEnableAutostart: () => Promise<void> = async (): Promise<void> => 
   } catch (error: any) {
     console.error('checkAndEnableAutostart Erreur lors de activation de autostart', error)
   }
+}
+
+/**
+ * Désactiver le menu contextuel du clic droit de la souris sur l'application.
+ * Donc recharger, ouvrir la console, etc.
+ * @returns {void}
+ */
+const disabledContextMeuRightClick: () => void = (): void => {
+  if (import.meta.env.VITE_NODE_ENV === 'development') {
+    return
+  }
+
+  document.addEventListener(
+    'contextmenu',
+    (e: MouseEvent): boolean => {
+      e.preventDefault()
+      return false
+    },
+    { capture: true },
+  )
 }
 </script>
 

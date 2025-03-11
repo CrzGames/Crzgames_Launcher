@@ -136,7 +136,7 @@ const signInAuto: () => Promise<void> = async (): Promise<void> => {
       await signIn()
       tryToSignInAuto = true
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('signInAuto error:', error)
   }
 }

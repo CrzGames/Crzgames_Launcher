@@ -10,7 +10,8 @@
     "tests/**/*.nuxt.spec.ts",
     "vitest.config.ts",
     "tailwind.config.ts",
-    "nuxt.config.ts"
+    "nuxt.config.ts",
+    "app.config.ts",
   ],
   "exclude": ["dist", ".output", "node_modules"]
 }
