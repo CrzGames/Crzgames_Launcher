@@ -203,7 +203,7 @@
     </div>
     <!-- Messages pour l'absence de jeux, si aucun jeux est dans la bibliothèque de l'utilisateur -->
     <div
-      v-if="gameInstalled.length === 0 && gameNotInstalled.length === 0 && gameNeedsUpdate.length === 0 && !isLoading"
+      v-if="gameInstalled.length === 0 && gameNotInstalled.length === 0 && gameNeedsUpdate.length === 0 && gameActiveDownload.length === 0 && searchTerm.length === 0 && !isLoading"
       class="flex flex-col items-center justify-center w-full max-w-3xl mx-auto bg-[#141724] text-center p-6 rounded-xl"
     >
       <h2 class="text-lg font-semibold text-white">Your library is empty</h2>
@@ -298,6 +298,7 @@ import NavigationPages from '#src-nuxt/components/navigations/NavigationPages.vu
 import Divider from '#src-nuxt/components/ui/Divider.vue'
 import { useAuthStore } from '#src-nuxt/stores/auth.store'
 import { useUserGameLibrariesStore } from '#src-nuxt/stores/userGameLibraries.store'
+import { is } from '@vee-validate/rules'
 
 const { $notyf } = useNuxtApp()
 
@@ -1232,6 +1233,9 @@ const verifyInstallationGame: (game: GameModel) => Promise<void> = async (game: 
  * @returns {void}
  */
 watch(searchTerm, async (newValue: string): Promise<void> => {
+  if (searchTerm.value.length === 0)
+    isLoading.value = true
+
   await userGameLibrariesStore.getUserGameLibraries(newValue)
 
   // Vérification après la recherche
@@ -1246,6 +1250,8 @@ watch(searchTerm, async (newValue: string): Promise<void> => {
   } else {
     refreshLibrary()
   }
+
+  isLoading.value = false
 })
 
 /*  LIFECYCLE */
