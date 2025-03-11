@@ -718,6 +718,11 @@ const refreshLibrary: () => void = (): void => {
         !gameNeedsUpdate.value.some((gameUpdate: GameModel) => gameUpdate.id === game.id)
       )
     })
+
+    // Jeux en cours de téléchargement
+    gameActiveDownload.value = userGameLibrariesStore.userGameLibrariesSortedByPlatform.filter((game: GameModel) => {
+      return downloadsStore.activeDownloads.some((activeDownload: ActiveDownloadGame) => activeDownload.gameId === game.id)
+    })
   }
 }
 
@@ -1233,7 +1238,7 @@ const verifyInstallationGame: (game: GameModel) => Promise<void> = async (game: 
  * @returns {void}
  */
 watch(searchTerm, async (newValue: string): Promise<void> => {
-  if (searchTerm.value.length === 0)
+  if (newValue.length === 0)
     isLoading.value = true
 
   await userGameLibrariesStore.getUserGameLibraries(newValue)
@@ -1247,6 +1252,7 @@ watch(searchTerm, async (newValue: string): Promise<void> => {
     gameInstalled.value = []
     gameNotInstalled.value = []
     gameNeedsUpdate.value = []
+    gameActiveDownload.value = []
   } else {
     refreshLibrary()
   }
@@ -1267,23 +1273,5 @@ watchEffect((): void => {
 <style lang="scss" scoped>
 .launching-cursor {
   cursor: progress;
-}
-
-@keyframes oscillate {
-  0% {
-    transform: scaleX(1);
-    opacity: 0.6;
-  }
-  50% {
-    transform: scaleX(1.1);
-    opacity: 1;
-  }
-  100% {
-    transform: scaleX(1);
-    opacity: 0.6;
-  }
-}
-.animate-oscillate {
-  animation: oscillate 1.5s infinite ease-in-out;
 }
 </style>
