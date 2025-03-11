@@ -45,11 +45,47 @@
     <!-- Affichage du loader unique pour tous les jeux en chargement -->
     <CrzSpinner v-if="isLoading" />
 
+    <!-- Liste des jeux en cours de téléchargement -->
+    <div v-if="!isLoading && gameActiveDownload && gameActiveDownload.length > 0" class="mb-8 grid gap-4">
+      <h4 class="font-serif text-lg font-medium flex items-center">
+        Games being downloaded
+        <CrzBadge variant="yellow" size="sm" class="ml-2">
+          {{ gameActiveDownload.length }}
+        </CrzBadge>
+      </h4>
+
+      <div class="grid grid-cols-auto-fit gap-8" style="grid-template-columns: repeat(auto-fit, minmax(180px, 220px))">
+        <template v-for="game in gameActiveDownload" :key="game.id">
+          <div class="relative">
+            <!-- Carte du jeu -->
+            <CrzGameCard
+              :pictureFileUrl="game.pictureFile?.url"
+              :trailerFileUrl="game.trailerFile?.url"
+              :logoFileUrl="game.logoFile?.url"
+              :gameCategory="game.gameCategory"
+              :gamePlatform="game.gamePlatform"
+              :title="game.title"
+              :showPlatforms="false"
+              :showVideo="false"
+              :showSubTitle="true"
+              :smallText="true"
+              :upcomingGame="game.upcoming_game"
+              :newGame="game.new_game"
+              :showButtonDownloadProgress="true"
+            />
+          </div>
+        </template>
+      </div>
+    </div>
+
     <!-- Jeux déjà installé, mais nécessitant une mise à jour -->
     <div v-if="!isLoading && gameNeedsUpdate && gameNeedsUpdate.length > 0" class="mb-8 grid gap-4">
-      <h4 class="font-serif text-base font-medium">
+      <h4 class="font-serif text-lg font-medium flex items-center">
         Games needing updates
-        <span class="font-sans font-normal opacity-40">({{ gameNeedsUpdate.length }})</span>
+        <!-- Badge avec le nombre de jeux trouvés -->
+        <CrzBadge variant="yellow" size="sm" class="ml-2">
+          {{ gameNeedsUpdate.length }}
+        </CrzBadge>
       </h4>
       <div class="grid grid-cols-auto-fit gap-8" style="grid-template-columns: repeat(auto-fit, minmax(180px, 220px))">
         <template v-for="game in gameNeedsUpdate" :key="game.id">
@@ -81,9 +117,12 @@
 
     <!-- Jeux acheter / gratuit déjà installés -->
     <div v-if="!isLoading && gameInstalled && gameInstalled.length > 0" class="mb-8 grid gap-4">
-      <h4 class="font-serif text-base font-medium">
+      <h4 class="font-serif text-lg font-medium flex items-center">
         My games installed
-        <span class="font-sans font-normal opacity-40">({{ gameInstalled.length }})</span>
+        <!-- Badge avec le nombre de jeux trouvés -->
+        <CrzBadge variant="yellow" size="sm" class="ml-2">
+          {{ gameInstalled.length }}
+        </CrzBadge>
       </h4>
       <div class="grid grid-cols-auto-fit gap-8" style="grid-template-columns: repeat(auto-fit, minmax(180px, 220px))">
         <template v-for="game in gameInstalled" :key="game.id">
@@ -113,13 +152,19 @@
     </div>
 
     <!-- Jeux acheter / gratuit non installés -->
-    <div v-if="!isLoading && gameNotInstalled && gameNotInstalled.length > 0" class="grid gap-4">
-      <h4 class="font-serif text-base font-medium">
+    <div v-if="!isLoading && gameNotInstalled && gameNotInstalled.length > 0" class="mb-8 grid gap-4">
+      <h4 class="font-serif text-lg font-medium flex items-center">
         My games not installed
-        <span class="font-sans font-normal opacity-40">({{ gameNotInstalled.length }})</span>
+        <!-- Badge avec le nombre de jeux trouvés -->
+        <CrzBadge variant="yellow" size="sm" class="ml-2">
+          {{ gameNotInstalled.length }}
+        </CrzBadge>
       </h4>
       <div class="grid grid-cols-auto-fit gap-8" style="grid-template-columns: repeat(auto-fit, minmax(180px, 220px))">
-        <template :key="game.id" v-for="game in gameNotInstalled">
+        <template
+          v-for="game in gameNotInstalled.filter((g) => !downloadsStore.activeDownloads.some((d) => d.gameId === g.id))"
+          :key="game.id"
+        >
           <CrzGameCard
             :pictureFileUrl="game.pictureFile?.url"
             :trailerFileUrl="game.trailerFile?.url"
@@ -146,7 +191,8 @@
         gameInstalled.length === 0 &&
         gameNotInstalled.length === 0 &&
         gameNeedsUpdate.length === 0 &&
-        searchTerm.length > 0
+        searchTerm.length > 0 &&
+        !isLoading
       "
       class="flex flex-col items-center justify-center w-full max-w-3xl mx-auto bg-[#141724] text-center p-6 rounded-xl"
     >
@@ -157,12 +203,7 @@
     </div>
     <!-- Messages pour l'absence de jeux, si aucun jeux est dans la bibliothèque de l'utilisateur -->
     <div
-      v-if="
-        gameInstalled.length === 0 &&
-        gameNotInstalled.length === 0 &&
-        gameNeedsUpdate.length === 0 &&
-        gameNeedsUpdate.length === 0
-      "
+      v-if="gameInstalled.length === 0 && gameNotInstalled.length === 0 && gameNeedsUpdate.length === 0 && !isLoading"
       class="flex flex-col items-center justify-center w-full max-w-3xl mx-auto bg-[#141724] text-center p-6 rounded-xl"
     >
       <h2 class="text-lg font-semibold text-white">Your library is empty</h2>
@@ -207,6 +248,7 @@
       @saveQuit="closeFixGameInstalledModal"
     />
 
+    <!-- Modal pour lancer le jeu mais qui n'a pas d'executable ou de dossier du jeu trouvé -->
     <PlayGameNotFoundExecutableModal
       v-if="showPlayGameNotFoundExecutableModal && gameToPlayNotFoundExecutable"
       :show="showPlayGameNotFoundExecutableModal"
@@ -222,9 +264,9 @@
 </template>
 
 <script lang="ts" setup>
-import { is } from '@vee-validate/rules'
 import { onMounted, ref, watch, watchEffect } from 'vue'
 import type { Ref } from 'vue'
+import CrzBadge from '~~/src-common/components/ui/CrzBadge.vue'
 
 import CrzGameCard from '#src-common/components/cards/CrzGameCard.vue'
 import CrzSearchBar from '#src-common/components/inputs/CrzSearchBar.vue'
@@ -276,9 +318,10 @@ definePageMeta({
 /*STORE*/
 const userGameLibrariesStore: any = useUserGameLibrariesStore()
 const authStore: any = useAuthStore()
+const downloadsStore: any = useDownloadsStore()
 
 /* DATAS */
-const gamesInstalled: Ref<GameInstalled[] | undefined> = ref(undefined)
+const gamesInstalled: Ref<GameInstalled[] | undefined> = ref(undefined) // Jeux déjà installé
 const gamesNeedsUpdate: Ref<GameInstalled[]> = ref([]) // Jeux deja installé qui ont besoin d'une mise à jour
 const filesDownloadUpdateGame: Ref<FileDetails[] | undefined> = ref(undefined) // Fichiers à télécharger pour mettre à jour le jeu
 const user: UserModel | undefined = authStore.user
@@ -292,6 +335,7 @@ const isLaunchingGame: Ref<boolean> = ref(false)
 const gameInstalled: Ref<GameModel[]> = ref([])
 const gameNotInstalled: Ref<GameModel[]> = ref([])
 const gameNeedsUpdate: Ref<GameModel[]> = ref([])
+const gameActiveDownload: Ref<GameModel[]> = ref([])
 
 // Modal pour lancer le jeu mais qui n'a pas d'executable ou de dossier du jeu trouvé
 const showPlayGameNotFoundExecutableModal: Ref<boolean> = ref(false)
@@ -322,11 +366,82 @@ const showButtonChangePath: Ref<boolean> = ref(true)
 onMounted(async (): Promise<void> => {
   try {
     currentSystemOSInfo.value = await TauriService.getSystemOSCurrent()
+    await downloadsStore.loadActiveDownloadsPersisted(user)
     await loadGames()
   } catch (error) {
     console.error('Error occurred while loading games: ', error)
+    isLoading.value = false
   }
 })
+
+/**
+ * On recoit l'événement quand un jeu est téléchargé
+ */
+watch(
+  () => downloadsStore.completedDownloads,
+  async (completedDownloads: CompleteDownloadGame[]) => {
+    for (const completedGame of completedDownloads) {
+      // Vérifier si le jeu téléchargé n'est pas déjà dans gamesInstalled pour éviter les doublons
+      if (
+        !gamesInstalled.value?.some((game: GameInstalled): boolean => game.gameManifest.gameId === completedGame.gameId)
+      ) {
+        try {
+          // Récupérer tous les jeux installés via un fichier installé sur le disque de l'utilisateur
+          const gamesInstalledAll: GameInstalled[] | undefined = await TauriService.getGamesInstalled()
+          if (!gamesInstalledAll) {
+            console.warn('Get games installed failed')
+            return
+          }
+
+          // Ajouter le jeu aux jeux installés
+          gamesInstalled.value = gamesInstalledAll
+          gameInstalled.value.push(await GameService.getGameById(completedGame.gameId))
+
+          // Retirer ce jeu des jeux non installés
+          gameNotInstalled.value = gameNotInstalled.value.filter(
+            (game: GameModel): boolean => game.id !== completedGame.gameId,
+          )
+
+          // Supprimer le jeu de la liste des jeux en cours de téléchargement
+          gameActiveDownload.value = gameActiveDownload.value.filter(
+            (game: GameModel): boolean => game.id !== completedGame.gameId,
+          )
+        } catch (error: any) {
+          console.error("Erreur lors de l'ajout du jeu installé :", error)
+        }
+      }
+    }
+  },
+  { deep: true },
+)
+
+watch(
+  () => downloadsStore.activeDownloads,
+  async (activeDownloads: ActiveDownloadGame[]) => {
+    for (const activeDownload of activeDownloads) {
+      // Vérifier si le jeu téléchargé n'est pas déjà dans gameActiveDownload pour éviter les doublons
+      // et s'il n'est pas déjà dans gameNeedsUpdate pour éviter les doublons
+      if (
+        !gameActiveDownload.value.some((game: GameModel): boolean => game.id === activeDownload.gameId) &&
+        !gameNeedsUpdate.value.some((game: GameModel): boolean => game.id === activeDownload.gameId)
+      ) {
+        try {
+          // Retirer ce jeu des jeux non installés
+          gameNotInstalled.value = gameNotInstalled.value.filter(
+            (game: GameModel): boolean => game.id !== activeDownload.gameId,
+          )
+
+          // Récupérer le jeu à télécharger
+          const game: GameModel = await GameService.getGameById(activeDownload.gameId)
+          gameActiveDownload.value.push(game)
+        } catch (error: any) {
+          console.error("Erreur lors de l'ajout du jeu à télécharger :", error)
+        }
+      }
+    }
+  },
+  { deep: true },
+)
 
 /* METHODS */
 /**
@@ -519,25 +634,43 @@ const loadGames: () => Promise<void> = async (): Promise<void> => {
 const onPlayGame: (game: GameModel) => Promise<Promise<void> | string> = async (
   game: GameModel,
 ): Promise<Promise<void> | string> => {
+  /**
+   * Check si si il y a au moins un jeu installé
+   */
   if (gamesInstalled.value) {
-    const currentGame: GameInstalled | undefined = gamesInstalled.value.find((gameInstalled: GameInstalled) => {
-      return gameInstalled.gameManifest.gameId === game.id
-    })
+    /**
+     * Chercher le jeu dans les jeux installés par rapport à l'id du jeu passé en paramètre
+     * lors de l'appel de la fonction onPlayGame, c'est quand on clique sur le bouton play du jeu
+     */
+    const currentGame: GameInstalled | undefined = gamesInstalled.value.find(
+      (gameInstalled: GameInstalled): boolean => {
+        return gameInstalled.gameManifest.gameId === game.id
+      },
+    )
+    console.log('currentGame', currentGame)
 
+    console.log('toto')
+
+    /**
+     * Si le jeu est trouvé dans les jeux installés, on continue
+     */
     if (currentGame) {
+      console.log('toto2')
       // Vérifier si une mise à jour est disponible
       const hasUpdate: boolean = await checkForGameUpdate(game)
 
+      // Si une mise à jour est disponible, afficher un message et sortir
       if (hasUpdate) {
         // Supprimer le jeu de la liste des jeux installés
         gamesInstalled.value = gamesInstalled.value.filter(
-          (gameInstalled: GameInstalled) => gameInstalled.gameManifest.gameId !== game.id,
+          (gameInstalled: GameInstalled): boolean => gameInstalled.gameManifest.gameId !== game.id,
         )
 
         $notyf.error(`An update is available for ${game.title}. Please update the game before playing.`)
         return
       }
 
+      // Lancer le jeu
       try {
         isLaunchingGame.value = true
         // Attendez un délai arbitraire pour simuler le lancement du jeu
@@ -1128,5 +1261,23 @@ watchEffect((): void => {
 <style lang="scss" scoped>
 .launching-cursor {
   cursor: progress;
+}
+
+@keyframes oscillate {
+  0% {
+    transform: scaleX(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scaleX(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 0.6;
+  }
+}
+.animate-oscillate {
+  animation: oscillate 1.5s infinite ease-in-out;
 }
 </style>

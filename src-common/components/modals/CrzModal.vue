@@ -3,9 +3,13 @@
     v-if="props.show"
     class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-30 transition-opacity duration-300"
   >
-    <div class="relative w-full max-w-2xl p-4">
+    <div class="relative w-full max-w-2xl p-4 flex flex-col" :style="{ maxHeight: 'calc(100vh - 40px)' }">
       <!-- Modal content -->
-      <div class="relative rounded-lg shadow-lg transition-opacity duration-300" :class="props.bgClass">
+      <div
+        class="relative rounded-lg shadow-lg transition-opacity duration-300 flex flex-col"
+        :class="props.bgClass"
+        :style="{ maxHeight: 'calc(100vh - 40px)' }"
+      >
         <!-- Modal header -->
         <div
           class="flex items-start justify-between rounded-t border-gray-600 p-4"
@@ -24,8 +28,8 @@
           </button>
         </div>
 
-        <!-- Modal body -->
-        <div class="space-y-6 p-6">
+        <!-- Modal body (scrollable uniquement si nécessaire) -->
+        <div class="space-y-6 p-6 flex-grow overflow-auto">
           <slot />
         </div>
 

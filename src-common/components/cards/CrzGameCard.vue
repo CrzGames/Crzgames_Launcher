@@ -168,6 +168,22 @@
         <CrzPlatformsIcons :platforms="props.gamePlatform" />
       </div>
     </div>
+
+    <!-- Effet de barre de chargement au-dessus du bouton -->
+    <div v-if="props.showButtonDownloadProgress" class="relative w-full">
+      <div class="download-progress-bar">
+        <div class="progress"></div>
+      </div>
+    </div>
+
+    <!-- Bouton "View Download" -->
+    <button
+      v-if="props.showButtonDownloadProgress"
+      @click="navigateTo('/home/download-manager')"
+      class="w-full px-4 py-2 bg-yellow-500 text-black text-sm font-medium rounded-md shadow-md hover:bg-yellow-600 transition duration-300"
+    >
+      View Download
+    </button>
   </component>
 </template>
 
@@ -210,6 +226,7 @@ import EllipsisDropdownMenu from '#src-nuxt/components/menus/EllipsisDropdownMen
  * @property {boolean} showUpdateIndicator - Show update indicator
  * @property {boolean} showFavoritesGameButton - Affiche le boutton "coeur" pour ajouter le jeu a la liste d'envie
  * @property {boolean} enableHoverEffect - Enable lors du survol de la carte de jeu un effet de zoom et de translation ou non
+ * @property {boolean} showButtonDownloadProgress - Show download progress
  */
 type Props = {
   visualGroupClass: string | null
@@ -235,6 +252,7 @@ type Props = {
   newGame: boolean
   showFavoritesGameButton: boolean
   enableHoverEffect: boolean
+  showButtonDownloadProgress: boolean
 }
 
 /* REFS */
@@ -344,6 +362,10 @@ const props: Props = defineProps({
     type: Boolean,
     default: false,
   },
+  showButtonDownloadProgress: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 /* DATA */
@@ -421,3 +443,59 @@ const resetVideo: () => void = (): void => {
   }
 }
 </script>
+
+<style scoped>
+/* Conteneur de la barre de chargement */
+.download-progress-bar {
+  width: 100%;
+  height: 4px; /* Barre plus fine */
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  overflow: hidden;
+  position: absolute;
+  bottom: -8px;
+  box-shadow: 0 0 6px rgba(255, 223, 89, 0.4);
+}
+
+/* Effet de progression ajusté */
+.download-progress-bar .progress {
+  width: 35%; /* Barre de remplissage plus courte */
+  height: 100%;
+  background: linear-gradient(90deg, #facc15, #eab308, #ffcc00);
+  animation:
+    progressAnimation 2.5s infinite ease-in-out,
+    glowAnimation 1.5s infinite alternate;
+}
+
+/* Animation de déplacement fluide avec disparition complète */
+@keyframes progressAnimation {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  } /* Départ invisible */
+  10% {
+    opacity: 1;
+  } /* Apparition rapide */
+  50% {
+    transform: translateX(50%);
+    opacity: 1;
+  } /* Milieu */
+  90% {
+    opacity: 1;
+  } /* Maintien */
+  100% {
+    transform: translateX(200%);
+    opacity: 0;
+  } /* Disparition complète */
+}
+
+/* Effet de lueur subtil */
+@keyframes glowAnimation {
+  0% {
+    box-shadow: 0 0 4px rgba(255, 223, 89, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 10px rgba(255, 223, 89, 0.7);
+  }
+}
+</style>
