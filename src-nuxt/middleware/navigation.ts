@@ -10,10 +10,5 @@ import { useNavigationStore } from '#src-nuxt/stores/navigation.store'
  */
 export default defineNuxtRouteMiddleware((to: RouteLocationNormalized, _from: RouteLocationNormalized): void => {
   const navigationStore: any = useNavigationStore()
-  const excludedRoutes: string[] = ['/login', '/']
-
-  // On ne stocke pas la page de login et l'index (auto update) dans l'historique
-  if (!excludedRoutes.includes(to.path)) {
-    navigationStore.addToHistory(to.path)
-  }
+  navigationStore.addToHistory(to.path)
 })

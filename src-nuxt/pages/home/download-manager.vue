@@ -36,36 +36,56 @@
       <CrzButton @click="goToPage('/home/library')" class="mt-4"> Go to my library </CrzButton>
     </div>
 
-    <!-- Section affichant les telechargements en cours -->
-    <div v-if="activeDownloadGameList.length > 0" class="mb-20 grid gap-4">
-      <!-- Sous-titre pour indiquer les telechargements actifs -->
-      <h4 class="font-serif text-sm font-medium">Active Downloads</h4>
-      <!-- Boucle sur chaque jeu en telechargement pour afficher une carte -->
-      <ActiveDownloadCard
-        v-for="activeDownloadGame in activeDownloadGameList"
-        :key="activeDownloadGame.gameId"
-        :title="activeDownloadGame.gameTitle"
-        :image-url="activeDownloadGame.gamePictureUrl"
-        :is-playing="activeDownloadGame.isPlaying"
-        :progress="activeDownloadGame.progress"
-        :downloaded="bytesToSize(activeDownloadGame.totalDownloadedBytesNow || 0)"
-        :total="bytesToSize(activeDownloadGame.gameBinarySize)"
-        :speed="activeDownloadGame.speed"
-        :remaining-time="activeDownloadGame.remainingTime"
-        :game-id="activeDownloadGame.gameId"
-        :path-install-location="activeDownloadGame.pathInstallLocation"
-        @play="resumeGameDownload(activeDownloadGame)"
-        @pause="pauseGameDownload(activeDownloadGame)"
-        @cancel="openCancelDownloadModal(activeDownloadGame)"
-      />
+    <!-- Section affichant les téléchargements en cours -->
+    <div v-if="activeDownloadGameList.length > 0" class="grid gap-4">
+      <!-- Nouveau design du titre -->
+      <div class="flex items-center gap-3">
+        <CrzIcon
+          name="download"
+          mode="stroke"
+          color="#fbbf24"
+          view-box="0 0 24 24"
+          class="w-6 h-6"
+          :height="20"
+          :width="20"
+        />
+        <h4 class="text-lg font-semibold text-white tracking-wide">Active Downloads</h4>
+        <div class="flex-grow border-t border-gray-600"></div>
+      </div>
+
+      <!-- Conteneur pour les cartes des téléchargements en cours -->
+      <div class="grid grid-cols-auto-fit gap-6">
+        <ActiveDownloadCard
+          v-for="activeDownloadGame in activeDownloadGameList"
+          :key="activeDownloadGame.gameId"
+          :title="activeDownloadGame.gameTitle"
+          :image-url="activeDownloadGame.gamePictureUrl"
+          :is-playing="activeDownloadGame.isPlaying"
+          :progress="activeDownloadGame.progress"
+          :downloaded="bytesToSize(activeDownloadGame.totalDownloadedBytesNow || 0)"
+          :total="bytesToSize(activeDownloadGame.gameBinarySize)"
+          :speed="activeDownloadGame.speed"
+          :remaining-time="activeDownloadGame.remainingTime"
+          :game-id="activeDownloadGame.gameId"
+          :path-install-location="activeDownloadGame.pathInstallLocation"
+          @play="resumeGameDownload(activeDownloadGame)"
+          @pause="pauseGameDownload(activeDownloadGame)"
+          @cancel="openCancelDownloadModal(activeDownloadGame)"
+        />
+      </div>
     </div>
 
-    <!-- Section affichant les telechargements termines -->
+    <!-- Section affichant les téléchargements terminés -->
     <div v-if="completedDownloadGameList.length > 0" class="grid gap-4">
-      <!-- Sous-titre pour indiquer les telechargements termines -->
-      <h4 class="font-serif text-sm font-medium">Completed Downloads</h4>
-      <!-- Conteneur pour les cartes des jeux termines -->
-      <div class="grid gap-4">
+      <!-- Nouveau design du titre -->
+      <div class="flex items-center gap-3">
+        <CrzIcon name="circle-check" view-box="0 0 512 512" color="#00ff84" :width="20" :height="20" />
+        <h4 class="text-lg font-semibold text-white tracking-wide">Completed Downloads</h4>
+        <div class="flex-grow border-t border-gray-600"></div>
+      </div>
+
+      <!-- Conteneur pour les cartes des jeux terminés -->
+      <div class="grid grid-cols-auto-fit gap-6">
         <CompleteDownloadCard
           v-for="completedDownloadGame in completedDownloadGameList"
           :key="completedDownloadGame.gameTitle"

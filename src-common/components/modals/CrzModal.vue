@@ -1,11 +1,11 @@
 <template>
   <div
-    :class="props.show ? 'top-20 z-50 opacity-100' : 'top-16 -z-10 opacity-0'"
-    class="fixed inset-0 flex items-center justify-center overflow-y-auto overflow-x-hidden outline-none transition-all focus:outline-none"
+    v-if="props.show"
+    class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-30 transition-opacity duration-300"
   >
-    <div class="relative h-full w-full max-w-2xl p-4 md:h-auto">
+    <div class="relative w-full max-w-2xl p-4">
       <!-- Modal content -->
-      <div class="relative rounded-lg shadow" :class="[props.show ? 'opacity-100' : 'opacity-0', props.bgClass]">
+      <div class="relative rounded-lg shadow-lg transition-opacity duration-300" :class="props.bgClass">
         <!-- Modal header -->
         <div
           class="flex items-start justify-between rounded-t border-gray-600 p-4"
@@ -16,17 +16,19 @@
           </h3>
           <button
             @click="setShow(false)"
+            data-modal-toggle="authentication-modal"
             type="button"
             class="absolute right-2.5 top-3 ml-auto inline-flex items-center rounded-lg bg-transparent p-2 text-sm text-gray-400 hover:bg-gray-800 hover:text-white"
-            data-modal-toggle="authentication-modal"
           >
             <CrzIcon name="x" />
           </button>
         </div>
+
         <!-- Modal body -->
         <div class="space-y-6 p-6">
           <slot />
         </div>
+
         <!-- Modal footer -->
         <div
           v-if="props.showLeftButton || props.showRightButton"
@@ -40,12 +42,11 @@
           >
             Cancel
           </button>
-          <CrzButton v-if="props.showLeftButton" type="button" @click="onOK"> Confirm </CrzButton>
+          <CrzButton v-if="props.showRightButton" type="button" @click="onOK"> Confirm </CrzButton>
         </div>
       </div>
     </div>
   </div>
-  <div v-if="props.show" class="fixed inset-0 z-40 bg-black opacity-30"></div>
 </template>
 
 <script lang="ts" setup>
@@ -101,7 +102,27 @@ const emit = defineEmits<{
   'update:show': [value: boolean]
 }>()
 
+/* LIFECYCLE HOOKS */
+onMounted((): void => {
+  window.addEventListener('keydown', handleKeyDown)
+})
+
+onUnmounted((): void => {
+  window.removeEventListener('keydown', handleKeyDown)
+})
+
 /* METHODS */
+/**
+ * Ferme la modal si la touche ESC est pressée
+ * @param {KeyboardEvent} event - L'événement clavier
+ * @returns {void}
+ */
+const handleKeyDown: (event: KeyboardEvent) => void = (event: KeyboardEvent): void => {
+  if (event.key === 'Escape' && props.show) {
+    setShow(false)
+  }
+}
+
 /**
  * Set show method
  * @param {boolean} value - The value

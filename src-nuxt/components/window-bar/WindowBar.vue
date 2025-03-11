@@ -1,6 +1,5 @@
 <template>
-  <div class="flex h-9 select-none items-center justify-between bg-black text-center relative"       data-tauri-drag-region
-  >
+  <div class="flex h-9 select-none items-center justify-between bg-black text-center relative" data-tauri-drag-region>
     <!-- Fake div pour équilibrer l'espace à gauche -->
     <div class="w-[96px]"></div>
 

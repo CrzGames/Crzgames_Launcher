@@ -1,22 +1,25 @@
 <template>
-  <div class="flex flex-wrap gap-6 rounded-2xl bg-zinc-900 px-4 py-4">
-    <img v-if="props.imageUrl" :src="props.imageUrl" :alt="props.title" class="h-36 w-24 rounded-md object-cover" />
+  <div class="flex items-center gap-4 rounded-2xl bg-zinc-900 p-4 w-full max-w-xl shadow-lg">
+    <!-- Image du jeu avec un meilleur affichage -->
+    <div class="relative w-24 h-32 flex-shrink-0">
+      <img
+        v-if="props.imageUrl"
+        :src="props.imageUrl"
+        :alt="props.title"
+        class="w-full h-full rounded-md object-cover border border-gray-700 shadow-md"
+      />
+    </div>
 
-    <div class="flex max-w-lg flex-1 flex-col gap-1">
-      <h2 v-if="props.title" class="text-base font-bold sm:text-lg">
+    <!-- Informations du jeu -->
+    <div class="flex flex-1 flex-col gap-2">
+      <h2 v-if="props.title" class="text-lg font-bold text-white truncate">
         {{ props.title }}
       </h2>
 
-      <!-- PROGRESS BAR -->
-      <div class="flex items-center gap-6">
-        <ProgressBar v-if="props.showProgress" :progress="props.progress" />
-        <div class="flex items-center gap-3">
-          <PlayPauseButton :isPlaying="props.isPlaying" @play="handlePlayPause" @pause="handlePlayPause" />
-          <CrzSquareIconButton tooltip="Cancel download" variant="red" iconName="x" @click="handleCancel" />
-        </div>
-      </div>
+      <!-- Barre de progression -->
+      <ProgressBar v-if="props.showProgress" :progress="props.progress" />
 
-      <!-- Download Infos -->
+      <!-- Informations supplémentaires -->
       <div class="grid gap-2">
         <div class="flex justify-between">
           <p class="font-serif text-sm font-medium text-zinc-400">Status:</p>
@@ -33,10 +36,10 @@
       </div>
     </div>
 
-    <!-- DOWNLOAD SIZE -->
-    <div class="ml-14 flex flex-col gap-1">
-      <p class="font-serif text-sm font-medium text-zinc-400">Download Rate</p>
-      <p class="font-medium">{{ props.speed }}</p>
+    <!-- Boutons d'action -->
+    <div class="flex flex-col items-center gap-2">
+      <PlayPauseButton :isPlaying="props.isPlaying" @play="handlePlayPause" @pause="handlePlayPause" />
+      <CrzSquareIconButton tooltip="Cancel download" variant="red" iconName="x" @click="handleCancel" />
     </div>
   </div>
 </template>

@@ -1,14 +1,24 @@
 <template>
-  <div class="flex flex-wrap items-center gap-3 rounded-2xl bg-zinc-900">
-    <img v-if="props.imageUrl" :src="props.imageUrl" :alt="props.title" class="h-20 w-16 rounded-md object-cover" />
-    <div class="flex max-w-lg flex-1 flex-col gap-1">
-      <h2 v-if="props.title" class="text-sm font-bold">
+  <div class="flex items-center gap-4 rounded-2xl bg-zinc-900 p-4 w-full max-w-xl shadow-lg">
+    <!-- Image du jeu avec une meilleure visibilité -->
+    <div class="relative w-24 h-32 flex-shrink-0">
+      <img
+        v-if="props.imageUrl"
+        :src="props.imageUrl"
+        :alt="props.title"
+        class="w-full h-full rounded-md object-cover border border-gray-700 shadow-md"
+      />
+    </div>
+
+    <!-- Informations du jeu -->
+    <div class="flex flex-col flex-1">
+      <h2 v-if="props.title" class="text-lg font-bold text-white truncate">
         {{ props.title }}
       </h2>
+      <p class="text-sm text-gray-400">Download complete</p>
     </div>
   </div>
 </template>
-
 <script lang="ts" setup>
 /**
  * Complete download card component
