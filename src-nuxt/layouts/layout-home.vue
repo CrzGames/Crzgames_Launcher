@@ -22,13 +22,8 @@
           'ml-[256px] mr-[256px]': windowWidth >= 1448,
         }"
       >
-        <!-- Loader à l'intérieur de la page si une requête est en cours -->
-        <div v-if="useAppStore().pending" class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
-          <CrzSpinner />
-        </div>
-
         <!-- Page Nuxt en cours -->
-        <NuxtPage v-show="!useAppStore().pending" />
+        <NuxtPage />
       </div>
 
       <SideBarRight class="h-full" />
@@ -40,12 +35,9 @@
 import { onMounted, onUnmounted, ref } from 'vue'
 import type { RouteLocationNormalizedLoadedGeneric } from 'vue-router'
 
-import CrzSpinner from '#src-common/components/loaders/CrzSpinner.vue'
-
 import SideBarLeft from '#src-nuxt/components/navigations/SideBarLeft.vue'
 import SideBarRight from '#src-nuxt/components/navigations/SideBarRight.vue'
 import WindowBar from '#src-nuxt/components/window-bar/WindowBar.vue'
-import { useAppStore } from '#src-nuxt/stores/app.store'
 
 /* DATA */
 const route: RouteLocationNormalizedLoadedGeneric = useRoute()

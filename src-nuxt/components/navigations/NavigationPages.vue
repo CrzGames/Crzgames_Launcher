@@ -16,12 +16,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue'
 import type { ComputedRef } from 'vue'
-import { useRouter } from 'vue-router'
-import type { Router } from 'vue-router'
 import { useNavigationStore } from '~/stores/navigation.store'
-
-/* DATA */
-const router: Router = useRouter()
 
 /* STORES */
 const navigationStore: any = useNavigationStore()
@@ -44,10 +39,10 @@ const canGoForward: ComputedRef<boolean> = computed(
  * Navigue vers la page précédente si possible.
  * @returns {void}
  */
-const goBack: () => void = (): void => {
+const goBack: () => Promise<void> = async (): Promise<void> => {
   const previousPage: string | null = navigationStore.goBack()
   if (previousPage) {
-    router.push(previousPage)
+    await navigateTo(previousPage)
   }
 }
 
@@ -55,10 +50,10 @@ const goBack: () => void = (): void => {
  * Navigue vers la page suivante si possible.
  * @returns {void}
  */
-const goForward: () => void = (): void => {
+const goForward: () => Promise<void> = async (): Promise<void> => {
   const nextPage: string | null = navigationStore.goForward()
   if (nextPage) {
-    router.push(nextPage)
+    await navigateTo(nextPage)
   }
 }
 </script>

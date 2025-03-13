@@ -21,24 +21,9 @@
     <!-- Diviseur -->
     <Divider class="mt-5" />
 
-    <!-- Message affiché quand il n'y a aucun téléchargement actif ou terminé -->
-    <div
-      v-if="!hasActiveOrCompletedDownloads"
-      class="flex flex-col items-center justify-center w-full max-w-3xl mx-auto bg-[#141724] text-center p-6 rounded-xl"
-    >
-      <CrzIcon name="search" color="#6b7280" view-box="0 0 24 24" class="w-12 h-12 mb-4" />
-      <h2 class="text-lg font-semibold text-white">No downloads are currently active or completed.</h2>
-      <p class="text-sm text-gray-400 mt-2">
-        Go to your library to start downloading a game or browse the list of available games to add to your library.
-      </p>
-
-      <CrzButton @click="goToPage('/home/browse')" class="mt-4"> Browse all games </CrzButton>
-      <CrzButton @click="goToPage('/home/library')" class="mt-4"> Go to my library </CrzButton>
-    </div>
-
     <!-- Section affichant les téléchargements en cours -->
     <div v-if="activeDownloadGameList.length > 0" class="grid gap-4">
-      <!-- Nouveau design du titre -->
+      <!-- Icone + Titre "Active Downloads" -->
       <div class="flex items-center gap-3">
         <CrzIcon
           name="download"
@@ -53,7 +38,7 @@
         <div class="flex-grow border-t border-gray-600"></div>
       </div>
 
-      <!-- Conteneur pour les cartes des téléchargements en cours -->
+      <!-- Conteneur pour les cards des téléchargements en cours -->
       <div class="grid grid-cols-auto-fit gap-6">
         <ActiveDownloadCard
           v-for="activeDownloadGame in activeDownloadGameList"
@@ -77,14 +62,14 @@
 
     <!-- Section affichant les téléchargements terminés -->
     <div v-if="completedDownloadGameList.length > 0" class="grid gap-4">
-      <!-- Nouveau design du titre -->
+      <!-- Icone + Titre "Completed Downloads" -->
       <div class="flex items-center gap-3">
         <CrzIcon name="circle-check" view-box="0 0 512 512" color="#00ff84" :width="20" :height="20" />
         <h4 class="text-lg font-semibold text-white tracking-wide">Completed Downloads</h4>
         <div class="flex-grow border-t border-gray-600"></div>
       </div>
 
-      <!-- Conteneur pour les cartes des jeux terminés -->
+      <!-- Conteneur pour les cards des jeux terminés -->
       <div class="grid grid-cols-auto-fit gap-6">
         <CompleteDownloadCard
           v-for="completedDownloadGame in completedDownloadGameList"
@@ -93,6 +78,21 @@
           :image-url="completedDownloadGame.gamePictureUrl"
         />
       </div>
+    </div>
+
+    <!-- Message affiché quand il n'y a aucun téléchargement actif ou terminé -->
+    <div
+      v-if="!hasActiveOrCompletedDownloads"
+      class="flex flex-col items-center justify-center w-full max-w-3xl mx-auto bg-[#141724] text-center p-6 rounded-xl"
+    >
+      <CrzIcon name="search" color="#6b7280" view-box="0 0 24 24" class="w-12 h-12 mb-4" />
+      <h2 class="text-lg font-semibold text-white">No downloads are currently active or completed.</h2>
+      <p class="text-sm text-gray-400 mt-2">
+        Go to your library to start downloading a game or browse the list of available games to add to your library.
+      </p>
+
+      <CrzButton @click="goToPage('/home/browse')" class="mt-4"> Browse all games </CrzButton>
+      <CrzButton @click="goToPage('/home/library')" class="mt-4"> Go to my library </CrzButton>
     </div>
 
     <!-- Modal de confirmation pour annuler un telechargement -->

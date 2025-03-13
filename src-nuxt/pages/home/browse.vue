@@ -87,7 +87,7 @@
             :newGame="game.new_game"
             :showFavoritesGameButton="true"
             :enableHoverEffect="true"
-            @add-to-library="addGameInUserGameLibrary(game.id)"
+            @add-to-library="addGameToUserGameLibraryAndUpdateGameListAndNotify(game.id)"
           />
           <CrzBadge v-if="game.isOwned" variant="gray" size="sm" class="mt-2">
             <CrzIcon color="#00ff84" name="circle-check" view-box="0 0 512 512" :width="12" :height="12" />
@@ -97,7 +97,10 @@
       </template>
     </div>
 
-    <CrzSpinner v-else-if="isLoadingGames" />
+    <!-- Conteneur pour centrer le spinner pendant le chargement des jeux -->
+    <div v-else-if="isLoadingGames" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50">
+      <CrzSpinner />
+    </div>
 
     <!-- Messages pour l'absence de jeux lors la recherche via l'input -->
     <div
@@ -114,6 +117,7 @@
 </template>
 
 <script lang="ts" setup>
+import type { Notyf } from 'notyf'
 import { onMounted, ref } from 'vue'
 import type { Ref } from 'vue'
 import CrzSpinner from '~~/src-common/components/loaders/CrzSpinner.vue'
@@ -128,12 +132,12 @@ import type GameModel from '#src-common/core/models/GameModel'
 import { type GamePaidAndOwnedStatus, ProductService } from '#src-common/core/services/ProductService'
 
 import type { ExtendedGameModel } from '#src-core/types/ExtendedGameModel'
+import { createLogger } from '#src-core/utils/logger'
+import type { Logger } from '#src-core/utils/logger'
 
 import NavigationPages from '#src-nuxt/components/navigations/NavigationPages.vue'
 import Divider from '#src-nuxt/components/ui/Divider.vue'
 import { useUserGameLibrariesStore } from '#src-nuxt/stores/userGameLibraries.store'
-
-const { $notyf } = useNuxtApp()
 
 /* LAYOUT - MIDDLEWARE - TRANSITIONS */
 definePageMeta({
@@ -148,6 +152,21 @@ definePageMeta({
     mode: 'out-in',
   },
 })
+
+/* DATA */
+/**
+ * Instance de Notyf pour afficher des notifications a l'utilisateur
+ * - Recuperee via useNuxtApp() pour integrer Notyf dans l'application Nuxt
+ * @type {Notyf}
+ */
+const notyf: Notyf = useNuxtApp().$notyf
+
+/**
+ * Instance du logger pour tracer les evenements dans la page "Browse".
+ * - Utilise createLogger avec un contexte "Browse".
+ * @type {Logger}
+ */
+const logger: Logger = createLogger('Browse')
 
 /* STORE */
 const gameStore: any = useGameStore()
@@ -205,7 +224,9 @@ onMounted(async (): Promise<void> => {
  * @returns {void}
  */
 const setFilter: (filter: filter) => void = (filter: filter): void => {
+  // Définit le filtre actif
   activeFilter.value = filter
+  // Réinitialise le champ de recherche
   searchTerm.value = ''
 }
 
@@ -216,7 +237,7 @@ const setFilter: (filter: filter) => void = (filter: filter): void => {
  */
 const filteredGames: ComputedRef<ExtendedGameModel[]> = computed((): ExtendedGameModel[] => {
   if (searchTerm.value.trim()) {
-    // Si la recherche n'est pas vide, on filtre les jeux en fonction du terme de recherche
+    // Si la recherche n'est pas vide, on filtre les jeux en fonction du terme de la recherche (titre du jeu)
     return games.value.filter((game: ExtendedGameModel): boolean =>
       game.title.toLowerCase().includes(searchTerm.value.toLowerCase()),
     )
@@ -237,19 +258,22 @@ const filteredGames: ComputedRef<ExtendedGameModel[]> = computed((): ExtendedGam
 })
 
 /**
- * Ajoute un jeu dans la bibliothèque de l'utilisateur.
+ * Ajoute un jeu dans la bibliothèque de l'utilisateur, met à jour les jeux de la liste de la page
+ * et affiche une notification de succès à l'utilisateur.
  * @param {number} gameId - Game id
  * @returns {Promise<void>}
  */
-const addGameInUserGameLibrary: (gameId: number) => Promise<void> = async (gameId: number): Promise<void> => {
+const addGameToUserGameLibraryAndUpdateGameListAndNotify: (gameId: number) => Promise<void> = async (
+  gameId: number,
+): Promise<void> => {
   // Ajoute le jeu dans la bibliothèque de l'utilisateur
-  await userGameLibrariesStore.createGameInUserGameLibrariesByGameId(gameId)
+  await userGameLibrariesStore.addGameInUserGameLibrariesByGameId(gameId)
 
   // Met à jour les jeux et enrichit chaque jeu
   await fetchGamesAndEnrichGame()
 
   // Affiche une notification de succès
-  $notyf.success('Game added to library successfully')
+  notyf.success('Game added to library successfully')
 }
 
 /**
@@ -275,24 +299,24 @@ const enrichGame: (game: GameModel) => Promise<ExtendedGameModel> = async (
 /**
  * Recupere tout les jeux et enrichit chaque jeu via enrichGame
  * qui ajoute le statut de possession et de paiement du jeu.
- * @param {string} title - Title of the game
  * @returns {Promise<void>} - Promise void
  */
-const fetchGamesAndEnrichGame: (title?: string) => Promise<void> = async (title?: string): Promise<void> => {
+const fetchGamesAndEnrichGame: () => Promise<void> = async (): Promise<void> => {
   // Met à jour isLoadingGames à true le temps de récupérer les jeux
   isLoadingGames.value = true
 
   try {
     // Récupère tout les jeux
-    await gameStore.getAllGames(title)
+    await gameStore.getAllGames()
 
     // Récupère tout les jeux en fonction de la plateforme
     games.value = await Promise.all(
       gameStore.gamesSortedByPlatform.map((game: GameModel): Promise<ExtendedGameModel> => enrichGame(game)),
     )
-  } catch (error) {
-    console.error('Error fetchGames:', error)
+  } catch (error: any) {
+    logger.error('[fetchGamesAndEnrichGame] error : ', error)
   } finally {
+    // Met à jour isLoadingGames à false une fois les jeux récupérés
     isLoadingGames.value = false
   }
 }

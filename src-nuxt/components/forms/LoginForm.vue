@@ -45,7 +45,6 @@ import AuthService from '#src-common/core/services/AuthService'
 import { TauriService } from '#src-core/services/TauriService'
 import type { Credentials } from '#src-core/services/TauriService'
 
-import { useAppStore } from '#src-nuxt/stores/app.store'
 import { useAuthStore } from '#src-nuxt/stores/auth.store'
 
 const { $notyf } = useNuxtApp()
@@ -131,8 +130,8 @@ watchEffect(async (): Promise<void> => {
  */
 const signInAuto: () => Promise<void> = async (): Promise<void> => {
   try {
-    const appStore: any = useAppStore()
-    if (appStore.previousUrl === '/' && !tryToSignInAuto) {
+    const navigationStore: any = useNavigationStore()
+    if (navigationStore.currentIndex === -1 && !tryToSignInAuto) {
       await signIn()
       tryToSignInAuto = true
     }
@@ -225,17 +224,20 @@ const signIn: () => Promise<void> = async (): Promise<void> => {
     return
   } finally {
     /**
-     * On réactive le bouton de connexion pour permettre à l'utilisateur
-     * de se connecter à nouveau si la connexion a échoué.
+     * Si l'utilisateur à réussi a ce connecté, on le redirige vers la page d'accueil.
      */
-    buttonLoading.value = false
-  }
+    if (!!isConnected) {
+      await goToPageHome()
+    } else {
+      // Si l'utilisateur n'a pas réussi à se connecter, on vide les champs du formulaire
+      credentials.value = { email: '', password: '' }
 
-  /**
-   * Si l'utilisateur à réussi a ce connecté, on le redirige vers la page d'accueil.
-   */
-  if (!!isConnected) {
-    await goToPageHome()
+      /**
+       * On réactive le bouton de connexion pour permettre à l'utilisateur
+       * de se connecter à nouveau si la connexion a échoué.
+       */
+      buttonLoading.value = false
+    }
   }
 }
 

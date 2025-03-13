@@ -15,6 +15,6 @@ export default defineNuxtRouteMiddleware(async (_to: RouteLocationNormalized, _f
   await useAuthStore().fetchUser()
   if (!useAuthStore().isConnected) {
     await TauriService.adjustWindowHomeToLoginForMiddleware(400, 585)
-    return navigateTo('/login')
+    await navigateTo('/login')
   }
 })

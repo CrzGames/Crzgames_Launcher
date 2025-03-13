@@ -335,7 +335,7 @@ export class TauriService {
           gameManifestRemote,
         })
 
-        navigateTo('/home/download-manager')
+        await navigateTo('/home/download-manager')
       }
     } catch (error) {
       console.error('Failed to download and decompress game', error)
@@ -726,7 +726,7 @@ export class TauriService {
     await appWindow.setSize(newSize)
     await appWindow.center()
 
-    navigateTo('/login')
+    await navigateTo('/login')
   }
 
   /**
@@ -748,7 +748,7 @@ export class TauriService {
     await appWindow.setMinSize(new LogicalSize(1038, 660))
     await appWindow.center()
 
-    navigateTo('/home/carousel')
+    await navigateTo('/home/carousel')
   }
 
   /**
@@ -767,7 +767,7 @@ export class TauriService {
     await appWindow.setResizable(false)
     await appWindow.center()
 
-    navigateTo('/login')
+    await navigateTo('/login')
   }
 
   /**

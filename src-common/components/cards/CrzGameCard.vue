@@ -179,7 +179,7 @@
     <!-- Bouton "View Download" -->
     <button
       v-if="props.showButtonDownloadProgress"
-      @click="navigateTo('/home/download-manager')"
+      @click="goToPageDownloadManager"
       class="w-full px-4 py-2 bg-yellow-500 text-black text-sm font-medium rounded-md shadow-md hover:bg-yellow-600 transition duration-300"
     >
       View Download
@@ -441,6 +441,14 @@ const resetVideo: () => void = (): void => {
       resetTimeout.value = null
     }, 100) // Délai de 100ms
   }
+}
+
+/**
+ * Redirige l'utilisateur vers la page du gestionnaire de téléchargement
+ * @returns {Promise<void>}
+ */
+const goToPageDownloadManager: () => Promise<void> = async (): Promise<void> => {
+  await navigateTo('/home/download-manager')
 }
 </script>
 

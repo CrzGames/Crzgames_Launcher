@@ -33,7 +33,7 @@ export class UserGameLibrariesService extends BaseApiService {
    * @param {iGameLibraryCommand} gameLibrary - gameLibrary
    * @returns {UserGameLibraryModel} - Le jeu créé dans la bibliothèque de l'utilisateur
    */
-  public static async createGameInUserGameLibrariesByGameIdAndUserId(
+  public static async addGameInUserGameLibrariesByGameIdAndUserId(
     gameLibrary: iGameLibraryCommand,
   ): Promise<UserGameLibraryModel> {
     return await this.post('/user-game-libraries', gameLibrary)

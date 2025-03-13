@@ -7,8 +7,6 @@ import CookieService from '#src-common/core/services/CookieService'
 
 import { TauriService } from '#src-core/services/TauriService'
 
-import { useAppStore } from '#src-nuxt/stores/app.store'
-
 /* DATA */
 const user: string | undefined = CookieService.getCookie('user')
 const tempVerifyEmail: string | undefined = CookieService.getCookie('temp_verify_email')
@@ -78,13 +76,11 @@ export const useAuthStore: any = defineStore('authStore', {
      */
     async signIn(auth: LoginCommand): Promise<AuthModel | null> {
       try {
-        return await useAppStore().execWithPending<AuthModel>(async (): Promise<AuthModel> => {
-          const result: AuthModel = await AuthService.signIn(auth)
-          this.setAuthToken(result.token)
-          await this.fetchUser()
+        const result: AuthModel = await AuthService.signIn(auth)
+        this.setAuthToken(result.token)
+        await this.fetchUser()
 
-          return result
-        })
+        return result
       } catch (e) {
         console.error(e)
         throw e
@@ -97,11 +93,9 @@ export const useAuthStore: any = defineStore('authStore', {
     async fetchUser(): Promise<UserModel | null> {
       if (!this.authToken) return null
       try {
-        return await useAppStore().execWithPending<UserModel>(async (): Promise<UserModel> => {
-          const result: UserModel = await AuthService.getUser()
-          this.setUser(result)
-          return result
-        })
+        const result: UserModel = await AuthService.getUser()
+        this.setUser(result)
+        return result
       } catch (e) {
         this.setAuthToken(undefined)
         this.setUser(undefined)

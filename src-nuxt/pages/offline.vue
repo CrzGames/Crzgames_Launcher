@@ -3,7 +3,7 @@
     <!-- Icône "pas de wifi" -->
     <CrzIcon name="wifi-off" mode="stroke" color="red" class="w-16 h-16 mb-4" />
 
-    <!-- Titre et texte mis à jour -->
+    <!-- Titre et texte explicatif -->
     <h2 class="text-xl font-semibold mb-2 text-center">No Internet Connection</h2>
     <p class="text-center max-w-md">
       It seems you no longer have an Internet connection. Check your network, or restart the application to try again.

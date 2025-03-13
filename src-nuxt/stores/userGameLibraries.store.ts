@@ -8,7 +8,6 @@ import { UserGameLibrariesService, type iGameLibraryCommand } from '#src-common/
 import type { SystemOSInfo } from '#src-core/services/TauriService'
 import { TauriService } from '#src-core/services/TauriService'
 
-import { useAppStore } from '#src-nuxt/stores/app.store'
 import { useAuthStore } from '#src-nuxt/stores/auth.store'
 
 /* TYPES */
@@ -128,36 +127,34 @@ export const useUserGameLibrariesStore = defineStore('userGameLibrariesStore', {
      * @param {number} gameId - L'ID du jeu
      * @returns {Promise<void>}
      */
-    async createGameInUserGameLibrariesByGameId(gameId: number): Promise<void> {
-      await useAppStore().execWithPending(async (): Promise<void> => {
-        /**
-         * Pas besoin de checker si l'utilisateur est connecté,
-         * car les routes sont protégée par le middleware authentification.
-         */
-        const userId: number = useAuthStore().user?.id
+    async addGameInUserGameLibrariesByGameId(gameId: number): Promise<void> {
+      /**
+       * Pas besoin de checker si l'utilisateur est connecté,
+       * car les routes sont protégée par le middleware authentification.
+       */
+      const userId: number = useAuthStore().user?.id
 
-        /**
-         * Créer une commande pour ajouter un jeu à la bibliothèque de l'utilisateur
-         * par rapport à l'ID du jeu et l'ID de l'utilisateur
-         * @type {iGameLibraryCommand}
-         */
-        const gameLibraryCommand: iGameLibraryCommand = {
-          userId,
-          gameId,
-        }
+      /**
+       * Créer une commande pour ajouter un jeu à la bibliothèque de l'utilisateur
+       * par rapport à l'ID du jeu et l'ID de l'utilisateur
+       * @type {iGameLibraryCommand}
+       */
+      const gameLibraryCommand: iGameLibraryCommand = {
+        userId,
+        gameId,
+      }
 
-        /**
-         * Ajoute le jeu à la bibliothèque de l'utilisateur
-         * en requêtant le service GameLibraryService pour ajouter en base de données
-         */
-        await UserGameLibrariesService.createGameInUserGameLibrariesByGameIdAndUserId(gameLibraryCommand)
+      /**
+       * Ajoute le jeu à la bibliothèque de l'utilisateur
+       * en requêtant le service GameLibraryService pour ajouter en base de données
+       */
+      await UserGameLibrariesService.addGameInUserGameLibrariesByGameIdAndUserId(gameLibraryCommand)
 
-        /**
-         * Récupère les jeux de la bibliothèque de l'utilisateur après l'ajout,
-         * pour mettre à jour le store
-         */
-        await this.getUserGameLibraries()
-      })
+      /**
+       * Récupère les jeux de la bibliothèque de l'utilisateur après l'ajout,
+       * pour mettre à jour le store
+       */
+      await this.getUserGameLibraries()
     },
   },
 })

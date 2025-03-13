@@ -5,6 +5,9 @@
       v-if="!isLoadingCarousels && carouselsStore.carousels.length > 0"
       :carousels="carouselsStore.carousels"
     />
+
+    <!-- Spinner, si les carrousels sont en cours de chargement -->
+    <CrzSpinner v-else-if="isLoadingCarousels" />
   </div>
 </template>
 
@@ -12,11 +15,16 @@
 import { onMounted } from 'vue'
 import type { Ref } from 'vue'
 
+import CrzSpinner from '#src-common/components/loaders/CrzSpinner.vue'
+
+import { createLogger } from '#src-core/utils/logger'
+import type { Logger } from '#src-core/utils/logger'
+
 import CrzSwiper from '#src-nuxt/components/carousel/CrzSwiper.vue'
 import { useGameCarouselStore } from '#src-nuxt/stores/gameCarousel.store'
 import { useWindowStore } from '#src-nuxt/stores/window.store'
 
-/* LAYOUT - MIDDLEWARE */
+/* LAYOUT - MIDDLEWARE - TRANSITIONS */
 definePageMeta({
   layout: 'layout-home',
   middleware: ['auth', 'navigation'],
@@ -29,6 +37,14 @@ definePageMeta({
     mode: 'out-in',
   },
 })
+
+/* DATA */
+/**
+ * Instance du logger pour tracer les evenements dans la page "Carrousel".
+ * - Utilise createLogger avec un contexte "Carrousel".
+ * @type {Logger}
+ */
+const logger: Logger = createLogger('Carrousel')
 
 /* REFS */
 /**
@@ -67,10 +83,11 @@ const fetchCarousels: () => Promise<void> = async (): Promise<void> => {
   try {
     await carouselsStore.getAllCarousels()
   } catch (error: any) {
-    console.error('Carrousel page : ', error)
+    logger.error('[fetchCarousels] error : ', error)
   } finally {
     /**
-     * A la fin du chargement des carrousels, isLoadingCarousels est mis à false
+     * A la fin du chargement des carrousels, isLoadingCarousels est
+     * mis à false pour afficher le carrousel et non le spinner.
      */
     isLoadingCarousels.value = false
   }
@@ -78,12 +95,11 @@ const fetchCarousels: () => Promise<void> = async (): Promise<void> => {
 </script>
 
 <style lang="scss" scoped>
-@media (min-height: 721px) {
-  .container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-  }
+/* Positionnement du carrousel au centre de la page et le spinner */
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
 }
 </style>

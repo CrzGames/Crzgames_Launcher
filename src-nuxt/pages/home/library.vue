@@ -42,8 +42,10 @@
     <!-- Diviseur -->
     <Divider />
 
-    <!-- Affichage du loader unique pour tous les jeux en chargement -->
-    <CrzSpinner v-if="isLoading" />
+    <!-- Conteneur pour centrer le spinner pendant le chargement des jeux -->
+    <div v-if="isLoading" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50">
+      <CrzSpinner />
+    </div>
 
     <!-- Liste des jeux en cours de téléchargement -->
     <div v-if="!isLoading && gameActiveDownload && gameActiveDownload.length > 0" class="mb-8 grid gap-4">
@@ -203,7 +205,14 @@
     </div>
     <!-- Messages pour l'absence de jeux, si aucun jeux est dans la bibliothèque de l'utilisateur -->
     <div
-      v-if="gameInstalled.length === 0 && gameNotInstalled.length === 0 && gameNeedsUpdate.length === 0 && gameActiveDownload.length === 0 && searchTerm.length === 0 && !isLoading"
+      v-if="
+        gameInstalled.length === 0 &&
+        gameNotInstalled.length === 0 &&
+        gameNeedsUpdate.length === 0 &&
+        gameActiveDownload.length === 0 &&
+        searchTerm.length === 0 &&
+        !isLoading
+      "
       class="flex flex-col items-center justify-center w-full max-w-3xl mx-auto bg-[#141724] text-center p-6 rounded-xl"
     >
       <h2 class="text-lg font-semibold text-white">Your library is empty</h2>
@@ -264,6 +273,7 @@
 </template>
 
 <script lang="ts" setup>
+import type { Notyf } from 'notyf'
 import { onMounted, ref, watch, watchEffect } from 'vue'
 import type { Ref } from 'vue'
 import CrzBadge from '~~/src-common/components/ui/CrzBadge.vue'
@@ -298,11 +308,8 @@ import NavigationPages from '#src-nuxt/components/navigations/NavigationPages.vu
 import Divider from '#src-nuxt/components/ui/Divider.vue'
 import { useAuthStore } from '#src-nuxt/stores/auth.store'
 import { useUserGameLibrariesStore } from '#src-nuxt/stores/userGameLibraries.store'
-import { is } from '@vee-validate/rules'
 
-const { $notyf } = useNuxtApp()
-
-/* LAYOUT - MIDDLEWARE */
+/* LAYOUT - MIDDLEWARE - TRANSITIONS */
 definePageMeta({
   layout: 'layout-home',
   middleware: ['auth', 'navigation'],
@@ -316,12 +323,19 @@ definePageMeta({
   },
 })
 
-/*STORE*/
+/* STORE */
 const userGameLibrariesStore: any = useUserGameLibrariesStore()
 const authStore: any = useAuthStore()
 const downloadsStore: any = useDownloadsStore()
 
-/* DATAS */
+/* DATA */
+/**
+ * Instance de Notyf pour afficher des notifications a l'utilisateur
+ * - Recuperee via useNuxtApp() pour integrer Notyf dans l'application Nuxt
+ * @type {Notyf}
+ */
+const notyf: Notyf = useNuxtApp().$notyf
+
 const gamesInstalled: Ref<GameInstalled[] | undefined> = ref(undefined) // Jeux déjà installé
 const gamesNeedsUpdate: Ref<GameInstalled[]> = ref([]) // Jeux deja installé qui ont besoin d'une mise à jour
 const filesDownloadUpdateGame: Ref<FileDetails[] | undefined> = ref(undefined) // Fichiers à télécharger pour mettre à jour le jeu
@@ -487,7 +501,7 @@ const UninstallGame: (game: GameModel) => Promise<void> = async (game: GameModel
     gameNeedsUpdate.value = gameNeedsUpdate.value.filter((gameModel: GameModel) => gameModel.id !== game.id)
     gameNotInstalled.value = [...gameNotInstalled.value, game]
 
-    $notyf.success(`The game ${game.title} has been uninstalled successfully`)
+    notyf.success(`The game ${game.title} has been uninstalled successfully`)
   } catch (error: any) {
     showPlayGameNotFoundExecutableMessageError.value = 'uninstall game'
     gameToPlayNotFoundExecutable.value = game
@@ -522,7 +536,7 @@ const createShortcutOnDesktop: (game: GameModel) => Promise<void> = async (game:
 
   try {
     await TauriService.createShortcutOnDesktop(currentGame.gameManifest.pathInstallLocation)
-    $notyf.success(`The desktop shortcut has been created successfully for ${game.title}`)
+    notyf.success(`The desktop shortcut has been created successfully for ${game.title}`)
   } catch (error) {
     showPlayGameNotFoundExecutableMessageError.value = 'could not create a desktop shortcut for the game'
     gameToPlayNotFoundExecutable.value = game
@@ -576,7 +590,7 @@ const checkForUpdatesGames: () => Promise<void> = async (): Promise<void> => {
   isLoading.value = true
   await loadGames()
   isLoading.value = false
-  $notyf.success('Games have been checked for updates')
+  notyf.success('Games have been checked for updates')
 }
 
 /**
@@ -667,7 +681,7 @@ const onPlayGame: (game: GameModel) => Promise<Promise<void> | string> = async (
           (gameInstalled: GameInstalled): boolean => gameInstalled.gameManifest.gameId !== game.id,
         )
 
-        $notyf.error(`An update is available for ${game.title}. Please update the game before playing.`)
+        notyf.error(`An update is available for ${game.title}. Please update the game before playing.`)
         return
       }
 
@@ -721,7 +735,9 @@ const refreshLibrary: () => void = (): void => {
 
     // Jeux en cours de téléchargement
     gameActiveDownload.value = userGameLibrariesStore.userGameLibrariesSortedByPlatform.filter((game: GameModel) => {
-      return downloadsStore.activeDownloads.some((activeDownload: ActiveDownloadGame) => activeDownload.gameId === game.id)
+      return downloadsStore.activeDownloads.some(
+        (activeDownload: ActiveDownloadGame) => activeDownload.gameId === game.id,
+      )
     })
   }
 }
@@ -1238,8 +1254,7 @@ const verifyInstallationGame: (game: GameModel) => Promise<void> = async (game: 
  * @returns {void}
  */
 watch(searchTerm, async (newValue: string): Promise<void> => {
-  if (newValue.length === 0)
-    isLoading.value = true
+  if (newValue.length === 0) isLoading.value = true
 
   await userGameLibrariesStore.getUserGameLibraries(newValue)
 

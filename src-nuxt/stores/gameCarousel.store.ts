@@ -3,8 +3,6 @@ import { GameCarouselService } from '~~/src-common/core/services/GameCarouselSer
 
 import type { GameCarouselModel } from '#src-common/core/models/GameCarouselModel'
 
-import { useAppStore } from '#src-nuxt/stores/app.store'
-
 /* TYPES */
 /**
  * Game carousel store state
@@ -43,22 +41,20 @@ export const useGameCarouselStore = defineStore('gameCarouselStore', {
      * @returns {Promise<GameCarouselModel[]>} - carousels
      */
     async getAllCarousels(): Promise<GameCarouselModel[]> {
-      return await useAppStore().execWithPending(async (): Promise<any> => {
-        /**
-         * Récupère tous les carrousels de jeux.
-         */
-        const carousels: GameCarouselModel[] = await GameCarouselService.getAllCarousels()
+      /**
+       * Récupère tous les carrousels de jeux.
+       */
+      const carousels: GameCarouselModel[] = await GameCarouselService.getAllCarousels()
 
-        /**
-         * Met à jour les carrousels de jeux.
-         */
-        this.setCarousels(carousels)
+      /**
+       * Met à jour les carrousels de jeux.
+       */
+      this.setCarousels(carousels)
 
-        /**
-         * Retourne les carrousels de jeux.
-         */
-        return carousels
-      })
+      /**
+       * Retourne les carrousels de jeux.
+       */
+      return carousels
     },
   },
 })
