@@ -17,6 +17,7 @@
 <script lang="ts" setup>
 import { onMounted } from 'vue'
 import type { Ref } from 'vue'
+import NavigationPages from '~/components/navigations/NavigationPages.vue'
 
 import CrzSpinner from '#src-common/components/loaders/CrzSpinner.vue'
 
@@ -26,7 +27,6 @@ import type { Logger } from '#src-core/utils/logger'
 import CrzSwiper from '#src-nuxt/components/carousel/CrzSwiper.vue'
 import { useGameCarouselStore } from '#src-nuxt/stores/gameCarousel.store'
 import { useWindowStore } from '#src-nuxt/stores/window.store'
-import NavigationPages from '~/components/navigations/NavigationPages.vue'
 
 /* LAYOUT - MIDDLEWARE - TRANSITIONS */
 definePageMeta({
