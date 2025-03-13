@@ -30,17 +30,13 @@
       <!-- Les boutons "All Games" et "Featured Games" (cachés pendant une recherche) -->
       <div class="flex gap-2">
         <!-- Bouton "All Games" -->
-        <CrzButton
-          size="sm"
-          :variant="searchTerm ? 'disabled' : activeFilter === 'all' ? 'active' : 'primary2'"
-          @click="setFilter('all')"
-        >
+        <CrzButton size="sm" :variant="activeFilter === 'all' ? 'active' : 'primary2'" @click="setFilter('all')">
           All Games
         </CrzButton>
         <!-- Bouton "Featured Games" -->
         <CrzButton
           size="sm"
-          :variant="searchTerm ? 'disabled' : activeFilter === 'featured' ? 'active' : 'primary2'"
+          :variant="activeFilter === 'featured' ? 'active' : 'primary2'"
           @click="setFilter('featured')"
         >
           Featured Games
@@ -61,13 +57,8 @@
     <!-- Diviseur -->
     <Divider />
 
-    <!-- Conteneur pour centrer le spinner pendant le chargement des jeux -->
-    <div
-      v-if="isLoadingGames"
-      class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 w-full h-full flex items-center justify-center"
-    >
-      <CrzSpinner />
-    </div>
+    <!-- Spinner de chargement : s'affiche seulement pendant le chargement des jeux -->
+    <CrzSpinner v-if="isLoadingGames" />
 
     <!-- Contenu principal : s'affiche seulement quand le chargement est terminé et qu'il y a des données (donc des jeux) -->
     <div
@@ -238,30 +229,25 @@ const setFilter: (filter: filter) => void = (filter: filter): void => {
 }
 
 /**
- * Permet de filtrer les jeux en fonction de la recherche de l'utilisateur
- * ou du filtre actif.
+ * Permet de filtrer les jeux en fonction du filtre actif et de la recherche de l'utilisateur.
  * @returns {ExtendedGameModel[]}
  */
 const filteredGames: ComputedRef<ExtendedGameModel[]> = computed((): ExtendedGameModel[] => {
+  let filtered: ExtendedGameModel[] = games.value
+
+  // Appliquer le filtre actif ("featured")
+  if (activeFilter.value === 'featured') {
+    filtered = games.value.filter((game: ExtendedGameModel): boolean => game.new_game || game.upcoming_game)
+  }
+
+  // Appliquer la recherche si searchTerm est non vide
   if (searchTerm.value.trim()) {
-    // Si la recherche n'est pas vide, on filtre les jeux en fonction du terme de la recherche (titre du jeu)
-    return games.value.filter((game: ExtendedGameModel): boolean =>
+    filtered = filtered.filter((game: ExtendedGameModel): boolean =>
       game.title.toLowerCase().includes(searchTerm.value.toLowerCase()),
     )
-  } else {
-    if (activeFilter.value === 'all') {
-      // Afficher tous les jeux
-      return games.value
-    }
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    else if (activeFilter.value === 'featured') {
-      // Afficher seulement les jeux "featured" (nouveaux ou à venir)
-      return games.value.filter((game: ExtendedGameModel): boolean => game.new_game || game.upcoming_game)
-    }
-
-    // Par défaut, on retourne tous les jeux si aucun filtre n'est actif et qu'il n'y a pas de recherche
-    return games.value
   }
+
+  return filtered
 })
 
 /**
