@@ -1286,6 +1286,7 @@ watchEffect((): void => {
 </script>
 
 <style lang="scss" scoped>
+/* Permet de changer le curseur de la souris en mode progress lorsqu'on clique sur le bouton play d'un jeu */
 .launching-cursor {
   cursor: progress;
 }
