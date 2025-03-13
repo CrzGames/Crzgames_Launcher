@@ -1,6 +1,6 @@
 <template>
   <div class="container">
-    <!-- Carrousel -->
+    <!-- Carrousel, si les carrousels sont chargés et qu'il y a des carrousels -->
     <CrzSwiper
       v-if="!isLoadingCarousels && carouselsStore.carousels.length > 0"
       :carousels="carouselsStore.carousels"
@@ -67,7 +67,7 @@ onMounted(async (): Promise<void> => {
 
   /**
    * IMPORTANT: Mettre à la fin de la méthode onMounted(), quand la page est totalement chargée.
-   * On utilise cela si on vient de la page login et qu'on est redirigé sur la page home carrousel.
+   * On utilise cela si on vient de la page login et qu'on est redirigé sur la page home/carousel.
    */
   await nextTick(() => {
     windowStore.setLoading(false)
@@ -76,7 +76,7 @@ onMounted(async (): Promise<void> => {
 
 /* METHODS */
 /**
- * Fetch all carousels
+ * Récupère les carrousels depuis le store.
  * @returns {Promise<void>}
  */
 const fetchCarousels: () => Promise<void> = async (): Promise<void> => {
@@ -95,7 +95,7 @@ const fetchCarousels: () => Promise<void> = async (): Promise<void> => {
 </script>
 
 <style lang="scss" scoped>
-/* Positionnement du carrousel au centre de la page et le spinner */
+/* Positionnement du carrousel au centre de la page ou le spinner */
 .container {
   display: flex;
   justify-content: center;
