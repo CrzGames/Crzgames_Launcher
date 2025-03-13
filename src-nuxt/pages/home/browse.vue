@@ -12,15 +12,6 @@
         :placeholder="'Search for games (CTRL + E)'"
         @update:value="searchTerm = $event"
       />
-
-      <!-- Logo CrzGames (déplacé en position absolue) -->
-      <div class="relative w-full">
-        <img
-          src="/images/logo_fond_transparent_whitout_text.png"
-          alt="CrzGames Logo"
-          class="w-20 h-20 object-contain absolute top-0 right-0 mt-2 mr-2 z-10"
-        />
-      </div>
     </div>
 
     <!-- Titre principal de la page "Browse" -->

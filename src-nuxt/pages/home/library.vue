@@ -24,15 +24,6 @@
           <CrzIcon color="#000000" name="arrows-rotate" view-box="0 0 512 512" :width="18" :height="18" class="mr-2" />
           Search for Game Updates
         </button>
-
-        <!-- Logo CrzGames (déplacé en position absolue) -->
-        <div class="relative w-full">
-          <img
-            src="/images/logo_fond_transparent_whitout_text.png"
-            alt="CrzGames Logo"
-            class="w-20 h-20 object-contain absolute top-0 right-0 mt-2 mr-2 z-10"
-          />
-        </div>
       </div>
     </div>
 

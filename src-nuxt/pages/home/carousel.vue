@@ -1,5 +1,8 @@
 <template>
   <div class="container">
+    <!-- Boutons navigation ajouté ici -->
+    <NavigationPages class="navigation-pages" />
+
     <!-- Carrousel, si les carrousels sont chargés et qu'il y a des carrousels -->
     <CrzSwiper
       v-if="!isLoadingCarousels && carouselsStore.carousels.length > 0"
@@ -23,6 +26,7 @@ import type { Logger } from '#src-core/utils/logger'
 import CrzSwiper from '#src-nuxt/components/carousel/CrzSwiper.vue'
 import { useGameCarouselStore } from '#src-nuxt/stores/gameCarousel.store'
 import { useWindowStore } from '#src-nuxt/stores/window.store'
+import NavigationPages from '~/components/navigations/NavigationPages.vue'
 
 /* LAYOUT - MIDDLEWARE - TRANSITIONS */
 definePageMeta({
@@ -101,5 +105,21 @@ const fetchCarousels: () => Promise<void> = async (): Promise<void> => {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  position: relative;
+}
+
+/* Par défaut, navigation est caché */
+.navigation-pages {
+  display: none;
+}
+
+/* Affiche NavigationPages uniquement au-dessus de 741px */
+@media screen and (min-height: 741px) {
+  .navigation-pages {
+    display: flex;
+    position: absolute;
+    top: 20px;
+    left: 20px;
+  }
 }
 </style>

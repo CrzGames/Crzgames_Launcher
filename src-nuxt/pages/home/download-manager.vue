@@ -4,15 +4,6 @@
     <div class="flex items-center justify-between">
       <!-- Boutons de navigation gauche / droite -->
       <NavigationPages class="mr-5" />
-
-      <!-- Logo CrzGames (déplacé en position absolue) -->
-      <div class="relative w-full">
-        <img
-          src="/images/logo_fond_transparent_whitout_text.png"
-          alt="CrzGames Logo"
-          class="w-20 h-20 object-contain absolute top-0 right-0 mt-2 mr-2 z-10"
-        />
-      </div>
     </div>
 
     <!-- Titre principal de la page "Download Manager" -->

@@ -601,7 +601,7 @@ const maintainActiveSlideOpacity: () => void = (): void => {
 /* Media query pour les appareils avec une hauteur supérieure à 740px */
 @media screen and (min-height: 741px) {
   .swiper {
-    height: calc(70vh); /* Le carousel prendra 70% de la hauteur disponible */
+    height: calc(80vh); /* Le carousel prendra 70% de la hauteur disponible */
   }
 }
 
