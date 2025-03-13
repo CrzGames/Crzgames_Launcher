@@ -43,7 +43,10 @@
     <Divider />
 
     <!-- Conteneur pour centrer le spinner pendant le chargement des jeux -->
-    <div v-if="isLoading" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50">
+    <div
+      v-if="isLoading"
+      class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 w-full h-full flex items-center justify-center"
+    >
       <CrzSpinner />
     </div>
 

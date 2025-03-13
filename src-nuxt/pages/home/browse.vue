@@ -61,6 +61,14 @@
     <!-- Diviseur -->
     <Divider />
 
+    <!-- Conteneur pour centrer le spinner pendant le chargement des jeux -->
+    <div
+      v-if="isLoadingGames"
+      class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 w-full h-full flex items-center justify-center"
+    >
+      <CrzSpinner />
+    </div>
+
     <!-- Contenu principal : s'affiche seulement quand le chargement est terminé et qu'il y a des données (donc des jeux) -->
     <div
       v-if="!isLoadingGames && filteredGames && filteredGames.length > 0"
@@ -95,11 +103,6 @@
           </CrzBadge>
         </div>
       </template>
-    </div>
-
-    <!-- Conteneur pour centrer le spinner pendant le chargement des jeux -->
-    <div v-else-if="isLoadingGames" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50">
-      <CrzSpinner />
     </div>
 
     <!-- Messages pour l'absence de jeux lors la recherche via l'input -->
@@ -198,6 +201,7 @@ const isLoadingGames: Ref<boolean> = ref(true)
 
 /**
  * Les jeux de base et enrichis avec le statut de possession et de paiement.
+ * C'est cette liste qui est filtrée et affichée à l'utilisateur.
  * @type {Ref<ExtendedGameModel[]>}
  */
 const games: Ref<ExtendedGameModel[]> = ref([])
@@ -205,6 +209,9 @@ const games: Ref<ExtendedGameModel[]> = ref([])
 /**
  * activeFilter permet de savoir quel filtre est actif.
  * @type {Ref<filter>}
+ * @default 'all'
+ * @example 'all' - Tous les jeux
+ * @example 'featured' - Jeux à la une (nouveaux ou à venir)
  */
 const activeFilter: Ref<filter> = ref('all')
 
