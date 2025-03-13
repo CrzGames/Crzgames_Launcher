@@ -651,15 +651,11 @@ const onPlayGame: (game: GameModel) => Promise<Promise<void> | string> = async (
         return gameInstalled.gameManifest.gameId === game.id
       },
     )
-    console.log('currentGame', currentGame)
-
-    console.log('toto')
 
     /**
      * Si le jeu est trouvé dans les jeux installés, on continue
      */
     if (currentGame) {
-      console.log('toto2')
       // Vérifier si une mise à jour est disponible
       const hasUpdate: boolean = await checkForGameUpdate(game)
 
