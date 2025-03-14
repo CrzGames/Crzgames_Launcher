@@ -97,6 +97,7 @@
       <p class="text-sm text-gray-400 mt-2">No games match your search.</p>
       <p class="text-sm text-gray-400 mt-2">Try searching with different keywords.</p>
       <CrzButton @click="setFilter('all')" class="mt-4"> Browse all games </CrzButton>
+      <CrzButton @click="setFilter('featured')" class="mt-4"> Browse featured games </CrzButton>
     </div>
   </div>
 </template>
@@ -203,7 +204,7 @@ const activeFilter: Ref<filter> = ref('all')
  * @returns {Promise<void>} - Promise void
  */
 onMounted(async (): Promise<void> => {
-  await fetchGamesAndEnrichGame()
+  await fetchAllGamesAndEnrichGame()
 })
 
 /* METHODS */
@@ -254,51 +255,46 @@ const addGameToUserGameLibraryAndUpdateGameListAndNotify: (gameId: number) => Pr
   await userGameLibrariesStore.addGameInUserGameLibrariesByGameId(gameId)
 
   // Met à jour les jeux et enrichit chaque jeu
-  await fetchGamesAndEnrichGame()
+  await fetchAllGamesAndEnrichGame()
 
   // Affiche une notification de succès
   notyf.success('Game added to library successfully')
 }
 
 /**
- * Recupere tout les GameModel et enrichit chaque jeu via GamePaidAndOwnedStatus
- * @param {GameModel} game - GameModel
- * @returns {Promise<ExtendedGameModel>} - Promise ExtendedGameModel
+ * Récupère tous les jeux et enrichit chaque jeu avec le statut de possession et de paiement
+ * par rapport à l'utilisateur connecté.
+ * @returns {Promise<void>}
  */
-const enrichGame: (game: GameModel) => Promise<ExtendedGameModel> = async (
-  game: GameModel,
-): Promise<ExtendedGameModel> => {
-  // Récupére pour savoir si le jeu est payé et possédé
-  const status: GamePaidAndOwnedStatus = await ProductService.isGamePaidAndOwned(game.id)
-
-  // Retourne le jeu enrichi
-  return {
-    ...game,
-    isPaidAndNotOwned: status.isPaid && !status.isOwned,
-    isFreeAndNotOwned: !status.isPaid && !status.isOwned,
-    isOwned: status.isOwned,
-  } as ExtendedGameModel
-}
-
-/**
- * Recupere tout les jeux et enrichit chaque jeu via enrichGame
- * qui ajoute le statut de possession et de paiement du jeu.
- * @returns {Promise<void>} - Promise void
- */
-const fetchGamesAndEnrichGame: () => Promise<void> = async (): Promise<void> => {
+const fetchAllGamesAndEnrichGame: () => Promise<void> = async (): Promise<void> => {
   // Met à jour isLoadingGames à true le temps de récupérer les jeux
   isLoadingGames.value = true
 
   try {
-    // Récupère tout les jeux
+    // Récupère tous les jeux
     await gameStore.getAllGames()
 
-    // Récupère tout les jeux en fonction de la plateforme
-    games.value = await Promise.all(
-      gameStore.gamesSortedByPlatform.map((game: GameModel): Promise<ExtendedGameModel> => enrichGame(game)),
-    )
+    // Récupère les statuts de possession/paiement pour tous les jeux en une seule requête
+    const allGamesPaidAndOwnedStatus: GamePaidAndOwnedStatus[] = await ProductService.getAllGamesProductsPaidAndOwned()
+
+    // Crée une map pour un accès rapide aux statuts des jeux
+    const statusMap: Map<number, GamePaidAndOwnedStatus> = new Map<number, GamePaidAndOwnedStatus>()
+    allGamesPaidAndOwnedStatus.forEach((status: GamePaidAndOwnedStatus): void => {
+      statusMap.set(status.gameId as number, status)
+    })
+
+    // Associe chaque jeu à son statut en évitant une requête par jeu
+    games.value = gameStore.gamesSortedByPlatform.map((game: GameModel): ExtendedGameModel => {
+      const status: GamePaidAndOwnedStatus = statusMap.get(game.id) || { isPaid: false, isOwned: false }
+      return {
+        ...game,
+        isPaidAndNotOwned: status.isPaid && !status.isOwned,
+        isFreeAndNotOwned: !status.isPaid && !status.isOwned,
+        isOwned: status.isOwned,
+      } as ExtendedGameModel
+    })
   } catch (error: any) {
-    logger.error('[fetchGamesAndEnrichGame] error : ', error)
+    logger.error('[fetchAllGamesAndEnrichGame] error : ', error)
   } finally {
     // Met à jour isLoadingGames à false une fois les jeux récupérés
     isLoadingGames.value = false
