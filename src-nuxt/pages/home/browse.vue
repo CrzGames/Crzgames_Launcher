@@ -251,14 +251,30 @@ const filteredGames: ComputedRef<ExtendedGameModel[]> = computed((): ExtendedGam
 const addGameToUserGameLibraryAndUpdateGameListAndNotify: (gameId: number) => Promise<void> = async (
   gameId: number,
 ): Promise<void> => {
-  // Ajoute le jeu dans la bibliothèque de l'utilisateur
-  await userGameLibrariesStore.addGameInUserGameLibrariesByGameId(gameId)
+  try {
+    // Ajoute le jeu à la bibliothèque de l'utilisateur (backend)
+    await userGameLibrariesStore.addGameInUserGameLibrariesByGameId(gameId)
 
-  // Met à jour les jeux et enrichit chaque jeu
-  await fetchAllGamesAndEnrichGame()
+    // Met à jour uniquement le jeu concerné dans la liste (évite un refetch total)
+    const gameIndex: number = games.value.findIndex((game: ExtendedGameModel): boolean => game.id === gameId)
 
-  // Affiche une notification de succès
-  notyf.success('Game added to library successfully')
+    // Si le jeu est trouvé, met à jour le statut de possession
+    if (gameIndex !== -1) {
+      // Marque le jeu comme possédé (évite un refetch complet)
+      games.value[gameIndex].isOwned = true
+      games.value[gameIndex].isPaidAndNotOwned = false
+      games.value[gameIndex].isFreeAndNotOwned = false
+    }
+
+    /**
+     * Affiche une notification de succès à l'utilisateur.
+     * Affiche immédiatement l'icône "In Your Library"
+     */
+    notyf.success('Game added to library successfully')
+  } catch (error: any) {
+    logger.error('[addGameToUserGameLibraryAndUpdateGameListAndNotify] error:', error)
+    notyf.error('Failed to add game to library')
+  }
 }
 
 /**
