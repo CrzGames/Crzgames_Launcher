@@ -25,10 +25,12 @@ export type ProductCommand = {
 
 /**
  * @type {object} GamePaidAndOwnedStatus
+ * @property {number} gameId - L'id du jeu
  * @property {boolean} isPaid - Si le jeu est payant
  * @property {boolean} isOwned - Si il possède le jeu
  */
 export type GamePaidAndOwnedStatus = {
+  gameId?: number
   isPaid: boolean
   isOwned: boolean
 }
@@ -86,10 +88,19 @@ export class ProductService extends BaseApiService {
   }
 
   /**
-   * @param {number} gameId - id of the game
-   * @returns {Promise<GamePaidAndOwnedStatus>} - game paid and owned status
+   * Récupère le statut de possession et de paiement d'un jeu
+   * @param {number} gameId - L'id du jeu
+   * @returns {Promise<GamePaidAndOwnedStatus>} - Le statut de possession et de paiement du jeu
    */
-  public static async isGamePaidAndOwned(gameId: number): Promise<GamePaidAndOwnedStatus> {
+  public static async getGameProductPaidAndOwned(gameId: number): Promise<GamePaidAndOwnedStatus> {
     return await this.get(`/products/games/${gameId}/paid-and-owned`)
+  }
+
+  /**
+   * Récupère le statut de possession et de paiement de tous les jeux
+   * @returns {Promise<GamePaidAndOwnedStatus[]>} - Le statut de possession et de paiement de tous les jeux
+   */
+  public static async getAllGamesProductsPaidAndOwned(): Promise<GamePaidAndOwnedStatus[]> {
+    return await this.get(`/products/games/paid-and-owned`)
   }
 }
