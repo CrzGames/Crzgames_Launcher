@@ -89,6 +89,12 @@ const fetchCarousels: () => Promise<void> = async (): Promise<void> => {
   } catch (error: any) {
     logger.error('[fetchCarousels] error : ', error)
   } finally {
+    // Attendre le prochain tick pour s'assurer que les mises à jour réactives sont terminées
+    await nextTick()
+
+    // Ajoute une petite temporisation pour s'assurer que tout est bien chargé
+    await new Promise((resolve: any) => setTimeout(resolve, 250))
+
     /**
      * A la fin du chargement des carrousels, isLoadingCarousels est
      * mis à false pour afficher le carrousel et non le spinner.

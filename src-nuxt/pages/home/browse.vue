@@ -1,5 +1,5 @@
 <template>
-  <div class="grid gap-8 px-4 py-5 pb-12 text-white relative">
+  <div class="grid gap-8 px-4 py-5 text-white relative">
     <!-- Barre de recherche et boutons de navigation -->
     <div class="flex items-center w-full">
       <!-- Boutons de navigation gauche / droite -->
@@ -358,7 +358,13 @@ const fetchAllGamesAndEnrichGame: () => Promise<void> = async (): Promise<void> 
     // Gestion des erreurs avec journalisation
     logger.error('[fetchAllGamesAndEnrichGame] Erreur lors de la récupération des jeux : ', error)
   } finally {
-    // Désactivation de l'indicateur de chargement, quelle que soit l'issue
+    // Attendre le prochain tick pour s'assurer que les mises à jour réactives sont terminées
+    await nextTick()
+
+    // Ajoute une petite temporisation pour s'assurer que tout est bien chargé
+    await new Promise((resolve: any) => setTimeout(resolve, 250))
+
+    // Désactivation de l'indicateur de chargement
     isLoadingGames.value = false
   }
 }

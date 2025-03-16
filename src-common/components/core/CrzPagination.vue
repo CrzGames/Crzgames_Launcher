@@ -1,7 +1,7 @@
 <template>
   <div class="flex items-center justify-between w-full px-4 py-2 bg-[#141724] text-white">
     <!-- Range Indicator -->
-    <span class="text-sm">Affichage des résultats {{ from }} à {{ to }} sur {{ total }}</span>
+    <span class="text-sm">Showing results {{ perPage * currentPage - perPage + 1 }} to {{ to }} of {{ total }}.</span>
 
     <!-- Navigation Buttons and Page Numbers -->
     <div class="flex items-center gap-2">
@@ -30,13 +30,13 @@
       <!-- Page Numbers -->
       <template v-for="(item, index) in visiblePages" :key="index">
         <button
-          v-if="typeof item === 'number' || item === '...'"
-          @click="typeof item === 'number' ? changePage(item) : null"
+          v-if="typeof item === 'number'"
+          @click="changePage(item)"
           :class="[
             'w-8 h-8 flex items-center justify-center rounded transition',
             item === currentPage ? 'bg-[#FF9800] text-black font-semibold' : 'hover:bg-gray-700',
           ]"
-          :disabled="item === currentPage || item === '...'"
+          :disabled="item === currentPage"
         >
           {{ item }}
         </button>
@@ -72,7 +72,7 @@ import { type ComputedRef, computed } from 'vue'
 
 /**
  * Props pour le composant CrzPagination.
- * @type {object} CrzPaginationProps
+ * @typedef {Object} CrzPaginationProps
  * @property {number} total - Nombre total d'éléments.
  * @property {number} perPage - Nombre d'éléments par page.
  * @property {number} currentPage - Numéro de la page actuelle.
@@ -92,6 +92,7 @@ const props: CrzPaginationProps = defineProps<CrzPaginationProps>()
 
 /**
  * Define emits for the component.
+ * @type {{ 'update:currentPage': (page: number) => void }}
  */
 const emit: any = defineEmits<{
   'update:currentPage': (page: number) => void
@@ -107,15 +108,6 @@ const totalPages: ComputedRef<number> = computed((): number => {
 })
 
 /**
- * Computed property for the starting index of the current page range.
- * @returns {ComputedRef<number>} - L'index de départ de la plage actuelle.
- */
-const from: ComputedRef<number> = computed((): number => {
-  const val: number = Math.min(1, (props.currentPage - 1) * props.perPage + 1)
-  return val
-})
-
-/**
  * Computed property for the ending index of the current page range.
  * @returns {ComputedRef<number>} - L'index de fin de la plage actuelle.
  */
@@ -126,40 +118,27 @@ const to: ComputedRef<number> = computed((): number => {
 
 /**
  * Computed property for the visible page numbers to display.
- * Limits to 10 pages with "..." indicators.
- * @returns {ComputedRef<(number | string)[]>} - Liste des numéros de page visibles.
+ * Limits to 5 pages centered around the current page for better navigation.
+ * @returns {ComputedRef<number[]>} - Liste des numéros de page visibles.
  */
-const visiblePages: ComputedRef<(number | string)[]> = computed((): (number | string)[] => {
-  const pages: (number | string)[] = []
-  const maxVisible: number = 10
+const visiblePages: ComputedRef<number[]> = computed((): number[] => {
+  const pages: number[] = []
+  const maxVisible: number = 10 // Limite à 10 pages visibles
   const halfVisible: number = Math.floor(maxVisible / 2)
+
+  // Calcul du début et de la fin des pages visibles
   let start: number = Math.max(1, props.currentPage - halfVisible)
-  let end: number = Math.min(totalPages.value, start + maxVisible - 1)
+  let end: number = start + maxVisible - 1
 
-  if (totalPages.value === 1) {
-    pages.push(1)
-  } else {
-    if (end - start < maxVisible - 1) {
-      start = Math.max(1, end - maxVisible + 1)
-    }
+  // Ajuste si on dépasse le total des pages
+  if (end > totalPages.value) {
+    end = totalPages.value
+    start = Math.max(1, end - maxVisible + 1)
+  }
 
-    for (let i: number = start; i <= end; i++) {
-      pages.push(i)
-    }
-
-    if (start > 2) {
-      pages.unshift('...')
-      pages.unshift(1)
-    } else if (start === 2) {
-      pages.unshift(1)
-    }
-
-    if (end < totalPages.value - 1) {
-      pages.push('...')
-      pages.push(totalPages.value)
-    } else if (end === totalPages.value - 1) {
-      pages.push(totalPages.value)
-    }
+  // Ajoute les pages visibles
+  for (let i: number = start; i <= end; i++) {
+    pages.push(i)
   }
 
   return pages
