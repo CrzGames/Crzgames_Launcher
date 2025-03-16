@@ -87,6 +87,16 @@
       </template>
     </div>
 
+    <!-- Composant de pagination -->
+    <CrzPagination
+      v-if="!isLoadingGames && filteredGames && filteredGames.length > 0"
+      :total="total"
+      :per-page="perPage"
+      :current-page="currentPage"
+      :on-page-change="fetchAllGamesAndEnrichGame"
+      @update:currentPage="currentPage = $event"
+    />
+
     <!-- Messages pour l'absence de jeux lors la recherche via l'input -->
     <div
       v-if="!isLoadingGames && (!filteredGames || filteredGames.length === 0)"
@@ -104,9 +114,10 @@
 
 <script lang="ts" setup>
 import type { Notyf } from 'notyf'
-import { onMounted, ref } from 'vue'
-import type { Ref } from 'vue'
+import { type ComputedRef, type Ref, computed, onMounted, ref } from 'vue'
+import CrzPagination from '~~/src-common/components/core/CrzPagination.vue'
 import CrzSpinner from '~~/src-common/components/loaders/CrzSpinner.vue'
+import type { PaginationMeta } from '~~/src-common/core/services/GameService'
 import { useGameStore } from '~~/src-nuxt/stores/game.store'
 
 import CrzButton from '#src-common/components/buttons/CrzButton.vue'
@@ -198,6 +209,26 @@ const games: Ref<ExtendedGameModel[]> = ref([])
  */
 const activeFilter: Ref<filter> = ref('all')
 
+/**
+ * Numéro de la page actuelle pour la pagination.
+ * @type {Ref<number>}
+ * @default 1
+ */
+const currentPage: Ref<number> = ref(1)
+
+/**
+ * Nombre d'éléments par page pour la pagination.
+ * @type {Ref<number>}
+ * @default 24
+ */
+const perPage: Ref<number> = ref(24)
+
+/**
+ * Nombre total d'éléments pour la pagination.
+ * @type {Ref<number>}
+ */
+const total: Ref<number> = ref(0)
+
 /* CYCLE - HOOKS */
 /**
  * Lifecycle hook mounted
@@ -218,6 +249,9 @@ const setFilter: (filter: filter) => void = (filter: filter): void => {
   activeFilter.value = filter
   // Réinitialise le champ de recherche
   searchTerm.value = ''
+  // Réinitialise la page courante lors du changement de filtre
+  currentPage.value = 1
+  fetchAllGamesAndEnrichGame()
 }
 
 /**
@@ -278,41 +312,53 @@ const addGameToUserGameLibraryAndUpdateGameListAndNotify: (gameId: number) => Pr
 }
 
 /**
- * Récupère tous les jeux et enrichit chaque jeu avec le statut de possession et de paiement
- * par rapport à l'utilisateur connecté.
- * @returns {Promise<void>}
+ * Récupère tous les jeux depuis le backend et enrichit chaque jeu avec les statuts
+ * de possession et de paiement en fonction de l'utilisateur connecté.
+ * @returns {Promise<void>} Une promesse qui se résout une fois les données chargées.
  */
 const fetchAllGamesAndEnrichGame: () => Promise<void> = async (): Promise<void> => {
-  // Met à jour isLoadingGames à true le temps de récupérer les jeux
+  // Activation de l'indicateur de chargement
   isLoadingGames.value = true
 
   try {
-    // Récupère tous les jeux
-    await gameStore.getAllGames()
+    // Récupération des jeux depuis le store avec les paramètres de recherche et pagination
+    const response: GameModel[] = await gameStore.getAllGames(
+      searchTerm.value || undefined, // Utilisation du terme de recherche si défini
+      currentPage.value, // Page actuelle
+      perPage.value, // Nombre d'éléments par page
+    )
 
-    // Récupère les statuts de possession/paiement pour tous les jeux en une seule requête
+    // Initialisation de la liste des jeux à enrichir
+    let fetchedGames: GameModel[] = response
+
+    // Récupération des métadonnées depuis l'état du store
+    const paginationMeta: PaginationMeta = gameStore.paginationMeta
+    total.value = paginationMeta.total // Mise à jour du total basé sur les métadonnées
+
+    // Récupération des statuts de paiement et de possession pour tous les jeux
     const allGamesPaidAndOwnedStatus: GamePaidAndOwnedStatus[] = await ProductService.getAllGamesProductsPaidAndOwned()
 
-    // Crée une map pour un accès rapide aux statuts des jeux
+    // Création d'une map pour associer rapidement les statuts aux IDs des jeux
     const statusMap: Map<number, GamePaidAndOwnedStatus> = new Map<number, GamePaidAndOwnedStatus>()
     allGamesPaidAndOwnedStatus.forEach((status: GamePaidAndOwnedStatus): void => {
       statusMap.set(status.gameId as number, status)
     })
 
-    // Associe chaque jeu à son statut en évitant une requête par jeu
-    games.value = gameStore.gamesSortedByPlatform.map((game: GameModel): ExtendedGameModel => {
+    // Enrichissement de chaque jeu avec les statuts de paiement et possession
+    games.value = fetchedGames.map((game: GameModel): ExtendedGameModel => {
       const status: GamePaidAndOwnedStatus = statusMap.get(game.id) || { isPaid: false, isOwned: false }
       return {
         ...game,
-        isPaidAndNotOwned: status.isPaid && !status.isOwned,
-        isFreeAndNotOwned: !status.isPaid && !status.isOwned,
-        isOwned: status.isOwned,
+        isPaidAndNotOwned: status.isPaid && !status.isOwned, // Jeu payé mais non possédé
+        isFreeAndNotOwned: !status.isPaid && !status.isOwned, // Jeu gratuit et non possédé
+        isOwned: status.isOwned, // Jeu possédé
       } as ExtendedGameModel
     })
   } catch (error: any) {
-    logger.error('[fetchAllGamesAndEnrichGame] error : ', error)
+    // Gestion des erreurs avec journalisation
+    logger.error('[fetchAllGamesAndEnrichGame] Erreur lors de la récupération des jeux : ', error)
   } finally {
-    // Met à jour isLoadingGames à false une fois les jeux récupérés
+    // Désactivation de l'indicateur de chargement, quelle que soit l'issue
     isLoadingGames.value = false
   }
 }

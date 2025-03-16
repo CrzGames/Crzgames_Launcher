@@ -49,18 +49,54 @@ export interface iUpdateGameCommand extends iGameCommand {
   logoFilesId: number
   pictureFileId: number
 }
+
+/**
+ * Type pour la méta-donnée de pagination
+ * @type {object} PaginationMeta
+ * @property {number} total - Nombre total de jeux
+ * @property {number} from - Index du premier jeu de la page
+ * @property {number} to - Index du dernier jeu de la page
+ * @property {number} currentPage - Numéro de la page actuelle
+ * @property {number} perPage - Nombre de jeux par page
+ */
+export type PaginationMeta = {
+  total: number
+  from: number
+  to: number
+  currentPage: number
+  perPage: number
+}
+
+/**
+ * Type pour la réponse de la fonction getAllGames
+ * @type {GamesResponse} GamesResponse
+ * @property {GameModel[]} data - Liste des jeux
+ * @property {PaginationMeta} meta - Méta-donnée de pagination
+ */
+export type GamesResponse =
+  | GameModel[] // Si pas de pagination
+  | { data: GameModel[]; meta: PaginationMeta } // Si pagination active
+
 /**
  * GameService
  * @class GameService
  */
 export class GameService extends BaseApiService {
   /**
-   * getAllGames
-   * @param {string} title - title
-   * @returns {GameModel[]} - games
+   * Récupère tous les jeux avec des options de filtrage et de pagination
+   * @param {string} [title] - Titre pour filtrer les jeux (optionnel)
+   * @param {number} [page] - Numéro de la page (optionnel)
+   * @param {number} [perPage] - Nombre d'éléments par page (optionnel)
+   * @returns {Promise<GamesResponse>} - Réponse contenant les jeux et les métadonnées de pagination
    */
-  public static async getAllGames(title?: string): Promise<GameModel[]> {
-    return await this.get('/games' + (title ? `?title=${title}` : ''))
+  public static async getAllGames(title?: string, page?: number, perPage?: number): Promise<GamesResponse> {
+    const queryParams: string[] = []
+    if (title) queryParams.push(`title=${encodeURIComponent(title)}`)
+    if (page !== undefined) queryParams.push(`page=${page}`)
+    if (perPage !== undefined) queryParams.push(`perPage=${perPage}`)
+
+    const queryString: string = queryParams.length > 0 ? `?${queryParams.join('&')}` : ''
+    return await this.get(`/games${queryString}`)
   }
 
   /**

@@ -695,7 +695,6 @@ const onPlayGame: (game: GameModel) => Promise<Promise<void> | string> = async (
  * @returns {void}
  */
 const refreshLibrary: () => void = (): void => {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (
     userGameLibrariesStore.userGameLibrariesSortedByPlatform &&
     userGameLibrariesStore.userGameLibrariesSortedByPlatform.length > 0
