@@ -10,7 +10,8 @@
         :height="40"
         :value="searchTerm"
         :placeholder="'Search for games (CTRL + E)'"
-        @update:value="searchTerm = $event"
+        @update:value="handleSearchInput"
+        @keydown.enter="performSearch"
       />
     </div>
 
@@ -18,40 +19,84 @@
     <h1 class="font-serif text-xl font-semibold sm:text-2xl">Browse</h1>
 
     <div class="flex items-center justify-between w-full" style="margin-top: -1rem">
-      <!-- Les boutons "All Games" et "Featured Games" (cachés pendant une recherche) -->
+      <!-- Les boutons "All Games" et "Featured Games" -->
       <div class="flex gap-2">
         <!-- Bouton "All Games" -->
-        <CrzButton size="sm" :variant="activeFilter === 'all' ? 'active' : 'primary2'" @click="setFilter('all')">
+        <CrzButton
+          size="sm"
+          :variant="activeFilter === 'all' && !isSearchActive ? 'active' : 'primary2'"
+          @click="setFilter('all')"
+        >
           All Games
         </CrzButton>
         <!-- Bouton "Featured Games" -->
         <CrzButton
           size="sm"
-          :variant="activeFilter === 'featured' ? 'active' : 'primary2'"
+          :variant="activeFilter === 'featured' && !isSearchActive ? 'active' : 'primary2'"
           @click="setFilter('featured')"
         >
           Featured Games
         </CrzButton>
       </div>
 
-      <!-- Affichage des résultats de recherche -->
-      <div v-if="searchTerm && filteredGames" class="flex items-center gap-2">
-        <!-- Résultats de la saisie de l'utilisateur lors de la recherche via l'input -->
-        <span class="text-lg font-medium text-white">Search results for "{{ searchTerm }}"</span>
-        <!-- Badge avec le nombre de jeux trouvés, rajoute un "s" si le nombre est supérieur à 1 -->
+      <!-- Indicateur de filtre de recherche actif avec "Best Results" -->
+      <div v-if="isSearchActive" class="flex items-center gap-2">
+        <span class="text-lg font-medium text-white">Search results for "{{ lastValidatedSearchTerm }}"</span>
         <CrzBadge variant="yellow" size="sm">
-          {{ filteredGames.length }} game{{ filteredGames.length === 1 ? '' : 's' }}
+          Best Results - {{ filteredGames.length }} game{{ filteredGames.length === 1 ? '' : 's' }}
         </CrzBadge>
+        <CrzButton size="sm" variant="danger" @click="clearSearch">Clear</CrzButton>
       </div>
     </div>
 
     <!-- Diviseur -->
     <Divider />
 
+    <!-- Section des genres -->
+    <div v-if="!isSearchActive">
+      <CrzButton size="sm" variant="primary2" @click="toggleGenreFilter" class="mb-2">
+        Genres {{ genreFilter ? '▲' : '▼' }}
+      </CrzButton>
+
+      <!-- Menu déroulant pour les genres (visible si genreFilter est true) -->
+      <div
+        v-if="genreFilter"
+        class="absolute mt-2 bg-[#1e2537] text-white rounded shadow-lg z-10 p-2 w-48 max-h-80 overflow-y-auto"
+      >
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-sm font-medium">Genres</span>
+          <button
+            @click="toggleGenreFilter"
+            class="text-white hover:bg-white hover:bg-opacity-10 rounded-full w-5 h-5 flex items-center justify-center"
+          >
+            ✕
+          </button>
+        </div>
+        <div
+          v-for="category in sortedGameCategories"
+          :key="category.id"
+          class="flex items-center justify-between py-1 cursor-pointer hover:bg-[#2d3748]"
+          @click="toggleGenreSelection(category.name)"
+        >
+          <span class="text-sm">{{ category.name }}</span>
+          <span
+            class="w-4 h-4 border border-gray-300 rounded flex items-center justify-center cursor-pointer"
+            :class="{ 'bg-[#facc15]': selectedGenres.includes(category.name) }"
+            @click.stop="toggleGenreSelection(category.name)"
+          >
+            <span v-if="selectedGenres.includes(category.name)" class="text-black text-xs">✔</span>
+          </span>
+        </div>
+        <button @click="clearAllGenres" class="text-sm text-gray-400 hover:text-white mt-2 w-full text-left">
+          Clear All
+        </button>
+      </div>
+    </div>
+
     <!-- Spinner de chargement : s'affiche seulement pendant le chargement des jeux -->
     <CrzSpinner v-if="isLoadingGames" />
 
-    <!-- Contenu principal : s'affiche seulement quand le chargement est terminé et qu'il y a des données (donc des jeux) -->
+    <!-- Contenu principal : s'affiche seulement quand le chargement est terminé et qu'il y a des données -->
     <div
       v-if="!isLoadingGames && filteredGames && filteredGames.length > 0"
       class="grid grid-cols-auto-fit gap-8"
@@ -99,24 +144,30 @@
 
     <!-- Messages pour l'absence de jeux lors la recherche via l'input -->
     <div
-      v-if="!isLoadingGames && (!filteredGames || filteredGames.length === 0)"
+      v-if="
+        !isLoadingGames &&
+        (!filteredGames || filteredGames.length === 0) &&
+        (isSearchActive || activeCategory !== 'All')
+      "
       class="flex flex-col items-center justify-center w-full max-w-3xl mx-auto bg-[#141724] text-center p-6 rounded-xl"
     >
       <CrzIcon name="search" color="#6b7280" view-box="0 0 24 24" class="w-12 h-12 mb-4" />
       <h2 class="text-lg font-semibold text-white">No results found</h2>
-      <p class="text-sm text-gray-400 mt-2">No games match your search.</p>
-      <p class="text-sm text-gray-400 mt-2">Try searching with different keywords.</p>
-      <CrzButton @click="setFilter('all')" class="mt-4"> Browse all games </CrzButton>
-      <CrzButton @click="setFilter('featured')" class="mt-4"> Browse featured games </CrzButton>
+      <p class="text-sm text-gray-400 mt-2">No games match your search or filter.</p>
+      <p class="text-sm text-gray-400 mt-2">Try searching with different keywords or changing the filter.</p>
+      <CrzButton @click="setFilter('all')" class="mt-4">Browse all games</CrzButton>
+      <CrzButton @click="setFilter('featured')" class="mt-4">Browse featured games</CrzButton>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
 import type { Notyf } from 'notyf'
+import { nextTick } from 'vue'
 import { type ComputedRef, type Ref, computed, onMounted, ref } from 'vue'
 import CrzPagination from '~~/src-common/components/core/CrzPagination.vue'
 import CrzSpinner from '~~/src-common/components/loaders/CrzSpinner.vue'
+import type GameCategoryModel from '~~/src-common/core/models/GameCategoryModel'
 import type { PaginationMeta } from '~~/src-common/core/services/GameService'
 import { useGameStore } from '~~/src-nuxt/stores/game.store'
 
@@ -126,6 +177,8 @@ import CrzSearchBar from '#src-common/components/inputs/CrzSearchBar.vue'
 import CrzBadge from '#src-common/components/ui/CrzBadge.vue'
 import CrzIcon from '#src-common/components/ui/CrzIcon.vue'
 import type GameModel from '#src-common/core/models/GameModel'
+import type GamePlatformModel from '#src-common/core/models/GamePlatformModel'
+import GameCategoryService from '#src-common/core/services/GameCategoryService'
 import { type GamePaidAndOwnedStatus, ProductService } from '#src-common/core/services/ProductService'
 
 import type { ExtendedGameModel } from '#src-core/types/ExtendedGameModel'
@@ -152,14 +205,14 @@ definePageMeta({
 
 /* DATA */
 /**
- * Instance de Notyf pour afficher des notifications a l'utilisateur
- * - Recuperee via useNuxtApp() pour integrer Notyf dans l'application Nuxt
+ * Instance de Notyf pour afficher des notifications à l'utilisateur
+ * - Récupérée via useNuxtApp() pour intégrer Notyf dans l'application Nuxt
  * @type {Notyf}
  */
 const notyf: Notyf = useNuxtApp().$notyf
 
 /**
- * Instance du logger pour tracer les evenements dans la page "Browse".
+ * Instance du logger pour tracer les événements dans la page "Browse".
  * - Utilise createLogger avec un contexte "Browse".
  * @type {Logger}
  */
@@ -187,6 +240,12 @@ type filter = 'all' | 'featured'
 const searchTerm: Ref<string> = ref('')
 
 /**
+ * lastValidatedSearchTerm stocke la dernière valeur de recherche validée avec "Enter".
+ * @type {Ref<string>}
+ */
+const lastValidatedSearchTerm: Ref<string> = ref('')
+
+/**
  * isLoadingGames permet de savoir si les jeux sont en cours de chargement,
  * le temps de récupérer les données depuis l'API.
  * @type {Ref<boolean>}
@@ -210,6 +269,25 @@ const games: Ref<ExtendedGameModel[]> = ref([])
 const activeFilter: Ref<filter> = ref('all')
 
 /**
+ * activeCategory permet de savoir quelle catégorie est active.
+ * @type {Ref<string>}
+ * @default 'All'
+ */
+const activeCategory: Ref<string> = ref('All')
+
+/**
+ * Contrôle l'affichage du menu déroulant des genres.
+ * @type {Ref<boolean>}
+ */
+const genreFilter: Ref<boolean> = ref(false)
+
+/**
+ * Indique si un filtre de recherche est actif.
+ * @type {Ref<boolean>}
+ */
+const isSearchActive: Ref<boolean> = ref(false)
+
+/**
  * Numéro de la page actuelle pour la pagination.
  * @type {Ref<number>}
  * @default 1
@@ -229,6 +307,26 @@ const perPage: Ref<number> = ref(24)
  */
 const total: Ref<number> = ref(0)
 
+/**
+ * Liste des catégories de jeux récupérées depuis l'API.
+ * @type {Ref<GamePlatformModel[]>}
+ */
+const gameCategories: Ref<GamePlatformModel[]> = ref([])
+
+/**
+ * Genres sélectionnés par l'utilisateur.
+ * @type {Ref<string[]>}
+ */
+const selectedGenres: Ref<string[]> = ref([])
+
+/**
+ * Liste des catégories triées par ordre alphabétique.
+ * @type {ComputedRef<GamePlatformModel[]>}
+ */
+const sortedGameCategories: ComputedRef<GamePlatformModel[]> = computed(() => {
+  return [...gameCategories.value].sort((a: GamePlatformModel, b: GamePlatformModel) => a.name.localeCompare(b.name))
+})
+
 /* CYCLE - HOOKS */
 /**
  * Lifecycle hook mounted
@@ -236,40 +334,142 @@ const total: Ref<number> = ref(0)
  */
 onMounted(async (): Promise<void> => {
   await fetchAllGamesAndEnrichGame()
+  await fetchGameCategories()
 })
 
 /* METHODS */
+/**
+ * Gère l'entrée de texte dans la barre de recherche sans déclencher la recherche.
+ * @param {string} value - La nouvelle valeur saisie dans la barre de recherche.
+ * @returns {void}
+ */
+const handleSearchInput: (value: string) => void = (value: string): void => {
+  searchTerm.value = value
+}
+
+/**
+ * Effectue la recherche lorsque l'utilisateur appuie sur "Enter".
+ * @returns {Promise<void>}
+ */
+const performSearch: () => Promise<void> = async (): Promise<void> => {
+  if (searchTerm.value.trim()) {
+    isSearchActive.value = true
+    lastValidatedSearchTerm.value = searchTerm.value // Stocke la recherche validée
+    activeCategory.value = 'Search' // Définit la catégorie comme "Search" lors de la recherche
+    activeFilter.value = 'all' // Réinitialise le filtre à "all" pour rechercher sur tous les jeux
+    currentPage.value = 1 // Réinitialise la page courante lors d'une nouvelle recherche
+    selectedGenres.value = [] // Réinitialise les genres sélectionnés
+    await fetchAllGamesAndEnrichGame()
+  } else {
+    // Si la searchbar est vide et "Enter" est pressé, revenir à "All Games"
+    isSearchActive.value = false
+    lastValidatedSearchTerm.value = ''
+    activeCategory.value = 'All'
+    activeFilter.value = 'all'
+    currentPage.value = 1
+    selectedGenres.value = []
+    await fetchAllGamesAndEnrichGame()
+  }
+}
+
+/**
+ * Réinitialise la recherche.
+ * @returns {void}
+ */
+const clearSearch: () => Promise<void> = async (): Promise<void> => {
+  searchTerm.value = ''
+  lastValidatedSearchTerm.value = ''
+  isSearchActive.value = false
+  activeCategory.value = 'All' // Réinitialise la catégorie
+  currentPage.value = 1 // Réinitialise la page courante
+  selectedGenres.value = [] // Réinitialise les genres sélectionnés
+  await fetchAllGamesAndEnrichGame()
+}
+
 /**
  * Permet de définir le filtre actif.
  * @param {filter} filter - Filtre actif ('all' ou 'featured')
  * @returns {void}
  */
 const setFilter: (filter: filter) => void = (filter: filter): void => {
-  // Définit le filtre actif
   activeFilter.value = filter
-  // Réinitialise le champ de recherche
-  searchTerm.value = ''
-  // Réinitialise la page courante lors du changement de filtre
-  currentPage.value = 1
+  searchTerm.value = '' // Réinitialise la recherche
+  lastValidatedSearchTerm.value = ''
+  isSearchActive.value = false // Désactive le filtre de recherche
+  activeCategory.value = 'All' // Réinitialise la catégorie
+  currentPage.value = 1 // Réinitialise la page courante
   fetchAllGamesAndEnrichGame()
 }
 
 /**
- * Permet de filtrer les jeux en fonction du filtre actif et de la recherche de l'utilisateur.
+ * Bascule l'affichage du menu déroulant des genres.
+ * @returns {void}
+ */
+const toggleGenreFilter: () => void = (): void => {
+  genreFilter.value = !genreFilter.value
+}
+
+/**
+ * Toggle la sélection d'un genre.
+ * @param {string} genre - Le genre à sélectionner/désélectionner
+ * @returns {void}
+ */
+const toggleGenreSelection: (genre: string) => Promise<void> = async (genre: string): Promise<void> => {
+  if (selectedGenres.value.includes(genre)) {
+    selectedGenres.value = selectedGenres.value.filter((g: string) => g !== genre)
+  } else {
+    selectedGenres.value.push(genre)
+  }
+  activeCategory.value = selectedGenres.value.length > 0 ? 'Custom' : 'All'
+  await fetchAllGamesAndEnrichGame()
+}
+
+/**
+ * Récupère toutes les catégories de jeux depuis l'API.
+ * @returns {Promise<void>}
+ */
+const fetchGameCategories: () => Promise<void> = async (): Promise<void> => {
+  try {
+    gameCategories.value = await GameCategoryService.getAllGameCategories()
+  } catch (error: any) {
+    logger.error('[fetchGameCategories] Erreur lors de la récupération des catégories : ', error)
+  }
+}
+
+/**
+ * Réinitialise tous les genres sélectionnés.
+ * @returns {void}
+ */
+const clearAllGenres: () => Promise<void> = async (): Promise<void> => {
+  selectedGenres.value = []
+  activeCategory.value = 'All'
+  await fetchAllGamesAndEnrichGame()
+}
+
+/**
+ * Permet de filtrer les jeux en fonction du filtre actif, de la catégorie et de la recherche validée de l'utilisateur.
  * @returns {ExtendedGameModel[]}
  */
 const filteredGames: ComputedRef<ExtendedGameModel[]> = computed((): ExtendedGameModel[] => {
   let filtered: ExtendedGameModel[] = games.value
 
-  // Appliquer le filtre actif ("featured")
-  if (activeFilter.value === 'featured') {
+  // Appliquer le filtre actif ("featured") uniquement si aucune recherche n'est active
+  if (activeFilter.value === 'featured' && !isSearchActive.value) {
     filtered = games.value.filter((game: ExtendedGameModel): boolean => game.new_game || game.upcoming_game)
   }
 
-  // Appliquer la recherche si searchTerm est non vide
-  if (searchTerm.value.trim()) {
+  // Appliquer le filtre par catégorie ou recherche validée
+  if (isSearchActive.value && lastValidatedSearchTerm.value.trim()) {
+    filtered = games.value.filter((game: ExtendedGameModel): boolean =>
+      game.title.toLowerCase().includes(lastValidatedSearchTerm.value.toLowerCase()),
+    )
+  } else if (selectedGenres.value.length > 0) {
     filtered = filtered.filter((game: ExtendedGameModel): boolean =>
-      game.title.toLowerCase().includes(searchTerm.value.toLowerCase()),
+      game.gameCategory.some((category: GameCategoryModel): boolean => selectedGenres.value.includes(category.name)),
+    )
+  } else if (activeCategory.value !== 'All' && activeCategory.value !== 'Search') {
+    filtered = filtered.filter((game: ExtendedGameModel): boolean =>
+      game.gameCategory.some((category: GameCategoryModel): boolean => category.name === activeCategory.value),
     )
   }
 
@@ -323,7 +523,7 @@ const fetchAllGamesAndEnrichGame: () => Promise<void> = async (): Promise<void> 
   try {
     // Récupération des jeux depuis le store avec les paramètres de recherche et pagination
     const response: GameModel[] = await gameStore.getAllGames(
-      searchTerm.value || undefined, // Utilisation du terme de recherche si défini
+      lastValidatedSearchTerm.value || undefined, // Utilise la recherche validée
       currentPage.value, // Page actuelle
       perPage.value, // Nombre d'éléments par page
     )
