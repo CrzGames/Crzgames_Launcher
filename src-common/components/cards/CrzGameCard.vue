@@ -1,5 +1,5 @@
 <template>
-  <component :is="tag" :to="to" class="grid w-full min-w-[170px] max-w-[320px] gap-6">
+  <component :is="tag" :to="to" class="grid w-full min-w-[170px] max-w-[320px] gap-2">
     <div
       class="relative aspect-[3/4] transform transition-transform duration-300 ease-in-out"
       :class="[

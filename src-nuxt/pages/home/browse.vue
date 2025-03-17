@@ -266,17 +266,23 @@
       </div>
     </div>
 
-    <!-- Spinner de chargement : s'affiche seulement pendant le chargement des jeux -->
-    <CrzSpinner v-if="isLoadingGames" />
-
-    <!-- Contenu principal : s'affiche seulement quand le chargement est terminé et qu'il y a des données -->
+    <!-- Grille des jeux ou skeleton loading -->
     <div
-      v-if="!isLoadingGames && filteredGames && filteredGames.length > 0"
-      class="grid grid-cols-auto-fit gap-8"
+      class="grid grid-cols-auto-fit gap-8 relative"
       style="grid-template-columns: repeat(auto-fit, minmax(180px, 220px))"
     >
-      <template v-for="game in filteredGames" :key="game.id">
-        <div v-if="game">
+      <!-- Skeleton loading ou jeux réels -->
+      <template v-if="isLoadingGames">
+        <!-- Afficher des placeholders (skeleton) pendant le chargement -->
+        <div v-for="n in perPage" :key="'skeleton-' + n">
+          <div class="w-full h-[290px] bg-gray-700 rounded-lg"></div>
+          <div class="mt-2 h-[25px] bg-gray-700 rounded w-3/4"></div>
+          <div class="mt-1 h-[18px] bg-gray-700 rounded w-1/2"></div>
+        </div>
+      </template>
+      <template v-else-if="filteredGames && filteredGames.length > 0">
+        <!-- Afficher les jeux réels une fois chargés -->
+        <div v-for="game in filteredGames" :key="game.id">
           <CrzGameCard
             :pictureFileUrl="game.pictureFile?.url"
             :trailerFileUrl="game.trailerFile?.url"
@@ -311,11 +317,11 @@
       :total="total"
       :per-page="perPage"
       :current-page="currentPage"
-      :on-page-change="fetchAllGamesAndEnrichGame"
+      :on-page-change="handlePageChange"
       @update:currentPage="currentPage = $event"
     />
 
-    <!-- Messages pour l'absence de jeux lors la recherche via l'input -->
+    <!-- Messages pour l'absence de jeux lors de la recherche via l'input -->
     <div
       v-if="
         !isLoadingGames &&
@@ -984,5 +990,14 @@ const handleClickOutside: (event: MouseEvent) => void = (event: MouseEvent): voi
   ) {
     moreFilters.value = false
   }
+}
+
+/**
+ * Gère le changement de page et effectue un défilement vers le haut si nécessaire.
+ * @param {filter} [filter] - Filtre actif (optionnel)
+ * @returns {Promise<void>}
+ */
+const handlePageChange: () => Promise<void> = async (): Promise<void> => {
+  await fetchAllGamesAndEnrichGame()
 }
 </script>
