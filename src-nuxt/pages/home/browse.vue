@@ -61,35 +61,52 @@
       <!-- Menu déroulant pour les genres (visible si genreFilter est true) -->
       <div
         v-if="genreFilter"
-        class="absolute mt-2 bg-[#1e2537] text-white rounded shadow-lg z-10 p-2 w-48 max-h-80 overflow-y-auto"
+        class="absolute mt-2 bg-[#1e2537] text-white rounded shadow-lg z-10 w-48 flex flex-col"
       >
-        <div class="flex justify-between items-center mb-2">
-          <span class="text-sm font-medium">Genres</span>
-          <button
-            @click="toggleGenreFilter"
-            class="text-white hover:bg-white hover:bg-opacity-10 rounded-full w-5 h-5 flex items-center justify-center"
+        <!-- En-tête fixe avec "Genres" et la croix -->
+        <div class="p-2">
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-sm font-medium">Genres</span>
+            <button
+              @click="toggleGenreFilter"
+              class="text-white hover:bg-white hover:bg-opacity-10 rounded-full w-5 h-5 flex items-center justify-center"
+            >
+              ✕
+            </button>
+          </div>
+          <hr class="border-t border-white opacity-20" />
+        </div>
+
+        <!-- Liste des genres avec défilement -->
+        <div class="max-h-60 overflow-y-auto px-2">
+          <div
+            v-for="category in sortedGameCategories"
+            :key="category.id"
+            class="flex items-center justify-between py-1 cursor-pointer hover:bg-[#2d3748]"
+            @click="toggleGenreSelection(category.name)"
           >
-            ✕
+            <span class="text-sm">{{ category.name }}</span>
+            <span
+              class="w-4 h-4 border border-gray-300 rounded flex items-center justify-center cursor-pointer"
+              :class="{ 'bg-[#facc15]': selectedGenres.includes(category.name) }"
+              @click.stop="toggleGenreSelection(category.name)"
+            >
+              <span v-if="selectedGenres.includes(category.name)" class="text-black text-xs">✔</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Pied de page fixe avec "Clear All" -->
+        <div class="p-2">
+          <hr class="border-t border-white opacity-20 mb-2" />
+          <button
+            @click="clearAllGenres"
+            class="text-sm w-full text-right"
+            :class="selectedGenres.length > 0 ? 'text-[#facc15] hover:text-[#ffd700]' : 'text-gray-400 hover:text-white'"
+          >
+            Clear All
           </button>
         </div>
-        <div
-          v-for="category in sortedGameCategories"
-          :key="category.id"
-          class="flex items-center justify-between py-1 cursor-pointer hover:bg-[#2d3748]"
-          @click="toggleGenreSelection(category.name)"
-        >
-          <span class="text-sm">{{ category.name }}</span>
-          <span
-            class="w-4 h-4 border border-gray-300 rounded flex items-center justify-center cursor-pointer"
-            :class="{ 'bg-[#facc15]': selectedGenres.includes(category.name) }"
-            @click.stop="toggleGenreSelection(category.name)"
-          >
-            <span v-if="selectedGenres.includes(category.name)" class="text-black text-xs">✔</span>
-          </span>
-        </div>
-        <button @click="clearAllGenres" class="text-sm text-gray-400 hover:text-white mt-2 w-full text-left">
-          Clear All
-        </button>
       </div>
     </div>
 
@@ -517,7 +534,7 @@ const addGameToUserGameLibraryAndUpdateGameListAndNotify: (gameId: number) => Pr
  * @returns {Promise<void>} Une promesse qui se résout une fois les données chargées.
  */
 const fetchAllGamesAndEnrichGame: () => Promise<void> = async (): Promise<void> => {
-  // Activation de l'indicateur de chargement
+  // Activation de l'indicateur de chargement des jeux
   isLoadingGames.value = true
 
   try {
