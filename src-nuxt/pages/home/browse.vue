@@ -1,5 +1,6 @@
 <template>
-  <div class="grid gap-8 px-4 py-5 text-white relative">
+  <!-- Conteneur principal avec flexbox pour pousser la pagination en bas -->
+  <div class="flex flex-col min-h-screen gap-8 px-4 py-5 text-white relative">
     <!-- Barre de recherche et boutons de navigation -->
     <div class="flex items-center w-full">
       <!-- Boutons de navigation gauche / droite -->
@@ -268,7 +269,7 @@
 
     <!-- Grille des jeux ou skeleton loading -->
     <div
-      class="grid grid-cols-auto-fit gap-8 relative"
+      class="grid grid-cols-auto-fit gap-8 relative flex-grow"
       style="grid-template-columns: repeat(auto-fit, minmax(180px, 220px))"
     >
       <!-- Skeleton loading ou jeux réels -->
@@ -311,15 +312,17 @@
       </template>
     </div>
 
-    <!-- Composant de pagination -->
-    <CrzPagination
-      v-if="!isLoadingGames && games && games.length > 0"
-      :total="total"
-      :per-page="perPage"
-      :current-page="currentPage"
-      :on-page-change="handlePageChange"
-      @update:currentPage="currentPage = $event"
-    />
+    <!-- Composant de pagination, poussé en bas grâce à mt-auto -->
+    <div class="mt-auto">
+      <CrzPagination
+        v-if="!isLoadingGames && games && games.length > 0"
+        :total="total"
+        :per-page="perPage"
+        :current-page="currentPage"
+        :on-page-change="handlePageChange"
+        @update:currentPage="currentPage = $event"
+      />
+    </div>
 
     <!-- Messages pour l'absence de jeux lors de la recherche via l'input -->
     <div
@@ -976,10 +979,13 @@ const handleClickOutside: (event: MouseEvent) => void = (event: MouseEvent): voi
 
 /**
  * Gère le changement de page et effectue un défilement vers le haut si nécessaire.
- * @param {filter} [filter] - Filtre actif (optionnel)
  * @returns {Promise<void>}
  */
 const handlePageChange: () => Promise<void> = async (): Promise<void> => {
-  await fetchAllGamesAndEnrichGame()
+  if (activeFilter.value === 'featured') {
+    await fetchAllGamesAndEnrichGame(activeFilter.value)
+  } else {
+    await fetchAllGamesAndEnrichGame()
+  }
 }
 </script>
