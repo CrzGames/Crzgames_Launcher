@@ -70,10 +70,30 @@ export const useGameStore = defineStore('gameStore', {
      * @param {string} title - Titre pour filtrer les jeux (optionnel)
      * @param {number} page - Numéro de la page (optionnel)
      * @param {number} perPage - Nombre d'éléments par page (optionnel)
+     * @param {string[]} genres - Liste des genres à filtrer (optionnel)
+     * @param {string[]} languages - Liste des langues à filtrer (optionnel)
+     * @param {string[]} gameModes - Liste des modes de jeu à filtrer (optionnel)
+     * @param {boolean} featuredGames - Jeux en vedette (news ou à venir), donc ira récupérer les jeux en vedette seulement
      * @returns {Promise<GameModel[]>} - Jeux
      */
-    async getAllGames(title?: string, page?: number, perPage?: number): Promise<GameModel[]> {
-      const response: GamesResponse = await GameService.getAllGames(title, page, perPage)
+    async getAllGames(
+      title?: string,
+      page?: number,
+      perPage?: number,
+      genres?: string[],
+      languages?: string[],
+      gameModes?: string[],
+      featuredGames?: boolean,
+    ): Promise<GameModel[]> {
+      const response: GamesResponse = await GameService.getAllGames(
+        title,
+        page,
+        perPage,
+        genres,
+        languages,
+        gameModes,
+        featuredGames,
+      )
       let games: GameModel[] = []
 
       if (Array.isArray(response)) {

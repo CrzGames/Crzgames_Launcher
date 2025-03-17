@@ -52,60 +52,213 @@
     <!-- Diviseur -->
     <Divider />
 
-    <!-- Section des genres -->
-    <div v-if="!isSearchActive">
-      <CrzButton size="sm" variant="primary2" @click="toggleGenreFilter" class="mb-2">
-        Genres {{ genreFilter ? '▲' : '▼' }}
-      </CrzButton>
+    <!-- Section des genres, tri et plus de filtres (masquée si "Featured Games" est actif) -->
+    <div v-if="!isSearchActive && activeFilter === 'all'" class="flex items-center gap-2">
+      <!-- Bouton "Genres" et son menu -->
+      <div class="relative" ref="genresContainer">
+        <CrzButton size="sm" variant="primary2" @click="toggleGenreFilter" class="mb-2">
+          Genres {{ genreFilter ? '▲' : '▼' }}
+        </CrzButton>
 
-      <!-- Menu déroulant pour les genres (visible si genreFilter est true) -->
-      <div
-        v-if="genreFilter"
-        class="absolute mt-2 bg-[#1e2537] text-white rounded shadow-lg z-10 w-48 flex flex-col"
-      >
-        <!-- En-tête fixe avec "Genres" et la croix -->
-        <div class="p-2">
-          <div class="flex justify-between items-center mb-2">
-            <span class="text-sm font-medium">Genres</span>
-            <button
-              @click="toggleGenreFilter"
-              class="text-white hover:bg-white hover:bg-opacity-10 rounded-full w-5 h-5 flex items-center justify-center"
+        <!-- Menu déroulant pour les genres -->
+        <div
+          v-if="genreFilter"
+          class="absolute mt-2 bg-[#1e2537] text-white rounded shadow-lg z-10 w-48 flex flex-col"
+          ref="genresMenu"
+        >
+          <!-- En-tête fixe avec "Genres" et la croix -->
+          <div class="p-2">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-sm font-medium">Genres</span>
+              <button
+                @click="toggleGenreFilter"
+                class="text-white hover:bg-white hover:bg-opacity-10 rounded-full w-5 h-5 flex items-center justify-center"
+              >
+                ✕
+              </button>
+            </div>
+            <hr class="border-t border-white opacity-20" />
+          </div>
+
+          <!-- Liste des genres avec défilement -->
+          <div class="max-h-60 overflow-y-auto px-2">
+            <div
+              v-for="category in sortedGameCategories"
+              :key="category.id"
+              class="flex items-center justify-between py-1 cursor-pointer hover:bg-[#2d3748]"
+              @click="toggleGenreSelection(category.name)"
             >
-              ✕
+              <span class="text-sm">{{ category.name }}</span>
+              <span
+                class="w-4 h-4 border border-gray-300 rounded flex items-center justify-center cursor-pointer"
+                :class="{ 'bg-[#facc15]': selectedGenres.includes(category.name) }"
+                @click.stop="toggleGenreSelection(category.name)"
+              >
+                <span v-if="selectedGenres.includes(category.name)" class="text-black text-xs">✔</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Pied de page fixe avec "Clear All" -->
+          <div class="p-2">
+            <hr class="border-t border-white opacity-20 mb-2" />
+            <button
+              @click="selectedGenres.length > 0 ? clearAllGenres() : null"
+              class="text-sm w-full text-right"
+              :class="[
+                selectedGenres.length > 0
+                  ? 'text-[#facc15] hover:text-[#ffd700] cursor-pointer'
+                  : 'text-gray-400 cursor-not-allowed',
+              ]"
+            >
+              Clear All
             </button>
           </div>
-          <hr class="border-t border-white opacity-20" />
         </div>
+      </div>
 
-        <!-- Liste des genres avec défilement -->
-        <div class="max-h-60 overflow-y-auto px-2">
-          <div
-            v-for="category in sortedGameCategories"
-            :key="category.id"
-            class="flex items-center justify-between py-1 cursor-pointer hover:bg-[#2d3748]"
-            @click="toggleGenreSelection(category.name)"
-          >
-            <span class="text-sm">{{ category.name }}</span>
-            <span
-              class="w-4 h-4 border border-gray-300 rounded flex items-center justify-center cursor-pointer"
-              :class="{ 'bg-[#facc15]': selectedGenres.includes(category.name) }"
-              @click.stop="toggleGenreSelection(category.name)"
+      <!-- Bouton "Trier par" et son menu -->
+      <div class="relative" ref="sortContainer">
+        <CrzButton size="sm" variant="primary2" @click="toggleSortFilter" class="mb-2">
+          Sort by {{ sortFilter ? '▲' : '▼' }}
+        </CrzButton>
+
+        <!-- Menu déroulant pour le tri -->
+        <div
+          v-if="sortFilter"
+          class="absolute mt-2 bg-[#1e2537] text-white rounded shadow-lg z-10 w-48 flex flex-col"
+          ref="sortMenu"
+        >
+          <!-- En-tête fixe avec "Trier par" et la croix -->
+          <div class="p-2">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-sm font-medium">Sort by</span>
+              <button
+                @click="toggleSortFilter"
+                class="text-white hover:bg-white hover:bg-opacity-10 rounded-full w-5 h-5 flex items-center justify-center"
+              >
+                ✕
+              </button>
+            </div>
+            <hr class="border-t border-white opacity-20" />
+          </div>
+
+          <!-- Liste des options de tri -->
+          <div class="max-h-60 overflow-y-auto px-2">
+            <div
+              v-for="option in sortOptions"
+              :key="option.value"
+              class="flex items-center justify-between py-1 cursor-pointer hover:bg-[#2d3748]"
+              @click="setSortOption(option.value)"
             >
-              <span v-if="selectedGenres.includes(category.name)" class="text-black text-xs">✔</span>
-            </span>
+              <span class="text-sm">{{ option.label }}</span>
+              <span
+                class="w-4 h-4 border border-gray-300 rounded-full flex items-center justify-center cursor-pointer"
+                :class="{ 'bg-[#facc15]': sortOption === option.value }"
+              >
+                <span v-if="sortOption === option.value" class="bg-black rounded-full w-2 h-2"></span>
+              </span>
+            </div>
           </div>
         </div>
+      </div>
 
-        <!-- Pied de page fixe avec "Clear All" -->
-        <div class="p-2">
-          <hr class="border-t border-white opacity-20 mb-2" />
-          <button
-            @click="clearAllGenres"
-            class="text-sm w-full text-right"
-            :class="selectedGenres.length > 0 ? 'text-[#facc15] hover:text-[#ffd700]' : 'text-gray-400 hover:text-white'"
-          >
-            Clear All
-          </button>
+      <!-- Bouton "Plus de filtres +" et son menu -->
+      <div class="relative" ref="moreFiltersContainer">
+        <CrzButton size="sm" variant="primary2" @click="toggleMoreFilters" class="mb-2">
+          More Filters + {{ moreFilters ? '▲' : '▼' }}
+        </CrzButton>
+
+        <!-- Menu déroulant pour "Plus de filtres" -->
+        <div
+          v-if="moreFilters"
+          class="absolute mt-2 bg-[#1e2537] text-white rounded shadow-lg z-10 w-64 flex flex-col"
+          ref="moreFiltersMenu"
+        >
+          <!-- En-tête fixe avec "Plus de filtres" et la croix -->
+          <div class="p-2">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-sm font-medium">More Filters</span>
+              <button
+                @click="toggleMoreFilters"
+                class="text-white hover:bg-white hover:bg-opacity-10 rounded-full w-5 h-5 flex items-center justify-center"
+              >
+                ✕
+              </button>
+            </div>
+            <hr class="border-t border-white opacity-20" />
+          </div>
+
+          <!-- Contenu avec défilement -->
+          <div class="max-h-60 overflow-y-auto px-2">
+            <!-- Section "Players" -->
+            <div class="mb-4">
+              <span class="text-sm font-medium">Players</span>
+              <div class="mt-2">
+                <div
+                  class="flex items-center justify-between py-1 cursor-pointer hover:bg-[#2d3748]"
+                  @click="toggleGameModeSelection('multiplayer')"
+                >
+                  <span class="text-sm">Multiplayer</span>
+                  <span
+                    class="w-4 h-4 border border-gray-300 rounded flex items-center justify-center cursor-pointer"
+                    :class="{ 'bg-[#facc15]': selectedGameModes.includes('multiplayer') }"
+                  >
+                    <span v-if="selectedGameModes.includes('multiplayer')" class="text-black text-xs">✔</span>
+                  </span>
+                </div>
+                <div
+                  class="flex items-center justify-between py-1 cursor-pointer hover:bg-[#2d3748]"
+                  @click="toggleGameModeSelection('solo')"
+                >
+                  <span class="text-sm">Solo</span>
+                  <span
+                    class="w-4 h-4 border border-gray-300 rounded flex items-center justify-center cursor-pointer"
+                    :class="{ 'bg-[#facc15]': selectedGameModes.includes('solo') }"
+                  >
+                    <span v-if="selectedGameModes.includes('solo')" class="text-black text-xs">✔</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section "Languages" -->
+            <div>
+              <span class="text-sm font-medium">Languages</span>
+              <div class="mt-2">
+                <div
+                  v-for="language in sortedLanguages"
+                  :key="language.id"
+                  class="flex items-center justify-between py-1 cursor-pointer hover:bg-[#2d3748]"
+                  @click="toggleLanguageSelection(language.name)"
+                >
+                  <span class="text-sm">{{ language.name }}</span>
+                  <span
+                    class="w-4 h-4 border border-gray-300 rounded flex items-center justify-center cursor-pointer"
+                    :class="{ 'bg-[#facc15]': selectedLanguages.includes(language.name) }"
+                  >
+                    <span v-if="selectedLanguages.includes(language.name)" class="text-black text-xs">✔</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pied de page fixe avec "Clear All" -->
+          <div class="p-2">
+            <hr class="border-t border-white opacity-20 mb-2" />
+            <button
+              @click="clearAllMoreFilters"
+              class="text-sm w-full text-right"
+              :class="[
+                selectedGameModes.length > 0 || selectedLanguages.length > 0
+                  ? 'text-[#facc15] hover:text-[#ffd700] cursor-pointer'
+                  : 'text-gray-400 cursor-not-allowed',
+              ]"
+            >
+              Clear All
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -181,11 +334,15 @@
 <script lang="ts" setup>
 import type { Notyf } from 'notyf'
 import { nextTick } from 'vue'
-import { type ComputedRef, type Ref, computed, onMounted, ref } from 'vue'
+import { type ComputedRef, type Ref, computed, onMounted, onUnmounted, ref } from 'vue'
 import CrzPagination from '~~/src-common/components/core/CrzPagination.vue'
 import CrzSpinner from '~~/src-common/components/loaders/CrzSpinner.vue'
 import type GameCategoryModel from '~~/src-common/core/models/GameCategoryModel'
+import type GamePlatformModel from '~~/src-common/core/models/GamePlatformModel'
+import GameCategoryService from '~~/src-common/core/services/GameCategoryService'
 import type { PaginationMeta } from '~~/src-common/core/services/GameService'
+import { LanguagesService } from '~~/src-common/core/services/LanguageService'
+import { type GamePaidAndOwnedStatus, ProductService } from '~~/src-common/core/services/ProductService'
 import { useGameStore } from '~~/src-nuxt/stores/game.store'
 
 import CrzButton from '#src-common/components/buttons/CrzButton.vue'
@@ -194,9 +351,7 @@ import CrzSearchBar from '#src-common/components/inputs/CrzSearchBar.vue'
 import CrzBadge from '#src-common/components/ui/CrzBadge.vue'
 import CrzIcon from '#src-common/components/ui/CrzIcon.vue'
 import type GameModel from '#src-common/core/models/GameModel'
-import type GamePlatformModel from '#src-common/core/models/GamePlatformModel'
-import GameCategoryService from '#src-common/core/services/GameCategoryService'
-import { type GamePaidAndOwnedStatus, ProductService } from '#src-common/core/services/ProductService'
+import type { LanguageModel } from '#src-common/core/models/LanguageModel'
 
 import type { ExtendedGameModel } from '#src-core/types/ExtendedGameModel'
 import { createLogger } from '#src-core/utils/logger'
@@ -247,6 +402,17 @@ const userGameLibrariesStore: any = useUserGameLibrariesStore()
  * @property {string} featured - Jeux à la une (nouveaux ou à venir)
  */
 type filter = 'all' | 'featured'
+
+/**
+ * Option de tri pour les jeux.
+ * @type {SortOption}
+ * @property {string} label - Libellé de l'option de tri
+ * @property {string} value - Valeur de l'option de tri
+ */
+type SortOption = {
+  label: string
+  value: string
+}
 
 /* REFS */
 /**
@@ -299,6 +465,18 @@ const activeCategory: Ref<string> = ref('All')
 const genreFilter: Ref<boolean> = ref(false)
 
 /**
+ * Contrôle l'affichage du menu déroulant du tri.
+ * @type {Ref<boolean>}
+ */
+const sortFilter: Ref<boolean> = ref(false)
+
+/**
+ * Contrôle l'affichage du menu déroulant "Plus de filtres".
+ * @type {Ref<boolean>}
+ */
+const moreFilters: Ref<boolean> = ref(false)
+
+/**
  * Indique si un filtre de recherche est actif.
  * @type {Ref<boolean>}
  */
@@ -337,12 +515,67 @@ const gameCategories: Ref<GamePlatformModel[]> = ref([])
 const selectedGenres: Ref<string[]> = ref([])
 
 /**
+ * Modes de jeu sélectionnés par l'utilisateur (solo, multijoueur).
+ * @type {Ref<string[]>}
+ */
+const selectedGameModes: Ref<string[]> = ref([])
+
+/**
+ * Langues sélectionnées par l'utilisateur.
+ * @type {Ref<string[]>}
+ */
+const selectedLanguages: Ref<string[]> = ref([])
+
+/**
+ * Option de tri sélectionnée.
+ * @type {Ref<string>}
+ * @default 'releaseDate'
+ */
+const sortOption: Ref<string> = ref('releaseDate')
+
+/**
+ * Options de tri disponibles pour les jeux,
+ * permet à l'utilisateur de choisir comment trier les jeux.
+ * @type {SortOption[]}
+ */
+const sortOptions: SortOption[] = [
+  { label: 'Release date', value: 'releaseDate' },
+  { label: 'Alphabetical A-Z', value: 'titleAsc' },
+  { label: 'Alphabetical Z-A', value: 'titleDesc' },
+]
+
+/**
+ * Liste des langues disponibles, récupérées depuis l'API.
+ * @type {Ref<LanguageModel[]>}
+ */
+const languages: Ref<LanguageModel[]> = ref([])
+
+/**
  * Liste des catégories triées par ordre alphabétique.
  * @type {ComputedRef<GamePlatformModel[]>}
  */
 const sortedGameCategories: ComputedRef<GamePlatformModel[]> = computed(() => {
   return [...gameCategories.value].sort((a: GamePlatformModel, b: GamePlatformModel) => a.name.localeCompare(b.name))
 })
+
+/**
+ * Liste des langues triées par ordre alphabétique.
+ * @type {ComputedRef<LanguageModel[]>}
+ */
+const sortedLanguages: ComputedRef<LanguageModel[]> = computed(() => {
+  return [...languages.value].sort((a: LanguageModel, b: LanguageModel) => a.name.localeCompare(b.name))
+})
+
+/**
+ * Références aux conteneurs des menus pour détecter les clics en dehors.
+ * @type {Ref<HTMLElement | null>}
+ */
+const genresContainer: Ref<HTMLElement | null> = ref<HTMLElement | null>(null)
+const genresMenu: Ref<HTMLElement | null> = ref<HTMLElement | null>(null)
+const sortContainer: Ref<HTMLElement | null> = ref<HTMLElement | null>(null)
+const sortMenu: Ref<HTMLElement | null> = ref<HTMLElement | null>(null)
+const moreFiltersContainer: Ref<HTMLElement | null> = ref<HTMLElement | null>(null)
+const moreFiltersMenu: Ref<HTMLElement | null> = ref<HTMLElement | null>(null)
 
 /* CYCLE - HOOKS */
 /**
@@ -352,6 +585,18 @@ const sortedGameCategories: ComputedRef<GamePlatformModel[]> = computed(() => {
 onMounted(async (): Promise<void> => {
   await fetchAllGamesAndEnrichGame()
   await fetchGameCategories()
+  await fetchLanguages()
+
+  // Ajouter un écouteur pour détecter les clics en dehors
+  document.addEventListener('click', handleClickOutside)
+})
+
+/**
+ * Lifecycle hook unmounted
+ * Nettoie l'écouteur d'événements pour éviter les fuites de mémoire
+ */
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
 })
 
 /* METHODS */
@@ -376,6 +621,8 @@ const performSearch: () => Promise<void> = async (): Promise<void> => {
     activeFilter.value = 'all' // Réinitialise le filtre à "all" pour rechercher sur tous les jeux
     currentPage.value = 1 // Réinitialise la page courante lors d'une nouvelle recherche
     selectedGenres.value = [] // Réinitialise les genres sélectionnés
+    selectedGameModes.value = [] // Réinitialise les modes de jeu
+    selectedLanguages.value = [] // Réinitialise les langues
     await fetchAllGamesAndEnrichGame()
   } else {
     // Si la searchbar est vide et "Enter" est pressé, revenir à "All Games"
@@ -385,6 +632,8 @@ const performSearch: () => Promise<void> = async (): Promise<void> => {
     activeFilter.value = 'all'
     currentPage.value = 1
     selectedGenres.value = []
+    selectedGameModes.value = []
+    selectedLanguages.value = []
     await fetchAllGamesAndEnrichGame()
   }
 }
@@ -400,6 +649,8 @@ const clearSearch: () => Promise<void> = async (): Promise<void> => {
   activeCategory.value = 'All' // Réinitialise la catégorie
   currentPage.value = 1 // Réinitialise la page courante
   selectedGenres.value = [] // Réinitialise les genres sélectionnés
+  selectedGameModes.value = [] // Réinitialise les modes de jeu
+  selectedLanguages.value = [] // Réinitialise les langues
   await fetchAllGamesAndEnrichGame()
 }
 
@@ -408,14 +659,17 @@ const clearSearch: () => Promise<void> = async (): Promise<void> => {
  * @param {filter} filter - Filtre actif ('all' ou 'featured')
  * @returns {void}
  */
-const setFilter: (filter: filter) => void = (filter: filter): void => {
+const setFilter: (filter: filter) => Promise<void> = async (filter: filter): Promise<void> => {
   activeFilter.value = filter
   searchTerm.value = '' // Réinitialise la recherche
   lastValidatedSearchTerm.value = ''
   isSearchActive.value = false // Désactive le filtre de recherche
   activeCategory.value = 'All' // Réinitialise la catégorie
   currentPage.value = 1 // Réinitialise la page courante
-  fetchAllGamesAndEnrichGame()
+  selectedGenres.value = [] // Réinitialise les genres sélectionnés
+  selectedGameModes.value = [] // Réinitialise les modes de jeu
+  selectedLanguages.value = [] // Réinitialise les langues
+  await fetchAllGamesAndEnrichGame(filter)
 }
 
 /**
@@ -423,7 +677,51 @@ const setFilter: (filter: filter) => void = (filter: filter): void => {
  * @returns {void}
  */
 const toggleGenreFilter: () => void = (): void => {
-  genreFilter.value = !genreFilter.value
+  if (sortFilter.value) {
+    sortFilter.value = false // Ferme le menu de tri si ouvert
+  }
+  if (moreFilters.value) {
+    moreFilters.value = false // Ferme le menu "Plus de filtres" si ouvert
+  }
+  genreFilter.value = !genreFilter.value // Ouvre ou ferme le menu des genres
+}
+
+/**
+ * Bascule l'affichage du menu déroulant du tri.
+ * @returns {void}
+ */
+const toggleSortFilter: () => void = (): void => {
+  if (genreFilter.value) {
+    genreFilter.value = false // Ferme le menu de genres si ouvert
+  }
+  if (moreFilters.value) {
+    moreFilters.value = false // Ferme le menu "Plus de filtres" si ouvert
+  }
+  sortFilter.value = !sortFilter.value // Ouvre ou ferme le menu de tri
+}
+
+/**
+ * Bascule l'affichage du menu déroulant "Plus de filtres".
+ * @returns {void}
+ */
+const toggleMoreFilters: () => void = (): void => {
+  if (genreFilter.value) {
+    genreFilter.value = false // Ferme le menu de genres si ouvert
+  }
+  if (sortFilter.value) {
+    sortFilter.value = false // Ferme le menu de tri si ouvert
+  }
+  moreFilters.value = !moreFilters.value // Ouvre ou ferme le menu "Plus de filtres"
+}
+
+/**
+ * Définit l'option de tri sélectionnée.
+ * @param {string} value - Valeur de l'option de tri
+ * @returns {void}
+ */
+const setSortOption: (value: string) => void = (value: string): void => {
+  sortOption.value = value
+  toggleSortFilter() // Ferme le menu après sélection
 }
 
 /**
@@ -437,7 +735,46 @@ const toggleGenreSelection: (genre: string) => Promise<void> = async (genre: str
   } else {
     selectedGenres.value.push(genre)
   }
-  activeCategory.value = selectedGenres.value.length > 0 ? 'Custom' : 'All'
+  activeCategory.value =
+    selectedGenres.value.length > 0 || selectedGameModes.value.length > 0 || selectedLanguages.value.length > 0
+      ? 'Custom'
+      : 'All'
+  await fetchAllGamesAndEnrichGame()
+}
+
+/**
+ * Toggle la sélection d'un mode de jeu.
+ * @param {string} mode - Le mode de jeu à sélectionner/désélectionner (solo ou multijoueur)
+ * @returns {void}
+ */
+const toggleGameModeSelection: (mode: string) => Promise<void> = async (mode: string): Promise<void> => {
+  if (selectedGameModes.value.includes(mode)) {
+    selectedGameModes.value = selectedGameModes.value.filter((m: string) => m !== mode)
+  } else {
+    selectedGameModes.value.push(mode)
+  }
+  activeCategory.value =
+    selectedGenres.value.length > 0 || selectedGameModes.value.length > 0 || selectedLanguages.value.length > 0
+      ? 'Custom'
+      : 'All'
+  await fetchAllGamesAndEnrichGame()
+}
+
+/**
+ * Toggle la sélection d'une langue.
+ * @param {string} language - La langue à sélectionner/désélectionner
+ * @returns {void}
+ */
+const toggleLanguageSelection: (language: string) => Promise<void> = async (language: string): Promise<void> => {
+  if (selectedLanguages.value.includes(language)) {
+    selectedLanguages.value = selectedLanguages.value.filter((l: string) => l !== language)
+  } else {
+    selectedLanguages.value.push(language)
+  }
+  activeCategory.value =
+    selectedGenres.value.length > 0 || selectedGameModes.value.length > 0 || selectedLanguages.value.length > 0
+      ? 'Custom'
+      : 'All'
   await fetchAllGamesAndEnrichGame()
 }
 
@@ -454,41 +791,59 @@ const fetchGameCategories: () => Promise<void> = async (): Promise<void> => {
 }
 
 /**
+ * Récupère toutes les langues depuis l'API.
+ * @returns {Promise<void>}
+ */
+const fetchLanguages: () => Promise<void> = async (): Promise<void> => {
+  try {
+    languages.value = await LanguagesService.getAllLanguages()
+  } catch (error: any) {
+    logger.error('[fetchLanguages] Erreur lors de la récupération des langues : ', error)
+  }
+}
+
+/**
  * Réinitialise tous les genres sélectionnés.
  * @returns {void}
  */
 const clearAllGenres: () => Promise<void> = async (): Promise<void> => {
   selectedGenres.value = []
-  activeCategory.value = 'All'
+  activeCategory.value = selectedGameModes.value.length > 0 || selectedLanguages.value.length > 0 ? 'Custom' : 'All'
   await fetchAllGamesAndEnrichGame()
 }
 
 /**
- * Permet de filtrer les jeux en fonction du filtre actif, de la catégorie et de la recherche validée de l'utilisateur.
+ * Réinitialise tous les filtres de "Plus de filtres".
+ * @returns {void}
+ */
+const clearAllMoreFilters: () => Promise<void> = async (): Promise<void> => {
+  selectedGameModes.value = []
+  selectedLanguages.value = []
+  activeCategory.value = selectedGenres.value.length > 0 ? 'Custom' : 'All'
+  await fetchAllGamesAndEnrichGame()
+}
+
+/**
+ * Permet de trier les jeux en fonction de l'option de tri sélectionnée.
+ * Les filtres (genres, langues, modes de jeu, "featured") sont gérés côté backend.
  * @returns {ExtendedGameModel[]}
  */
 const filteredGames: ComputedRef<ExtendedGameModel[]> = computed((): ExtendedGameModel[] => {
-  let filtered: ExtendedGameModel[] = games.value
+  let filtered: ExtendedGameModel[] = [...games.value] // Créer une copie pour éviter de modifier l'original
 
-  // Appliquer le filtre actif ("featured") uniquement si aucune recherche n'est active
-  if (activeFilter.value === 'featured' && !isSearchActive.value) {
-    filtered = games.value.filter((game: ExtendedGameModel): boolean => game.new_game || game.upcoming_game)
-  }
-
-  // Appliquer le filtre par catégorie ou recherche validée
-  if (isSearchActive.value && lastValidatedSearchTerm.value.trim()) {
-    filtered = games.value.filter((game: ExtendedGameModel): boolean =>
-      game.title.toLowerCase().includes(lastValidatedSearchTerm.value.toLowerCase()),
-    )
-  } else if (selectedGenres.value.length > 0) {
-    filtered = filtered.filter((game: ExtendedGameModel): boolean =>
-      game.gameCategory.some((category: GameCategoryModel): boolean => selectedGenres.value.includes(category.name)),
-    )
-  } else if (activeCategory.value !== 'All' && activeCategory.value !== 'Search') {
-    filtered = filtered.filter((game: ExtendedGameModel): boolean =>
-      game.gameCategory.some((category: GameCategoryModel): boolean => category.name === activeCategory.value),
-    )
-  }
+  // Appliquer le tri
+  filtered.sort((a: ExtendedGameModel, b: ExtendedGameModel) => {
+    switch (sortOption.value) {
+      case 'releaseDate':
+        return new Date(b.release_date).getTime() - new Date(a.release_date).getTime() // Plus récent au plus ancien
+      case 'titleAsc':
+        return a.title.localeCompare(b.title) // A-Z
+      case 'titleDesc':
+        return b.title.localeCompare(a.title) // Z-A
+      default:
+        return 0
+    }
+  })
 
   return filtered
 })
@@ -531,25 +886,47 @@ const addGameToUserGameLibraryAndUpdateGameListAndNotify: (gameId: number) => Pr
 /**
  * Récupère tous les jeux depuis le backend et enrichit chaque jeu avec les statuts
  * de possession et de paiement en fonction de l'utilisateur connecté.
+ * @param {filter} [filter] - Filtre actif pour les jeux à récupérer (optionnel)
  * @returns {Promise<void>} Une promesse qui se résout une fois les données chargées.
  */
-const fetchAllGamesAndEnrichGame: () => Promise<void> = async (): Promise<void> => {
+const fetchAllGamesAndEnrichGame: (filter?: filter) => Promise<void> = async (filter?: filter): Promise<void> => {
   // Activation de l'indicateur de chargement des jeux
   isLoadingGames.value = true
 
   try {
-    // Récupération des jeux depuis le store avec les paramètres de recherche et pagination
+    // Log des valeurs des filtres pour déboguer
+    logger.info('Fetching games with filters:', {
+      title: lastValidatedSearchTerm.value || undefined,
+      page: currentPage.value,
+      perPage: perPage.value,
+      genres: selectedGenres.value.length > 0 ? selectedGenres.value : undefined,
+      languages: selectedLanguages.value.length > 0 ? selectedLanguages.value : undefined,
+      gameModes: selectedGameModes.value.length > 0 ? selectedGameModes.value : undefined,
+      featured: filter === 'featured',
+    })
+
+    // Récupération des jeux depuis le store avec les paramètres de recherche, pagination et filtres
     const response: GameModel[] = await gameStore.getAllGames(
       lastValidatedSearchTerm.value || undefined, // Utilise la recherche validée
       currentPage.value, // Page actuelle
       perPage.value, // Nombre d'éléments par page
+      selectedGenres.value.length > 0 ? selectedGenres.value : undefined, // Genres sélectionnés
+      selectedLanguages.value.length > 0 ? selectedLanguages.value : undefined, // Langues sélectionnées
+      selectedGameModes.value.length > 0 ? selectedGameModes.value : undefined, // Modes de jeu sélectionnés
+      filter === 'featured', // Filtre actif pour les jeux à la une (nouveaux ou à venir)
     )
 
     // Initialisation de la liste des jeux à enrichir
     let fetchedGames: GameModel[] = response
 
     // Récupération des métadonnées depuis l'état du store
-    const paginationMeta: PaginationMeta = gameStore.paginationMeta
+    const paginationMeta: PaginationMeta = gameStore.paginationMeta || {
+      total: 0,
+      from: 0,
+      to: 0,
+      currentPage: 1,
+      perPage: 24,
+    }
     total.value = paginationMeta.total // Mise à jour du total basé sur les métadonnées
 
     // Récupération des statuts de paiement et de possession pour tous les jeux
@@ -583,6 +960,38 @@ const fetchAllGamesAndEnrichGame: () => Promise<void> = async (): Promise<void> 
 
     // Désactivation de l'indicateur de chargement
     isLoadingGames.value = false
+  }
+}
+
+/**
+ * Gère les clics en dehors des menus déroulants pour les fermer automatiquement.
+ * @param {MouseEvent} event - L'événement de clic
+ * @returns {void}
+ */
+const handleClickOutside: (event: MouseEvent) => void = (event: MouseEvent): void => {
+  if (
+    genresContainer.value &&
+    !genresContainer.value.contains(event.target as Node) &&
+    genresMenu.value &&
+    !genresMenu.value.contains(event.target as Node)
+  ) {
+    genreFilter.value = false
+  }
+  if (
+    sortContainer.value &&
+    !sortContainer.value.contains(event.target as Node) &&
+    sortMenu.value &&
+    !sortMenu.value.contains(event.target as Node)
+  ) {
+    sortFilter.value = false
+  }
+  if (
+    moreFiltersContainer.value &&
+    !moreFiltersContainer.value.contains(event.target as Node) &&
+    moreFiltersMenu.value &&
+    !moreFiltersMenu.value.contains(event.target as Node)
+  ) {
+    moreFilters.value = false
   }
 }
 </script>

@@ -87,13 +87,29 @@ export class GameService extends BaseApiService {
    * @param {string} [title] - Titre pour filtrer les jeux (optionnel)
    * @param {number} [page] - Numéro de la page (optionnel)
    * @param {number} [perPage] - Nombre d'éléments par page (optionnel)
+   * @param {string[]} [genres] - Liste des genres à filtrer (optionnel)
+   * @param {string[]} [languages] - Liste des langues à filtrer (optionnel)
+   * @param {string[]} [gameModes] - Liste des modes de jeu à filtrer (optionnel, ex: solo, multiplayer, both)
+   * @param {boolean} [featuredGames] - Jeux en vedette (news ou à venir), donc ira récupérer les jeux en vedette seulement
    * @returns {Promise<GamesResponse>} - Réponse contenant les jeux et les métadonnées de pagination
    */
-  public static async getAllGames(title?: string, page?: number, perPage?: number): Promise<GamesResponse> {
+  public static async getAllGames(
+    title?: string,
+    page?: number,
+    perPage?: number,
+    genres?: string[],
+    languages?: string[],
+    gameModes?: string[],
+    featuredGames?: boolean,
+  ): Promise<GamesResponse> {
     const queryParams: string[] = []
     if (title) queryParams.push(`title=${encodeURIComponent(title)}`)
     if (page !== undefined) queryParams.push(`page=${page}`)
     if (perPage !== undefined) queryParams.push(`perPage=${perPage}`)
+    if (genres && genres.length > 0) queryParams.push(`genres=${encodeURIComponent(genres.join(','))}`)
+    if (languages && languages.length > 0) queryParams.push(`languages=${encodeURIComponent(languages.join(','))}`)
+    if (gameModes && gameModes.length > 0) queryParams.push(`gameModes=${encodeURIComponent(gameModes.join(','))}`)
+    if (featuredGames) queryParams.push(`featuredGames=${featuredGames}`)
 
     const queryString: string = queryParams.length > 0 ? `?${queryParams.join('&')}` : ''
     return await this.get(`/games${queryString}`)
