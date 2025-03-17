@@ -53,71 +53,173 @@
     <Divider />
 
     <!-- Section des genres, tri et plus de filtres (masquée si "Featured Games" est actif) -->
-    <div v-if="!isSearchActive && activeFilter === 'all'" class="flex items-center gap-2">
-      <!-- Bouton "Genres" et son menu -->
-      <div class="relative" ref="genresContainer">
-        <CrzButton size="sm" variant="primary2" @click="toggleGenreFilter" class="mb-2">
-          Genres {{ genreFilter ? '▲' : '▼' }}
-        </CrzButton>
+    <div v-if="!isSearchActive && activeFilter === 'all'" class="flex items-center justify-between w-full">
+      <!-- Conteneur pour "Genres" et "More Filters" à gauche -->
+      <div class="flex items-center gap-2">
+        <!-- Bouton "Genres" et son menu -->
+        <div class="relative" ref="genresContainer">
+          <CrzButton size="sm" variant="primary2" @click="toggleGenreFilter" class="mb-2">
+            Genres {{ genreFilter ? '▲' : '▼' }}
+          </CrzButton>
 
-        <!-- Menu déroulant pour les genres -->
-        <div
-          v-if="genreFilter"
-          class="absolute mt-2 bg-[#1e2537] text-white rounded shadow-lg z-10 w-48 flex flex-col"
-          ref="genresMenu"
-        >
-          <!-- En-tête fixe avec "Genres" et la croix -->
-          <div class="p-2">
-            <div class="flex justify-between items-center mb-2">
-              <span class="text-sm font-medium">Genres</span>
-              <button
-                @click="toggleGenreFilter"
-                class="text-white hover:bg-white hover:bg-opacity-10 rounded-full w-5 h-5 flex items-center justify-center"
+          <!-- Menu déroulant pour les genres -->
+          <div
+            v-if="genreFilter"
+            class="absolute mt-2 bg-[#1e2537] text-white rounded shadow-lg z-10 w-48 flex flex-col"
+            ref="genresMenu"
+          >
+            <!-- En-tête fixe avec "Genres" et la croix -->
+            <div class="p-2">
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-sm font-medium">Genres</span>
+                <button
+                  @click="toggleGenreFilter"
+                  class="text-white hover:bg-white hover:bg-opacity-10 rounded-full w-5 h-5 flex items-center justify-center"
+                >
+                  ✕
+                </button>
+              </div>
+              <hr class="border-t border-white opacity-20" />
+            </div>
+
+            <!-- Liste des genres avec défilement -->
+            <div class="max-h-60 overflow-y-auto px-2">
+              <div
+                v-for="category in sortedGameCategories"
+                :key="category.id"
+                class="flex items-center justify-between py-1 cursor-pointer hover:bg-[#2d3748]"
+                @click="toggleGenreSelection(category.name)"
               >
-                ✕
+                <span class="text-sm">{{ category.name }}</span>
+                <span
+                  class="w-4 h-4 border border-gray-300 rounded flex items-center justify-center cursor-pointer"
+                  :class="{ 'bg-[#facc15]': selectedGenres.includes(category.name) }"
+                  @click.stop="toggleGenreSelection(category.name)"
+                >
+                  <span v-if="selectedGenres.includes(category.name)" class="text-black text-xs">✔</span>
+                </span>
+              </div>
+            </div>
+
+            <!-- Pied de page fixe avec "Clear All" -->
+            <div class="p-2">
+              <hr class="border-t border-white opacity-20 mb-2" />
+              <button
+                @click="selectedGenres.length > 0 ? clearAllGenres() : null"
+                class="text-sm w-full text-right"
+                :class="[
+                  selectedGenres.length > 0
+                    ? 'text-[#facc15] hover:text-[#ffd700] cursor-pointer'
+                    : 'text-gray-400 cursor-not-allowed',
+                ]"
+              >
+                Clear All
               </button>
             </div>
-            <hr class="border-t border-white opacity-20" />
           </div>
+        </div>
 
-          <!-- Liste des genres avec défilement -->
-          <div class="max-h-60 overflow-y-auto px-2">
-            <div
-              v-for="category in sortedGameCategories"
-              :key="category.id"
-              class="flex items-center justify-between py-1 cursor-pointer hover:bg-[#2d3748]"
-              @click="toggleGenreSelection(category.name)"
-            >
-              <span class="text-sm">{{ category.name }}</span>
-              <span
-                class="w-4 h-4 border border-gray-300 rounded flex items-center justify-center cursor-pointer"
-                :class="{ 'bg-[#facc15]': selectedGenres.includes(category.name) }"
-                @click.stop="toggleGenreSelection(category.name)"
-              >
-                <span v-if="selectedGenres.includes(category.name)" class="text-black text-xs">✔</span>
-              </span>
+        <!-- Bouton "More Filters" et son menu -->
+        <div class="relative" ref="moreFiltersContainer">
+          <CrzButton size="sm" variant="primary2" @click="toggleMoreFilters" class="mb-2">
+            More Filters + {{ moreFilters ? '▲' : '▼' }}
+          </CrzButton>
+
+          <!-- Menu déroulant pour "Plus de filtres" -->
+          <div
+            v-if="moreFilters"
+            class="absolute mt-2 bg-[#1e2537] text-white rounded shadow-lg z-10 w-64 flex flex-col"
+            ref="moreFiltersMenu"
+          >
+            <!-- En-tête fixe avec "Plus de filtres" et la croix -->
+            <div class="p-2">
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-sm font-medium">More Filters</span>
+                <button
+                  @click="toggleMoreFilters"
+                  class="text-white hover:bg-white hover:bg-opacity-10 rounded-full w-5 h-5 flex items-center justify-center"
+                >
+                  ✕
+                </button>
+              </div>
+              <hr class="border-t border-white opacity-20" />
             </div>
-          </div>
 
-          <!-- Pied de page fixe avec "Clear All" -->
-          <div class="p-2">
-            <hr class="border-t border-white opacity-20 mb-2" />
-            <button
-              @click="selectedGenres.length > 0 ? clearAllGenres() : null"
-              class="text-sm w-full text-right"
-              :class="[
-                selectedGenres.length > 0
-                  ? 'text-[#facc15] hover:text-[#ffd700] cursor-pointer'
-                  : 'text-gray-400 cursor-not-allowed',
-              ]"
-            >
-              Clear All
-            </button>
+            <!-- Contenu avec défilement -->
+            <div class="max-h-60 overflow-y-auto px-2">
+              <!-- Section "Players" -->
+              <div class="mb-4">
+                <span class="text-sm font-medium">Players</span>
+                <div class="mt-2">
+                  <div
+                    class="flex items-center justify-between py-1 cursor-pointer hover:bg-[#2d3748]"
+                    @click="toggleGameModeSelection('multiplayer')"
+                  >
+                    <span class="text-sm">Multiplayer</span>
+                    <span
+                      class="w-4 h-4 border border-gray-300 rounded flex items-center justify-center cursor-pointer"
+                      :class="{ 'bg-[#facc15]': selectedGameModes.includes('multiplayer') }"
+                    >
+                      <span v-if="selectedGameModes.includes('multiplayer')" class="text-black text-xs">✔</span>
+                    </span>
+                  </div>
+                  <div
+                    class="flex items-center justify-between py-1 cursor-pointer hover:bg-[#2d3748]"
+                    @click="toggleGameModeSelection('solo')"
+                  >
+                    <span class="text-sm">Solo</span>
+                    <span
+                      class="w-4 h-4 border border-gray-300 rounded flex items-center justify-center cursor-pointer"
+                      :class="{ 'bg-[#facc15]': selectedGameModes.includes('solo') }"
+                    >
+                      <span v-if="selectedGameModes.includes('solo')" class="text-black text-xs">✔</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Section "Languages" -->
+              <div>
+                <span class="text-sm font-medium">Languages</span>
+                <div class="mt-2">
+                  <div
+                    v-for="language in sortedLanguages"
+                    :key="language.id"
+                    class="flex items-center justify-between py-1 cursor-pointer hover:bg-[#2d3748]"
+                    @click="toggleLanguageSelection(language.name)"
+                  >
+                    <span class="text-sm">{{ language.name }}</span>
+                    <span
+                      class="w-4 h-4 border border-gray-300 rounded flex items-center justify-center cursor-pointer"
+                      :class="{ 'bg-[#facc15]': selectedLanguages.includes(language.name) }"
+                    >
+                      <span v-if="selectedLanguages.includes(language.name)" class="text-black text-xs">✔</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pied de page fixe avec "Clear All" -->
+            <div class="p-2">
+              <hr class="border-t border-white opacity-20 mb-2" />
+              <button
+                @click="clearAllMoreFilters"
+                class="text-sm w-full text-right"
+                :class="[
+                  selectedGameModes.length > 0 || selectedLanguages.length > 0
+                    ? 'text-[#facc15] hover:text-[#ffd700] cursor-pointer'
+                    : 'text-gray-400 cursor-not-allowed',
+                ]"
+              >
+                Clear All
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Bouton "Trier par" et son menu -->
+      <!-- Bouton "Sort by" et son menu (à droite) -->
       <div class="relative" ref="sortContainer">
         <CrzButton size="sm" variant="primary2" @click="toggleSortFilter" class="mb-2">
           Sort by {{ sortFilter ? '▲' : '▼' }}
@@ -126,7 +228,7 @@
         <!-- Menu déroulant pour le tri -->
         <div
           v-if="sortFilter"
-          class="absolute mt-2 bg-[#1e2537] text-white rounded shadow-lg z-10 w-48 flex flex-col"
+          class="absolute mt-2 right-0 bg-[#1e2537] text-white rounded shadow-lg z-10 w-48 flex flex-col"
           ref="sortMenu"
         >
           <!-- En-tête fixe avec "Trier par" et la croix -->
@@ -159,105 +261,6 @@
                 <span v-if="sortOption === option.value" class="bg-black rounded-full w-2 h-2"></span>
               </span>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Bouton "Plus de filtres +" et son menu -->
-      <div class="relative" ref="moreFiltersContainer">
-        <CrzButton size="sm" variant="primary2" @click="toggleMoreFilters" class="mb-2">
-          More Filters + {{ moreFilters ? '▲' : '▼' }}
-        </CrzButton>
-
-        <!-- Menu déroulant pour "Plus de filtres" -->
-        <div
-          v-if="moreFilters"
-          class="absolute mt-2 bg-[#1e2537] text-white rounded shadow-lg z-10 w-64 flex flex-col"
-          ref="moreFiltersMenu"
-        >
-          <!-- En-tête fixe avec "Plus de filtres" et la croix -->
-          <div class="p-2">
-            <div class="flex justify-between items-center mb-2">
-              <span class="text-sm font-medium">More Filters</span>
-              <button
-                @click="toggleMoreFilters"
-                class="text-white hover:bg-white hover:bg-opacity-10 rounded-full w-5 h-5 flex items-center justify-center"
-              >
-                ✕
-              </button>
-            </div>
-            <hr class="border-t border-white opacity-20" />
-          </div>
-
-          <!-- Contenu avec défilement -->
-          <div class="max-h-60 overflow-y-auto px-2">
-            <!-- Section "Players" -->
-            <div class="mb-4">
-              <span class="text-sm font-medium">Players</span>
-              <div class="mt-2">
-                <div
-                  class="flex items-center justify-between py-1 cursor-pointer hover:bg-[#2d3748]"
-                  @click="toggleGameModeSelection('multiplayer')"
-                >
-                  <span class="text-sm">Multiplayer</span>
-                  <span
-                    class="w-4 h-4 border border-gray-300 rounded flex items-center justify-center cursor-pointer"
-                    :class="{ 'bg-[#facc15]': selectedGameModes.includes('multiplayer') }"
-                  >
-                    <span v-if="selectedGameModes.includes('multiplayer')" class="text-black text-xs">✔</span>
-                  </span>
-                </div>
-                <div
-                  class="flex items-center justify-between py-1 cursor-pointer hover:bg-[#2d3748]"
-                  @click="toggleGameModeSelection('solo')"
-                >
-                  <span class="text-sm">Solo</span>
-                  <span
-                    class="w-4 h-4 border border-gray-300 rounded flex items-center justify-center cursor-pointer"
-                    :class="{ 'bg-[#facc15]': selectedGameModes.includes('solo') }"
-                  >
-                    <span v-if="selectedGameModes.includes('solo')" class="text-black text-xs">✔</span>
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Section "Languages" -->
-            <div>
-              <span class="text-sm font-medium">Languages</span>
-              <div class="mt-2">
-                <div
-                  v-for="language in sortedLanguages"
-                  :key="language.id"
-                  class="flex items-center justify-between py-1 cursor-pointer hover:bg-[#2d3748]"
-                  @click="toggleLanguageSelection(language.name)"
-                >
-                  <span class="text-sm">{{ language.name }}</span>
-                  <span
-                    class="w-4 h-4 border border-gray-300 rounded flex items-center justify-center cursor-pointer"
-                    :class="{ 'bg-[#facc15]': selectedLanguages.includes(language.name) }"
-                  >
-                    <span v-if="selectedLanguages.includes(language.name)" class="text-black text-xs">✔</span>
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Pied de page fixe avec "Clear All" -->
-          <div class="p-2">
-            <hr class="border-t border-white opacity-20 mb-2" />
-            <button
-              @click="clearAllMoreFilters"
-              class="text-sm w-full text-right"
-              :class="[
-                selectedGameModes.length > 0 || selectedLanguages.length > 0
-                  ? 'text-[#facc15] hover:text-[#ffd700] cursor-pointer'
-                  : 'text-gray-400 cursor-not-allowed',
-              ]"
-            >
-              Clear All
-            </button>
           </div>
         </div>
       </div>
@@ -337,7 +340,6 @@ import { nextTick } from 'vue'
 import { type ComputedRef, type Ref, computed, onMounted, onUnmounted, ref } from 'vue'
 import CrzPagination from '~~/src-common/components/core/CrzPagination.vue'
 import CrzSpinner from '~~/src-common/components/loaders/CrzSpinner.vue'
-import type GameCategoryModel from '~~/src-common/core/models/GameCategoryModel'
 import type GamePlatformModel from '~~/src-common/core/models/GamePlatformModel'
 import GameCategoryService from '~~/src-common/core/services/GameCategoryService'
 import type { PaginationMeta } from '~~/src-common/core/services/GameService'
@@ -894,17 +896,6 @@ const fetchAllGamesAndEnrichGame: (filter?: filter) => Promise<void> = async (fi
   isLoadingGames.value = true
 
   try {
-    // Log des valeurs des filtres pour déboguer
-    logger.info('Fetching games with filters:', {
-      title: lastValidatedSearchTerm.value || undefined,
-      page: currentPage.value,
-      perPage: perPage.value,
-      genres: selectedGenres.value.length > 0 ? selectedGenres.value : undefined,
-      languages: selectedLanguages.value.length > 0 ? selectedLanguages.value : undefined,
-      gameModes: selectedGameModes.value.length > 0 ? selectedGameModes.value : undefined,
-      featured: filter === 'featured',
-    })
-
     // Récupération des jeux depuis le store avec les paramètres de recherche, pagination et filtres
     const response: GameModel[] = await gameStore.getAllGames(
       lastValidatedSearchTerm.value || undefined, // Utilise la recherche validée
