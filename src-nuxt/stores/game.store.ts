@@ -73,7 +73,8 @@ export const useGameStore = defineStore('gameStore', {
      * @param {string[]} genres - Liste des genres à filtrer (optionnel)
      * @param {string[]} languages - Liste des langues à filtrer (optionnel)
      * @param {string[]} gameModes - Liste des modes de jeu à filtrer (optionnel)
-     * @param {boolean} featuredGames - Jeux en vedette (news ou à venir), donc ira récupérer les jeux en vedette seulement
+     * @param {boolean} featuredGames - Jeux en vedette (news ou à venir)
+     * @param {string} sortBy - Option de tri ('releaseDate', 'titleAsc', 'titleDesc')
      * @returns {Promise<GameModel[]>} - Jeux
      */
     async getAllGames(
@@ -84,6 +85,7 @@ export const useGameStore = defineStore('gameStore', {
       languages?: string[],
       gameModes?: string[],
       featuredGames?: boolean,
+      sortBy: string = 'releaseDate',
     ): Promise<GameModel[]> {
       const response: GamesResponse = await GameService.getAllGames(
         title,
@@ -93,15 +95,14 @@ export const useGameStore = defineStore('gameStore', {
         languages,
         gameModes,
         featuredGames,
+        sortBy,
       )
       let games: GameModel[] = []
 
       if (Array.isArray(response)) {
-        // Cas sans pagination
         games = response
         this.setPaginationMeta(null)
       } else {
-        // Réponse paginée
         games = response.data
         this.setPaginationMeta(response.meta)
       }

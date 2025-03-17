@@ -90,7 +90,8 @@ export class GameService extends BaseApiService {
    * @param {string[]} [genres] - Liste des genres à filtrer (optionnel)
    * @param {string[]} [languages] - Liste des langues à filtrer (optionnel)
    * @param {string[]} [gameModes] - Liste des modes de jeu à filtrer (optionnel, ex: solo, multiplayer, both)
-   * @param {boolean} [featuredGames] - Jeux en vedette (news ou à venir), donc ira récupérer les jeux en vedette seulement
+   * @param {boolean} [featuredGames] - Jeux en vedette (news ou à venir)
+   * @param {string} [sortBy] - Option de tri ('releaseDate', 'titleAsc', 'titleDesc')
    * @returns {Promise<GamesResponse>} - Réponse contenant les jeux et les métadonnées de pagination
    */
   public static async getAllGames(
@@ -101,6 +102,7 @@ export class GameService extends BaseApiService {
     languages?: string[],
     gameModes?: string[],
     featuredGames?: boolean,
+    sortBy: string = 'releaseDate',
   ): Promise<GamesResponse> {
     const queryParams: string[] = []
     if (title) queryParams.push(`title=${encodeURIComponent(title)}`)
@@ -110,6 +112,7 @@ export class GameService extends BaseApiService {
     if (languages && languages.length > 0) queryParams.push(`languages=${encodeURIComponent(languages.join(','))}`)
     if (gameModes && gameModes.length > 0) queryParams.push(`gameModes=${encodeURIComponent(gameModes.join(','))}`)
     if (featuredGames) queryParams.push(`featuredGames=${featuredGames}`)
+    if (sortBy) queryParams.push(`sortBy=${encodeURIComponent(sortBy)}`) // Ajout du paramètre de tri
 
     const queryString: string = queryParams.length > 0 ? `?${queryParams.join('&')}` : ''
     return await this.get(`/games${queryString}`)

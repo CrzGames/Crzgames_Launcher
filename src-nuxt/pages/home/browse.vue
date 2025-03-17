@@ -43,7 +43,7 @@
       <div v-if="isSearchActive" class="flex items-center gap-2">
         <span class="text-lg font-medium text-white">Search results for "{{ lastValidatedSearchTerm }}"</span>
         <CrzBadge variant="yellow" size="sm">
-          Best Results - {{ filteredGames.length }} game{{ filteredGames.length === 1 ? '' : 's' }}
+          Best Results - {{ games.length }} game{{ games.length === 1 ? '' : 's' }}
         </CrzBadge>
         <CrzButton size="sm" variant="danger" @click="clearSearch">Clear</CrzButton>
       </div>
@@ -280,9 +280,9 @@
           <div class="mt-1 h-[18px] bg-gray-700 rounded w-1/2"></div>
         </div>
       </template>
-      <template v-else-if="filteredGames && filteredGames.length > 0">
+      <template v-else-if="games && games.length > 0">
         <!-- Afficher les jeux réels une fois chargés -->
-        <div v-for="game in filteredGames" :key="game.id">
+        <div v-for="game in games" :key="game.id">
           <CrzGameCard
             :pictureFileUrl="game.pictureFile?.url"
             :trailerFileUrl="game.trailerFile?.url"
@@ -313,7 +313,7 @@
 
     <!-- Composant de pagination -->
     <CrzPagination
-      v-if="!isLoadingGames && filteredGames && filteredGames.length > 0"
+      v-if="!isLoadingGames && games && games.length > 0"
       :total="total"
       :per-page="perPage"
       :current-page="currentPage"
@@ -323,11 +323,7 @@
 
     <!-- Messages pour l'absence de jeux lors de la recherche via l'input -->
     <div
-      v-if="
-        !isLoadingGames &&
-        (!filteredGames || filteredGames.length === 0) &&
-        (isSearchActive || activeCategory !== 'All')
-      "
+      v-if="!isLoadingGames && (!games || games.length === 0) && (isSearchActive || activeCategory !== 'All')"
       class="flex flex-col items-center justify-center w-full max-w-3xl mx-auto bg-[#141724] text-center p-6 rounded-xl"
     >
       <CrzIcon name="search" color="#6b7280" view-box="0 0 24 24" class="w-12 h-12 mb-4" />
@@ -345,7 +341,6 @@ import type { Notyf } from 'notyf'
 import { nextTick } from 'vue'
 import { type ComputedRef, type Ref, computed, onMounted, onUnmounted, ref } from 'vue'
 import CrzPagination from '~~/src-common/components/core/CrzPagination.vue'
-import CrzSpinner from '~~/src-common/components/loaders/CrzSpinner.vue'
 import type GamePlatformModel from '~~/src-common/core/models/GamePlatformModel'
 import GameCategoryService from '~~/src-common/core/services/GameCategoryService'
 import type { PaginationMeta } from '~~/src-common/core/services/GameService'
@@ -631,6 +626,7 @@ const performSearch: () => Promise<void> = async (): Promise<void> => {
     selectedGenres.value = [] // Réinitialise les genres sélectionnés
     selectedGameModes.value = [] // Réinitialise les modes de jeu
     selectedLanguages.value = [] // Réinitialise les langues
+    sortOption.value = 'releaseDate' // Réinitialise l'option de tri
     await fetchAllGamesAndEnrichGame()
   } else {
     // Si la searchbar est vide et "Enter" est pressé, revenir à "All Games"
@@ -642,6 +638,7 @@ const performSearch: () => Promise<void> = async (): Promise<void> => {
     selectedGenres.value = []
     selectedGameModes.value = []
     selectedLanguages.value = []
+    sortOption.value = 'releaseDate' // Réinitialise l'option de tri
     await fetchAllGamesAndEnrichGame()
   }
 }
@@ -659,6 +656,7 @@ const clearSearch: () => Promise<void> = async (): Promise<void> => {
   selectedGenres.value = [] // Réinitialise les genres sélectionnés
   selectedGameModes.value = [] // Réinitialise les modes de jeu
   selectedLanguages.value = [] // Réinitialise les langues
+  sortOption.value = 'releaseDate' // Réinitialise l'option de tri
   await fetchAllGamesAndEnrichGame()
 }
 
@@ -677,6 +675,7 @@ const setFilter: (filter: filter) => Promise<void> = async (filter: filter): Pro
   selectedGenres.value = [] // Réinitialise les genres sélectionnés
   selectedGameModes.value = [] // Réinitialise les modes de jeu
   selectedLanguages.value = [] // Réinitialise les langues
+  sortOption.value = 'releaseDate' // Réinitialise l'option de tri
   await fetchAllGamesAndEnrichGame(filter)
 }
 
@@ -725,11 +724,13 @@ const toggleMoreFilters: () => void = (): void => {
 /**
  * Définit l'option de tri sélectionnée.
  * @param {string} value - Valeur de l'option de tri
- * @returns {void}
+ * @returns {Promise<void>}
  */
-const setSortOption: (value: string) => void = (value: string): void => {
+const setSortOption: (value: string) => Promise<void> = async (value: string): Promise<void> => {
   sortOption.value = value
   toggleSortFilter() // Ferme le menu après sélection
+  currentPage.value = 1 // Réinitialise la page courante
+  await fetchAllGamesAndEnrichGame() // Recharge les jeux avec le nouveau tri
 }
 
 /**
@@ -747,6 +748,7 @@ const toggleGenreSelection: (genre: string) => Promise<void> = async (genre: str
     selectedGenres.value.length > 0 || selectedGameModes.value.length > 0 || selectedLanguages.value.length > 0
       ? 'Custom'
       : 'All'
+  currentPage.value = 1 // Réinitialise la page courante
   await fetchAllGamesAndEnrichGame()
 }
 
@@ -765,6 +767,7 @@ const toggleGameModeSelection: (mode: string) => Promise<void> = async (mode: st
     selectedGenres.value.length > 0 || selectedGameModes.value.length > 0 || selectedLanguages.value.length > 0
       ? 'Custom'
       : 'All'
+  currentPage.value = 1 // Réinitialise la page courante
   await fetchAllGamesAndEnrichGame()
 }
 
@@ -783,6 +786,7 @@ const toggleLanguageSelection: (language: string) => Promise<void> = async (lang
     selectedGenres.value.length > 0 || selectedGameModes.value.length > 0 || selectedLanguages.value.length > 0
       ? 'Custom'
       : 'All'
+  currentPage.value = 1 // Réinitialise la page courante
   await fetchAllGamesAndEnrichGame()
 }
 
@@ -817,6 +821,7 @@ const fetchLanguages: () => Promise<void> = async (): Promise<void> => {
 const clearAllGenres: () => Promise<void> = async (): Promise<void> => {
   selectedGenres.value = []
   activeCategory.value = selectedGameModes.value.length > 0 || selectedLanguages.value.length > 0 ? 'Custom' : 'All'
+  currentPage.value = 1 // Réinitialise la page courante
   await fetchAllGamesAndEnrichGame()
 }
 
@@ -828,33 +833,9 @@ const clearAllMoreFilters: () => Promise<void> = async (): Promise<void> => {
   selectedGameModes.value = []
   selectedLanguages.value = []
   activeCategory.value = selectedGenres.value.length > 0 ? 'Custom' : 'All'
+  currentPage.value = 1 // Réinitialise la page courante
   await fetchAllGamesAndEnrichGame()
 }
-
-/**
- * Permet de trier les jeux en fonction de l'option de tri sélectionnée.
- * Les filtres (genres, langues, modes de jeu, "featured") sont gérés côté backend.
- * @returns {ExtendedGameModel[]}
- */
-const filteredGames: ComputedRef<ExtendedGameModel[]> = computed((): ExtendedGameModel[] => {
-  let filtered: ExtendedGameModel[] = [...games.value] // Créer une copie pour éviter de modifier l'original
-
-  // Appliquer le tri
-  filtered.sort((a: ExtendedGameModel, b: ExtendedGameModel) => {
-    switch (sortOption.value) {
-      case 'releaseDate':
-        return new Date(b.release_date).getTime() - new Date(a.release_date).getTime() // Plus récent au plus ancien
-      case 'titleAsc':
-        return a.title.localeCompare(b.title) // A-Z
-      case 'titleDesc':
-        return b.title.localeCompare(a.title) // Z-A
-      default:
-        return 0
-    }
-  })
-
-  return filtered
-})
 
 /**
  * Ajoute un jeu dans la bibliothèque de l'utilisateur, met à jour les jeux de la liste de la page
@@ -911,6 +892,7 @@ const fetchAllGamesAndEnrichGame: (filter?: filter) => Promise<void> = async (fi
       selectedLanguages.value.length > 0 ? selectedLanguages.value : undefined, // Langues sélectionnées
       selectedGameModes.value.length > 0 ? selectedGameModes.value : undefined, // Modes de jeu sélectionnés
       filter === 'featured', // Filtre actif pour les jeux à la une (nouveaux ou à venir)
+      sortOption.value, // Option de tri sélectionnée
     )
 
     // Initialisation de la liste des jeux à enrichir
