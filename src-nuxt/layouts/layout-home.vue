@@ -13,7 +13,7 @@
       <SideBarLeft class="h-full" />
 
       <div
-        class="flex-grow overflow-x-hidden transition-all duration-300"
+        class="flex-grow overflow-x-hidden transition-all duration-300 main-content-scrollable"
         :class="{
           'overflow-y-auto': !isCarouselPage,
           'overflow-y-hidden': isCarouselPage,

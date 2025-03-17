@@ -987,5 +987,20 @@ const handlePageChange: () => Promise<void> = async (): Promise<void> => {
   } else {
     await fetchAllGamesAndEnrichGame()
   }
+
+  await nextTick()
+
+  // Trouver le conteneur scrollable défini dans layout-home.vue
+  const scrollableContainer: HTMLElement | null = document.querySelector(
+    '.main-content-scrollable',
+  ) as HTMLElement | null
+
+  if (scrollableContainer) {
+    // Utiliser scrollTo sur le conteneur scrollable avec behavior: 'smooth'
+    scrollableContainer.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    })
+  }
 }
 </script>
