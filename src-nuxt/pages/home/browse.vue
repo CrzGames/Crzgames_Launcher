@@ -345,7 +345,6 @@ import { type ComputedRef, type Ref, computed, onMounted, onUnmounted, ref } fro
 import CrzPagination from '~~/src-common/components/core/CrzPagination.vue'
 import type GamePlatformModel from '~~/src-common/core/models/GamePlatformModel'
 import GameCategoryService from '~~/src-common/core/services/GameCategoryService'
-import type { PaginationMeta } from '~~/src-common/core/services/GameService'
 import { LanguagesService } from '~~/src-common/core/services/LanguageService'
 import { type GamePaidAndOwnedStatus, ProductService } from '~~/src-common/core/services/ProductService'
 import { useGameStore } from '~~/src-nuxt/stores/game.store'
