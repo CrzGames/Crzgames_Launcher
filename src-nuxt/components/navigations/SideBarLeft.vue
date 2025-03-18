@@ -2,7 +2,7 @@
   <div
     id="application-sidebar-left"
     :class="menuIsExpanded ? '' : 'w-[80px]'"
-    class="fixed z-10 flex h-screen w-[256px] flex-col items-center justify-start overflow-hidden bg-blue-900/90 p-4 text-white transition-all duration-300"
+    class="fixed z-10 flex h-screen w-[256px] flex-col items-center justify-start overflow-hidden bg-blue-900/80 p-4 text-white transition-all duration-300"
     style="height: calc(100vh - 35px)"
     @mouseenter="onMouseEnter"
     @mouseleave="onMouseLeave"

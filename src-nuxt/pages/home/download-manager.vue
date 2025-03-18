@@ -82,8 +82,8 @@
         Go to your library to start downloading a game or browse the list of available games to add to your library.
       </p>
 
-      <CrzButton @click="goToPage('/home/browse')" class="mt-4"> Browse all games </CrzButton>
-      <CrzButton @click="goToPage('/home/library')" class="mt-4"> Go to my library </CrzButton>
+      <CrzButton @click="goToPage('/home/browse')" class="mt-4"> Go to Browse </CrzButton>
+      <CrzButton @click="goToPage('/home/library')" class="mt-4"> Go to My Library </CrzButton>
     </div>
 
     <!-- Modal de confirmation pour annuler un telechargement -->
