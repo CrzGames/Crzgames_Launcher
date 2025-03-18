@@ -679,7 +679,7 @@ const setFilter: (filter: filter) => Promise<void> = async (filter: filter): Pro
   selectedGameModes.value = [] // Réinitialise les modes de jeu
   selectedLanguages.value = [] // Réinitialise les langues
   sortOption.value = 'releaseDate' // Réinitialise l'option de tri
-  await fetchAllGamesAndEnrichGame(filter)
+  await fetchAllGamesAndEnrichGame()
 }
 
 /**
@@ -878,10 +878,9 @@ const addGameToUserGameLibraryAndUpdateGameListAndNotify: (gameId: number) => Pr
 /**
  * Récupère tous les jeux depuis le backend et enrichit chaque jeu avec les statuts
  * de possession et de paiement en fonction de l'utilisateur connecté.
- * @param {filter} [filter] - Filtre actif pour les jeux à récupérer (optionnel)
  * @returns {Promise<void>} Une promesse qui se résout une fois les données chargées.
  */
-const fetchAllGamesAndEnrichGame: (filter?: filter) => Promise<void> = async (filter?: filter): Promise<void> => {
+const fetchAllGamesAndEnrichGame: () => Promise<void> = async (): Promise<void> => {
   // Activation de l'indicateur de chargement des jeux
   isLoadingGames.value = true
 
@@ -894,7 +893,7 @@ const fetchAllGamesAndEnrichGame: (filter?: filter) => Promise<void> = async (fi
       selectedGenres.value.length > 0 ? selectedGenres.value : undefined, // Genres sélectionnés
       selectedLanguages.value.length > 0 ? selectedLanguages.value : undefined, // Langues sélectionnées
       selectedGameModes.value.length > 0 ? selectedGameModes.value : undefined, // Modes de jeu sélectionnés
-      filter === 'featured', // Filtre actif pour les jeux à la une (nouveaux ou à venir)
+      activeFilter.value === 'featured', // Filtre actif pour les jeux à la une (nouveaux ou à venir)
       sortOption.value, // Option de tri sélectionnée
     )
 
@@ -982,12 +981,7 @@ const handleClickOutside: (event: MouseEvent) => void = (event: MouseEvent): voi
  * @returns {Promise<void>}
  */
 const handlePageChange: () => Promise<void> = async (): Promise<void> => {
-  if (activeFilter.value === 'featured') {
-    await fetchAllGamesAndEnrichGame(activeFilter.value)
-  } else {
-    await fetchAllGamesAndEnrichGame()
-  }
-
+  await fetchAllGamesAndEnrichGame()
   await scrollToTop()
 }
 
