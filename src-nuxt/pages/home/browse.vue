@@ -588,6 +588,7 @@ const moreFiltersMenu: Ref<HTMLElement | null> = ref<HTMLElement | null>(null)
  * @returns {Promise<void>} - Promise void
  */
 onMounted(async (): Promise<void> => {
+  await scrollToTop()
   await fetchAllGamesAndEnrichGame()
   await fetchGameCategories()
   await fetchLanguages()

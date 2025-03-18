@@ -1236,7 +1236,7 @@ const verifyInstallationGame: (game: GameModel) => Promise<void> = async (game: 
  * Défilement vers le haut de la page avec un effet de défilement doux.
  * @returns {Promise<void>}
  */
- const scrollToTop: () => Promise<void> = async (): Promise<void> => {
+const scrollToTop: () => Promise<void> = async (): Promise<void> => {
   await nextTick()
 
   // Trouver le conteneur scrollable défini dans layout-home.vue
