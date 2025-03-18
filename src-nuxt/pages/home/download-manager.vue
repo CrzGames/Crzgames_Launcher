@@ -240,6 +240,8 @@ const hasActiveOrCompletedDownloads: ComputedRef<boolean> = computed(
  */
 onMounted(async (): Promise<void> => {
   try {
+    await scrollToTop()
+
     // Charge les telechargements persistants depuis le store pour l'utilisateur actuel
     await downloadsStore.loadActiveDownloadsPersisted(currentAuthenticatedUser)
 
@@ -500,6 +502,27 @@ const pauseGameDownload: (gameToPauseDownload: ActiveDownloadGame) => void = (
     logger.error(`[Download Pause] Echec de la mise en pause pour ${gameToPauseDownload.gameTitle}`, error as Error)
     // Affiche une notification d'erreur a l'utilisateur
     notyf.error(`Failed to pause download for ${gameToPauseDownload.gameTitle}`)
+  }
+}
+
+/**
+ * Défilement vers le haut de la page avec un effet de défilement doux.
+ * @returns {Promise<void>}
+ */
+const scrollToTop: () => Promise<void> = async (): Promise<void> => {
+  await nextTick()
+
+  // Trouver le conteneur scrollable défini dans layout-home.vue
+  const scrollableContainer: HTMLElement | null = document.querySelector(
+    '.main-content-scrollable',
+  ) as HTMLElement | null
+
+  if (scrollableContainer) {
+    // Utiliser scrollTo sur le conteneur scrollable avec behavior: 'smooth'
+    scrollableContainer.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    })
   }
 }
 </script>

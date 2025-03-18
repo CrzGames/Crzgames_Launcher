@@ -67,6 +67,7 @@ const windowStore: any = useWindowStore()
  * @returns {Promise<void>}
  */
 onMounted(async (): Promise<void> => {
+  await scrollToTop()
   await fetchCarousels()
 
   /**
@@ -100,6 +101,27 @@ const fetchCarousels: () => Promise<void> = async (): Promise<void> => {
      * mis à false pour afficher le carrousel et non le spinner.
      */
     isLoadingCarousels.value = false
+  }
+}
+
+/**
+ * Défilement vers le haut de la page avec un effet de défilement doux.
+ * @returns {Promise<void>}
+ */
+const scrollToTop: () => Promise<void> = async (): Promise<void> => {
+  await nextTick()
+
+  // Trouver le conteneur scrollable défini dans layout-home.vue
+  const scrollableContainer: HTMLElement | null = document.querySelector(
+    '.main-content-scrollable',
+  ) as HTMLElement | null
+
+  if (scrollableContainer) {
+    // Utiliser scrollTo sur le conteneur scrollable avec behavior: 'smooth'
+    scrollableContainer.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    })
   }
 }
 </script>
