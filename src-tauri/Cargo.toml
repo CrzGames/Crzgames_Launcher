@@ -22,23 +22,23 @@ tauri-build = { version = "2.0.6", features = [] }
 [dependencies]
 tauri = { version = "2.3.1", features = [ "macos-private-api", "tray-icon", "image-ico", "image-png"] }
 tauri-plugin-single-instance = "2.2.2"
-tauri-plugin-updater = "2.6.0"
+tauri-plugin-updater = "2.6.1"
 tauri-plugin-process = "2.2.0"
 tauri-plugin-os = "2.2.1"
 tauri-plugin-notification = "2.2.2"
-tauri-plugin-log = { version = "2.3.0", features = ["colored"] }
+tauri-plugin-log = { version = "2.3.1", features = ["colored"] }
 tauri-plugin-fs = "2.2.0"
 tauri-plugin-dialog = "2.2.0"
 tauri-plugin-shell = "2.2.0"
 tauri-plugin-autostart = "2.2.0"
 lazy_static = "1.5.0"
-tokio = { version = "1.43.0", features = ["full"] }
-serde = { version = "1.0.218", features = ["derive"] }
-serde_json = "1.0.139"
+tokio = { version = "1.44.1", features = ["full"] }
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
 sysinfo = "0.33.1"
-reqwest = { version = "0.12.12", features = ["blocking"] }
+reqwest = { version = "0.12.14", features = ["blocking"] }
 flate2 = "1.1.0"
-zip = "2.2.2"
+zip = "2.4.1"
 dirs = "6.0.0"
 futures = "0.3.31"
 sha2 = "0.10.8"
