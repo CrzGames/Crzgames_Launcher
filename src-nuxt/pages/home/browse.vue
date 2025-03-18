@@ -885,7 +885,7 @@ const fetchAllGamesAndEnrichGame: () => Promise<void> = async (): Promise<void> 
 
   try {
     // Récupération des jeux depuis le store avec les paramètres de recherche, pagination et filtres
-    let fetchedGames: GameModel[] = await gameStore.getAllGames(
+    const fetchedGames: GameModel[] = await gameStore.getAllGames(
       lastValidatedSearchTerm.value || undefined, // Utilise la recherche validée
       currentPage.value, // Page actuelle
       perPage.value, // Nombre d'éléments par page
