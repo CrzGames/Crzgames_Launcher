@@ -123,7 +123,7 @@ const to: ComputedRef<number> = computed((): number => {
  */
 const visiblePages: ComputedRef<number[]> = computed((): number[] => {
   const pages: number[] = []
-  const maxVisible: number = 10 // Limite à 10 pages visibles
+  const maxVisible: number = 7 // Limite à 10 pages visibles
   const halfVisible: number = Math.floor(maxVisible / 2)
 
   // Calcul du début et de la fin des pages visibles
