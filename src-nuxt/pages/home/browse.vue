@@ -1,5 +1,4 @@
 <template>
-  <!-- Conteneur principal avec flexbox pour pousser la pagination en bas -->
   <div class="flex flex-col min-h-screen gap-8 px-4 py-5 text-white relative">
     <!-- Barre de recherche et boutons de navigation -->
     <div class="flex items-center w-full">
@@ -312,7 +311,7 @@
       </template>
     </div>
 
-    <!-- Composant de pagination, poussé en bas grâce à mt-auto -->
+    <!-- Composant de pagination -->
     <div class="mt-auto">
       <CrzPagination
         v-if="!isLoadingGames && games && games.length > 0"
