@@ -247,7 +247,7 @@ const signIn: () => Promise<void> = async (): Promise<void> => {
  */
 const goToPageHome: () => Promise<void> = async (): Promise<void> => {
   try {
-    await TauriService.adjustWindowToHome(1038, 660)
+    await TauriService.adjustWindowToHome(1042, 660)
   } catch (error) {
     console.error('goToPageHome error:', error)
   }
