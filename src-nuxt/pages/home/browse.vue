@@ -886,7 +886,7 @@ const fetchAllGamesAndEnrichGame: () => Promise<void> = async (): Promise<void> 
 
   try {
     // Récupération des jeux depuis le store avec les paramètres de recherche, pagination et filtres
-    const response: GameModel[] = await gameStore.getAllGames(
+    let fetchedGames: GameModel[] = await gameStore.getAllGames(
       lastValidatedSearchTerm.value || undefined, // Utilise la recherche validée
       currentPage.value, // Page actuelle
       perPage.value, // Nombre d'éléments par page
@@ -897,18 +897,8 @@ const fetchAllGamesAndEnrichGame: () => Promise<void> = async (): Promise<void> 
       sortOption.value, // Option de tri sélectionnée
     )
 
-    // Initialisation de la liste des jeux à enrichir
-    let fetchedGames: GameModel[] = response
-
-    // Récupération des métadonnées depuis l'état du store
-    const paginationMeta: PaginationMeta = gameStore.paginationMeta || {
-      total: 0,
-      from: 0,
-      to: 0,
-      currentPage: 1,
-      perPage: 24,
-    }
-    total.value = paginationMeta.total // Mise à jour du total basé sur les métadonnées
+    // Mise à jour du total basé sur les métadonnées de pagination
+    total.value = gameStore.paginationMeta.total
 
     // Récupération des statuts de paiement et de possession pour tous les jeux
     const allGamesPaidAndOwnedStatus: GamePaidAndOwnedStatus[] = await ProductService.getAllGamesProductsPaidAndOwned()
