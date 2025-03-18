@@ -886,6 +886,9 @@ const addGameToUserGameLibraryAndUpdateGameListAndNotify: (gameId: number) => Pr
  * @returns {Promise<void>} Une promesse qui se résout une fois les données chargées.
  */
 const fetchAllGamesAndEnrichGame: () => Promise<void> = async (): Promise<void> => {
+  // Activation de l'indicateur de chargement
+  isLoadingGames.value = true
+
   try {
     // Récupération des jeux depuis le store avec les paramètres de recherche, pagination et filtres
     const fetchedGames: GameModel[] = await gameStore.getAllGames(
@@ -904,9 +907,6 @@ const fetchAllGamesAndEnrichGame: () => Promise<void> = async (): Promise<void> 
 
     // Mettre à jour le nombre de skeletons basé sur le nombre de jeux récupérés
     skeletonCount.value = fetchedGames.length
-
-    // Activation de l'indicateur de chargement des jeux, après la récupération des jeux pour éviter des effets étranges
-    isLoadingGames.value = true
 
     // Récupération des statuts de paiement et de possession pour tous les jeux
     const allGamesPaidAndOwnedStatus: GamePaidAndOwnedStatus[] = await ProductService.getAllGamesProductsPaidAndOwned()
