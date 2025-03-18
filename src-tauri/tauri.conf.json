@@ -28,14 +28,16 @@
     ],
     "macOSPrivateApi": true,
     "security": {
-      "csp": "default-src 'self'; connect-src http://127.0.0.1:3333/ https://staging.api.crzcommon.com https://api.crzcommon.com http://ipc.localhost;",
+      "csp": "default-src 'self'; connect-src https://staging.api.crzcommon.com https://api.crzcommon.com http://127.0.0.1:3333 http://ipc.localhost; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; object-src 'none'; frame-src 'none';",
       "assetProtocol": {
         "enable": false,
         "scope": []
       },
       "dangerousDisableAssetCspModification": false,
       "freezePrototype": false,
-      "headers": {},
+      "headers": {
+        "X-Content-Type-Options": "nosniff"
+      },
       "pattern": {
         "use": "brownfield"
       }
