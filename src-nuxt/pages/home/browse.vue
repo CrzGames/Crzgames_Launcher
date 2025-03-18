@@ -274,7 +274,7 @@
       <!-- Skeleton loading ou jeux réels -->
       <template v-if="isLoadingGames">
         <!-- Afficher des placeholders (skeleton) pendant le chargement -->
-        <div v-for="n in perPage" :key="'skeleton-' + n">
+        <div v-for="n in skeletonCount" :key="'skeleton-' + n">
           <div class="w-full h-[290px] bg-gray-700 rounded-lg"></div>
           <div class="mt-2 h-[25px] bg-gray-700 rounded w-3/4"></div>
           <div class="mt-1 h-[18px] bg-gray-700 rounded w-1/2"></div>
@@ -505,6 +505,12 @@ const perPage: Ref<number> = ref(24)
  * @type {Ref<number>}
  */
 const total: Ref<number> = ref(0)
+
+/**
+ * Nombre de skeletons à afficher, basé sur le nombre de jeux de la page courante.
+ * @type {Ref<number>}
+ */
+const skeletonCount: Ref<number> = ref(perPage.value)
 
 /**
  * Liste des catégories de jeux récupérées depuis l'API.
@@ -880,9 +886,6 @@ const addGameToUserGameLibraryAndUpdateGameListAndNotify: (gameId: number) => Pr
  * @returns {Promise<void>} Une promesse qui se résout une fois les données chargées.
  */
 const fetchAllGamesAndEnrichGame: () => Promise<void> = async (): Promise<void> => {
-  // Activation de l'indicateur de chargement des jeux
-  isLoadingGames.value = true
-
   try {
     // Récupération des jeux depuis le store avec les paramètres de recherche, pagination et filtres
     const fetchedGames: GameModel[] = await gameStore.getAllGames(
@@ -898,6 +901,12 @@ const fetchAllGamesAndEnrichGame: () => Promise<void> = async (): Promise<void> 
 
     // Mise à jour du total basé sur les métadonnées de pagination
     total.value = gameStore.paginationMeta.total
+
+    // Mettre à jour le nombre de skeletons basé sur le nombre de jeux récupérés
+    skeletonCount.value = fetchedGames.length
+
+    // Activation de l'indicateur de chargement des jeux, après la récupération des jeux pour éviter des effets étranges
+    isLoadingGames.value = true
 
     // Récupération des statuts de paiement et de possession pour tous les jeux
     const allGamesPaidAndOwnedStatus: GamePaidAndOwnedStatus[] = await ProductService.getAllGamesProductsPaidAndOwned()
