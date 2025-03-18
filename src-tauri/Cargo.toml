@@ -3,7 +3,7 @@ name = "crzgames-launcher"
 version = "0.0.0"
 description = "Launcher for games"
 authors = ["corentin recanzone"]
-repository = "https://github.com/corentin35000/Crzgames_Launcher"
+repository = "https://github.com/CrzGames/Crzgames_Launcher"
 edition = "2021"
 rust-version = "1.85.0"
 
