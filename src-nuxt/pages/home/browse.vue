@@ -589,9 +589,9 @@ const moreFiltersMenu: Ref<HTMLElement | null> = ref<HTMLElement | null>(null)
  */
 onMounted(async (): Promise<void> => {
   await scrollToTop()
-  await fetchAllGamesAndEnrichGame()
   await fetchGameCategories()
   await fetchLanguages()
+  await fetchAllGamesAndEnrichGame()
 
   // Ajouter un écouteur pour détecter les clics en dehors
   document.addEventListener('click', handleClickOutside)

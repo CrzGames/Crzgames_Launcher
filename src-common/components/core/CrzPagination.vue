@@ -72,7 +72,7 @@ import { type ComputedRef, computed } from 'vue'
 
 /**
  * Props pour le composant CrzPagination.
- * @typedef {Object} CrzPaginationProps
+ * @type {object} CrzPaginationProps
  * @property {number} total - Nombre total d'éléments.
  * @property {number} perPage - Nombre d'éléments par page.
  * @property {number} currentPage - Numéro de la page actuelle.
