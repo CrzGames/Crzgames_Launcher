@@ -306,6 +306,9 @@ jobs:
           jq --arg sig "$WINDOWS_AARCH64_SIGNATURE" '.platforms["windows-aarch64"].signature = $sig' src-tauri/updater-launcher.json > src-tauri/updater-launcher.tmp.json
           mv src-tauri/updater-launcher.tmp.json src-tauri/updater-launcher.json
 
+          # Modifier tout les occurence du domaine : "https://api.crzcommon.com" en "https://staging.api.crzcommon.com" dans le fichier updater-launcher.json
+          sed -i 's/https:\/\/api.crzcommon.com/https:\/\/staging.api.crzcommon.com/g' src-tauri/updater-launcher.json
+
           # Display the updated updater-launcher.json file
           cat src-tauri/updater-launcher.json
 
