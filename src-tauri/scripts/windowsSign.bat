@@ -1,4 +1,5 @@
 @echo off
+echo =============================== >> log-windowsSign.txt
 echo Current directory: %CD% >> log-windowsSign.txt
 echo Signing file: %1 >> log-windowsSign.txt
 echo Attempting to run: binarie-sign-windows\AzureSignTool.exe >> log-windowsSign.txt
@@ -13,6 +14,8 @@ binarie-sign-windows\AzureSignTool.exe sign %1 ^
     --file-digest sha512
 if %ERRORLEVEL% NEQ 0 (
     echo Failed with error %ERRORLEVEL% >> log-windowsSign.txt
+    echo =============================== >> log-windowsSign.txt
     exit /b %ERRORLEVEL%
 )
 echo Signing completed successfully >> log-windowsSign.txt
+echo =============================== >> log-windowsSign.txt
