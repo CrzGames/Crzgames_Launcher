@@ -85,7 +85,7 @@ jobs:
           # Mot de passe du certificat p12
           MACOS_APPLE_CERTIFICATE_DEVELOPERIDAPPLICATION_P12_PASSWORD: ${{ secrets.MACOS_APPLE_CERTIFICATE_DEVELOPERIDAPPLICATION_P12_PASSWORD }}
           # Un nouveau trousseau sera créé sur le coureur, de sorte que le mot de passe du nouveau trousseau peut être n'importe quelle nouvelle chaîne aléatoire
-          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
         run: |
           # create variables
           CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
@@ -114,13 +114,13 @@ jobs:
           # Identifiant de l'équipe Apple
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           # Email du compte apple developer
-          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID: ${{ secrets.APPLE_ID }} 
           # Mot de passe de l'application spécifique Apple
-          APPLE_PASSWORD: ${{ secrets.MACOS_APPLE_APP_SPECIFIC_PASSWORD_CRZGAMESLAUNCHERSTAGING }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_APPLICATION_SPECIFIC_PASSWORD }}
           # Identifiant de l'émetteur de l'API
-          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_APPSTORECONNECT_API_ISSUER_ID }}
           # Clé de l'API
-          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY: ${{ secrets.APPLE_APPSTORECONNECT_API_KEY_ID }}
           # Le APPLE_PROVIDER_SHORT_NAME est nécessaire si votre Apple ID est associé à plusieurs équipes.
           # APPLE_PROVIDER_SHORT_NAME: ${{ secrets.APPLE_PROVIDER_SHORT_NAME }}
         run: |
