@@ -149,29 +149,23 @@ jobs:
         run: |
           mv src-tauri\target\x86_64-pc-windows-msvc\release\bundle\msi\*.msi src-tauri\target\x86_64-pc-windows-msvc\release\bundle\msi\CrzGamesSetup_x64.msi
           mv src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\*.exe src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\CrzGamesSetup_x64.exe
-          mv src-tauri\target\x86_64-pc-windows-msvc\release\bundle\msi\*.msi.zip src-tauri\target\x86_64-pc-windows-msvc\release\bundle\msi\CrzGamesSetup_x64.msi.zip
-          mv src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\*.nsis.zip src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\CrzGamesSetup_x64.nsis.zip
-          mv src-tauri\target\x86_64-pc-windows-msvc\release\bundle\msi\*.msi.zip.sig src-tauri\target\x86_64-pc-windows-msvc\release\bundle\msi\CrzGamesSetup_x64.msi.zip.sig
-          mv src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\*.nsis.zip.sig src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\CrzGamesSetup_x64.nsis.zip.sig
+          mv src-tauri\target\x86_64-pc-windows-msvc\release\bundle\msi\*.msi.sig src-tauri\target\x86_64-pc-windows-msvc\release\bundle\msi\CrzGamesSetup_x64.msi.sig
+          mv src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\*.nsis.sig src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\CrzGamesSetup_x64.nsis.sig
 
           mv src-tauri\target\aarch64-pc-windows-msvc\release\bundle\msi\*.msi src-tauri\target\aarch64-pc-windows-msvc\release\bundle\msi\CrzGamesSetup_arm64.msi
           mv src-tauri\target\aarch64-pc-windows-msvc\release\bundle\nsis\*.exe src-tauri\target\aarch64-pc-windows-msvc\release\bundle\nsis\CrzGamesSetup_arm64.exe
-          mv src-tauri\target\aarch64-pc-windows-msvc\release\bundle\msi\*.msi.zip src-tauri\target\aarch64-pc-windows-msvc\release\bundle\msi\CrzGamesSetup_arm64.msi.zip
-          mv src-tauri\target\aarch64-pc-windows-msvc\release\bundle\nsis\*.nsis.zip src-tauri\target\aarch64-pc-windows-msvc\release\bundle\nsis\CrzGamesSetup_arm64.nsis.zip
-          mv src-tauri\target\aarch64-pc-windows-msvc\release\bundle\msi\*.msi.zip.sig src-tauri\target\aarch64-pc-windows-msvc\release\bundle\msi\CrzGamesSetup_arm64.msi.zip.sig
-          mv src-tauri\target\aarch64-pc-windows-msvc\release\bundle\nsis\*.nsis.zip.sig src-tauri\target\aarch64-pc-windows-msvc\release\bundle\nsis\CrzGamesSetup_arm64.nsis.zip.sig
+          mv src-tauri\target\aarch64-pc-windows-msvc\release\bundle\msi\*.msi.sig src-tauri\target\aarch64-pc-windows-msvc\release\bundle\msi\CrzGamesSetup_arm64.msi.sig
+          mv src-tauri\target\aarch64-pc-windows-msvc\release\bundle\nsis\*.nsis.sig src-tauri\target\aarch64-pc-windows-msvc\release\bundle\nsis\CrzGamesSetup_arm64.nsis.sig
 
       - name: Rename file - Linux
         if: matrix.platform == 'ubuntu-22.04'
         run: |
-          mv src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage.tar.gz src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/CrzGamesSetup_x86_64.AppImage.tar.gz
-          mv src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage.tar.gz.sig src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/CrzGamesSetup_x86_64.AppImage.tar.gz.sig
+          mv src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage.sig src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/CrzGamesSetup_x86_64.AppImage.sig
           mv src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/CrzGamesSetup_x86_64.AppImage
           mv src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/*.deb src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/CrzGamesSetup_x86_64.deb
           mv src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/rpm/*.rpm src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/rpm/CrzGamesSetup_x86_64.rpm
 
-          mv src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/appimage/*.AppImage.tar.gz src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/appimage/CrzGamesSetup_arm64.AppImage.tar.gz
-          mv src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/appimage/*.AppImage.tar.gz.sig src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/appimage/CrzGamesSetup_arm64.AppImage.tar.gz.sig
+          mv src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/appimage/*.AppImage.sig src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/appimage/CrzGamesSetup_arm64.AppImage.sig
           mv src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/appimage/*.AppImage src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/appimage/CrzGamesSetup_arm64.AppImage
           mv src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb/*.deb src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb/CrzGamesSetup_arm64.deb
           mv src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/rpm/*.rpm src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/rpm/CrzGamesSetup_arm64.rpm
@@ -201,14 +195,12 @@ jobs:
             src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/*.deb
             src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/rpm/*.rpm
             src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage
-            src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage.tar.gz
-            src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage.tar.gz.sig
+            src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage.sig
 
             src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb/*.deb
             src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/rpm/*.rpm
             src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/appimage/*.AppImage
-            src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/appimage/*.AppImage.tar.gz
-            src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/appimage/*.AppImage.tar.gz.sig
+            src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/appimage/*.AppImage.sig
           retention-days: 1
           if-no-files-found: error
 
@@ -241,24 +233,13 @@ jobs:
           path: |
             src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi
             src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi.zip
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.nsis.zip
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi.zip.sig
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.nsis.zip.sig
-
-            src-tauri/target/i686-pc-windows-msvc/release/bundle/msi/*.msi
-            src-tauri/target/i686-pc-windows-msvc/release/bundle/nsis/*.exe
-            src-tauri/target/i686-pc-windows-msvc/release/bundle/msi/*.msi.zip
-            src-tauri/target/i686-pc-windows-msvc/release/bundle/nsis/*.nsis.zip
-            src-tauri/target/i686-pc-windows-msvc/release/bundle/msi/*.msi.zip.sig
-            src-tauri/target/i686-pc-windows-msvc/release/bundle/nsis/*.nsis.zip.sig
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi.sig
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.nsis.sig
 
             src-tauri/target/aarch64-pc-windows-msvc/release/bundle/msi/*.msi
             src-tauri/target/aarch64-pc-windows-msvc/release/bundle/nsis/*.exe
-            src-tauri/target/aarch64-pc-windows-msvc/release/bundle/msi/*.msi.zip
-            src-tauri/target/aarch64-pc-windows-msvc/release/bundle/nsis/*.nsis.zip
-            src-tauri/target/aarch64-pc-windows-msvc/release/bundle/msi/*.msi.zip.sig
-            src-tauri/target/aarch64-pc-windows-msvc/release/bundle/nsis/*.nsis.zip.sig
+            src-tauri/target/aarch64-pc-windows-msvc/release/bundle/msi/*.msi.sig
+            src-tauri/target/aarch64-pc-windows-msvc/release/bundle/nsis/*.nsis.sig
           retention-days: 1
           if-no-files-found: error
 
@@ -317,7 +298,7 @@ jobs:
 
       - name: Move and flatten Linux files to dist directory
         run: |
-          find linux -type f \( -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' -o -name '*.AppImage.tar.gz' -o -name '*.AppImage.tar.gz.sig' \) -exec mv {} dist/ \;
+          find linux -type f \( -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' -o -name '*.AppImage.sig' \) -exec mv {} dist/ \;
 
       - name: Move and flatten macOS files to dist directory
         run: |
@@ -345,7 +326,7 @@ jobs:
 
       - name: Move and flatten Windows files to dist directory
         run: |
-          find windows -type f \( -name '*.msi' -o -name '*.exe' -o -name '*.msi.zip' -o -name '*.nsis.zip' -o -name '*.msi.zip.sig' -o -name '*.nsis.zip.sig' \) -exec mv {} dist/ \;
+          find windows -type f \( -name '*.msi' -o -name '*.exe' -o -name '*.msi.sig' -o -name '*.nsis.sig' \) -exec mv {} dist/ \;
 
       - name: Deploy binaries Launcher for all platforms to bucket S3 (Minio)
         uses: mamal72/minio-perfect-deploy-action@main
