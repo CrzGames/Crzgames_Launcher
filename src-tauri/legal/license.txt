@@ -1,0 +1,37 @@
+CrzGames Launcher - License Agreement
+Proprietary Software License
+
+Copyright (c) 2025 DEV-ALL. All rights reserved.
+
+1. Ownership and Copyright
+   CrzGames Launcher ("the Software") is a proprietary software product developed and owned by DEV-ALL. This Software, including its code, design, and associated documentation, is protected by copyright laws and international treaties. All rights not expressly granted herein are reserved by DEV-ALL.
+
+2. Grant of License
+   DEV-ALL grants you, the end user, a non-exclusive, non-transferable, revocable license to use the Software solely for personal, non-commercial purposes. This license allows you to install and run the Software on your personal device to access and play games provided by CrzGames.
+
+3. Restrictions
+   You may not:
+   - Copy, modify, distribute, sell, or sublicense the Software, in whole or in part.
+   - Reverse engineer, decompile, disassemble, or attempt to derive the source code of the Software, except as permitted by applicable law.
+   - Remove, alter, or obscure any copyright, trademark, or proprietary notices within the Software.
+   - Use the Software for any illegal or unauthorized purpose.
+
+4. Updates and Support
+   DEV-ALL may provide updates, patches, or additional content for the Software at its sole discretion. These updates are subject to the terms of this license. DEV-ALL is not obligated to provide technical support or maintenance for the Software.
+
+5. Termination
+   This license is effective until terminated. DEV-ALL may terminate this license at any time if you fail to comply with its terms. Upon termination, you must cease all use of the Software and destroy all copies in your possession.
+
+6. Disclaimer of Warranty
+   The Software is provided "as is," without warranty of any kind, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, or non-infringement. DEV-ALL does not guarantee that the Software will be error-free or uninterrupted.
+
+7. Limitation of Liability
+   In no event shall DEV-ALL be liable for any indirect, incidental, special, or consequential damages arising from the use of or inability to use the Software, even if DEV-ALL has been advised of the possibility of such damages.
+
+8. Governing Law
+   This license shall be governed by and construed in accordance with the laws of [insère ton pays ou juridiction, par exemple "France" ou "the United States"]. Any disputes arising under this license shall be resolved in the courts of [insère la ville ou région compétente].
+
+Contact Information:
+For questions regarding this license, please contact DEV-ALL at support@crzgames.com
+
+By installing or using CrzGames Launcher, you agree to be bound by the terms of this license.
