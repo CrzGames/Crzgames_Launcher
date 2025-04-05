@@ -188,6 +188,9 @@ const ignoreConfig = {
     '.cache/**',
     'src-tauri/target/**',
     'src-tauri/gen/**',
+    'src-tauri/target/binarie-sign-windows/**',
+    'src-tauri/dmg-config/**',
+    'src-tauri/legal/**',
   ],
 }
 

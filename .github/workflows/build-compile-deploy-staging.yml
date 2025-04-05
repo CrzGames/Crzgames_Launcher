@@ -114,7 +114,7 @@ jobs:
           # Identifiant de l'équipe Apple
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           # Email du compte apple developer
-          APPLE_ID: ${{ secrets.APPLE_ID }} 
+          APPLE_ID: ${{ secrets.APPLE_ID }}
           # Mot de passe de l'application spécifique Apple
           APPLE_PASSWORD: ${{ secrets.APPLE_APPLICATION_SPECIFIC_PASSWORD }}
           # Identifiant de l'émetteur de l'API
