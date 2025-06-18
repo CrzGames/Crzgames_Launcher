@@ -22,7 +22,7 @@ tauri-build = { version = "2.2.0", features = [] }
 [dependencies]
 tauri = { version = "2.5.1", features = [ "macos-private-api", "tray-icon", "image-ico", "image-png"] }
 tauri-plugin-single-instance = "2.2.4"
-tauri-plugin-updater = "2.7.1"
+tauri-plugin-updater = "2.8.1"
 tauri-plugin-process = "2.2.1"
 tauri-plugin-os = "2.2.1"
 tauri-plugin-notification = "2.2.2"
