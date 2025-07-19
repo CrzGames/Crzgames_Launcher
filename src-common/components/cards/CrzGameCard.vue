@@ -197,7 +197,7 @@ import CrzPlatformsIcons from '#src-common/components/ui/CrzPlatformsIcons.vue'
 import type GameCategoryModel from '#src-common/core/models/GameCategoryModel'
 import type GamePlatformModel from '#src-common/core/models/GamePlatformModel'
 
-import EllipsisDropdownMenu from '#src-nuxt/components/menus/EllipsisDropdownMenu.vue'
+import EllipsisDropdownMenu from '#src-nuxt/app/components/menus/EllipsisDropdownMenu.vue'
 
 /* TYPES */
 /**

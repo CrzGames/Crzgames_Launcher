@@ -11,7 +11,11 @@ export default defineNuxtConfig({
       noscript: [],
     },
   },
-  srcDir: 'src-nuxt',
+  srcDir: 'src-nuxt/app',
+  serverDir: 'src-nuxt/server',
+  dir: {
+    public: 'src-nuxt/public', // Spécifie que le dossier public se trouve dans src-nuxt
+  },
   alias: {
     '#src-nuxt': fileURLToPath(new URL('./src-nuxt', import.meta.url)),
     '#src-common': fileURLToPath(new URL('./src-common', import.meta.url)),
@@ -72,7 +76,7 @@ export default defineNuxtConfig({
     } as any,
   },
   pinia: {
-    storesDirs: ['./src-nuxt/stores/**'],
+    storesDirs: ['./src-nuxt/app/stores/**'],
   },
   tailwindcss: {
     exposeConfig: true,

@@ -9,7 +9,7 @@ import { isPermissionGranted, requestPermission, sendNotification } from '@tauri
 import type { Arch, OsType, Platform } from '@tauri-apps/plugin-os'
 import { arch, hostname, platform, type } from '@tauri-apps/plugin-os'
 import { Base64 } from 'js-base64'
-import { useWindowStore } from '~~/src-nuxt/stores/window.store'
+import { useWindowStore } from '~~/src-nuxt/app/stores/window.store'
 
 import { CloudStorageS3Service } from '#src-common/core/services/CloudStorageS3Service'
 
