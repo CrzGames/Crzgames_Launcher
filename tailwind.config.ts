@@ -2,7 +2,7 @@ import type { Config } from 'tailwindcss'
 
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ['./src-nuxt/**/*.vue', './src-common/**/*.vue', './error.vue', './app.vue'],
+  content: ['./src-nuxt/**/*.vue', './src-common/**/*.vue'],
   theme: {
     screens: {
       xs: '375px',
