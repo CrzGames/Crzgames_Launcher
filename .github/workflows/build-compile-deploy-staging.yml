@@ -188,7 +188,7 @@ jobs:
 
       - name: Upload Artifact - Linux
         if: matrix.platform == 'ubuntu-22.04'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: linux
           path: |
@@ -206,7 +206,7 @@ jobs:
 
       - name: Upload Artifact - macOS
         if: matrix.platform == 'macos-15'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: macos
           path: |
@@ -227,7 +227,7 @@ jobs:
 
       - name: Upload Artifact - Windows
         if: matrix.platform == 'windows-2025'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: windows
           path: |
