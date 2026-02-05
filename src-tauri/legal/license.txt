@@ -1,7 +1,7 @@
 CrzGames Launcher - License Agreement
 Proprietary Software License
 
-Copyright (c) 2025 DEV-ALL. All rights reserved.
+Copyright (c) 2026 DEV-ALL. All rights reserved.
 
 1. Ownership and Copyright
    CrzGames Launcher ("the Software") is a proprietary software product developed and owned by DEV-ALL. This Software, including its code, design, and associated documentation, is protected by copyright laws and international treaties. All rights not expressly granted herein are reserved by DEV-ALL.
