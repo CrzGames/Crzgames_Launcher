@@ -5,18 +5,6 @@
 
 version: 2
 updates:
-  # Configuration for DockerCompose
-  - package-ecosystem: 'composer'
-    directory: '/' # Location of package manifests
-    schedule:
-      interval: 'daily'
-
-  # Configuration for cargo (Tauri Rust back-end)
-  - package-ecosystem: 'cargo'
-    directory: '/src-tauri' # Emplacement des manifests de paquets (Cargo.toml)
-    schedule:
-      interval: 'daily'
-
   - package-ecosystem: 'github-actions'
     directory: '/.github/workflows' # Chemin vers le répertoire contenant vos fichiers de workflow GitHub Actions
     schedule:

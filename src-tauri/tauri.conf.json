@@ -29,7 +29,7 @@
     "enableGTKAppId": false,
     "macOSPrivateApi": true,
     "security": {
-      "csp": "default-src 'self'; connect-src https://staging.api.crzcommon.com https://api.crzcommon.com http://127.0.0.1:3333 http://ipc.localhost; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; object-src 'none'; frame-src 'none';",
+      "csp": "default-src 'self'; connect-src https://staging.api.crzgames.com https://api.crzgames.com http://127.0.0.1:3333 http://ipc.localhost; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; object-src 'none'; frame-src 'none';",
       "assetProtocol": {
         "enable": false,
         "scope": []
@@ -90,7 +90,7 @@
       "files": {},
       "hardenedRuntime": true,
       "entitlements": null,
-      "exceptionDomain": "127.0.0.1 staging.api.crzcommon.com api.crzcommon.com",
+      "exceptionDomain": "127.0.0.1 staging.api.crzgames.com api.crzgames.com",
       "frameworks": [],
       "providerShortName": null,
       "signingIdentity": null,
@@ -116,7 +116,6 @@
         "type": "offlineInstaller"
       },
       "allowDowngrades": false,
-      "signCommand": "scripts\\windowsSign.bat %1",
       "nsis": null,
       "wix": null
     }
@@ -127,7 +126,7 @@
         "installMode": "passive"
       },
       "active": true,
-      "endpoints": ["https://api.crzcommon.com/launcher/updater-manifest/{{target}}/{{arch}}/{{current_version}}"],
+      "endpoints": ["https://api.crzgames.com/launcher/updater-manifest/{{target}}/{{arch}}/{{current_version}}"],
       "dialog": false,
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDE5NjU0QjdDQTI1Njk4MDYKUldRR21GYWlmRXRsR2Faekh4WGJSeVR4czJkTFZFSzI0enVtaGxxc2dNWm9yZG1nN0ZIU2Q3NXQK",
       "dangerousInsecureTransportProtocol": false

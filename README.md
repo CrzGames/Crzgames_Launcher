@@ -46,7 +46,7 @@ git commit --allow-empty -m "chore: release 1.1.0-rc.0" -m "Release-As: 1.1.0-rc
 
 1. Download and Install Microsoft Visual Studio 2022 (MSVC >= v143 and Windows SDK >= 10): https://visualstudio.microsoft.com/fr/vs/
 2. Download and Install WebView2 (if windows < 10) : https://developer.microsoft.com/en-us/microsoft-edge/webview2/#download-section
-3. Download and Install Rust version >= 1.85.1 : https://www.rust-lang.org/tools/install
+3. Download and Install Rust version >= 1.94.0 : https://www.rust-lang.org/tools/install
 4. Spécifiquement pour build du Windows pour `arm64`, il faut télécharger et installer LLVM, puis l'ajouté au PATH : https://github.com/llvm/llvm-project/releases
 
 ```bash
@@ -103,7 +103,7 @@ rustup default stable-aarch64-pc-windows-msvc # Windows arm64
 xcode-select --install
 ```
 
-2. Download and Install Rust version >= 1.85.1 :
+2. Download and Install Rust version >= 1.94.0 :
 
 ```bash
 # curl
@@ -139,7 +139,7 @@ export NVM_DIR="$HOME/.nvm"
 nvm install lts && nvm use lts
 ```
 
-6. Install dependencies for Vue.js/Tauri
+6. Install dependencies for Nuxt.js/Tauri
 
 ```bash
  # npm
@@ -160,7 +160,6 @@ npm run desktop:install:target:macos
 rustup default
 
 # Pour changer la chaine d'outils par défault utilisé, exemples :
-rustup default stable-x86_64-apple-darwin # macOS Intel x86_64
 rustup default stable-aarch64-unknown-linux-gnu # macOS Apple Silicon arm64
 ```
 
@@ -184,7 +183,7 @@ sudo apt install -y libwebkit2gtk-4.1-dev \
   fuse # for .AppImage
 ```
 
-2. Install Rust version >= 1.85.1 :
+2. Install Rust version >= 1.94.0 :
 
 ```bash
 # curl
@@ -423,17 +422,4 @@ produit un binaire macOS pour les machines Apple basé sur les processeurs Apple
 
 ```bash
 npm run desktop:build:macos:arm64
-```
-
-macOS Intel 64-bit (11.0+, Lion+) :
-produit un binaire macOS pour les machines Apple basé sur les processeurs Intel.
-
-```bash
-npm run desktop:build:macos:x86_64
-```
-
-macOS Apple Silicon arm64 (11.0+, Big Sur+) AND macOS Intel 64-bit (11.0+, Lion+) : produit un binaire macOS universel qui s'exécute à la fois sur le processeurs Apple Silicon et sur les Mac à processeur Intel.
-
-```bash
-npm run desktop:build:macos:universal
 ```

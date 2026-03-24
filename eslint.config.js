@@ -2,7 +2,6 @@ import eslintPluginStylistic from '@stylistic/eslint-plugin'
 import eslintPluginTypeScript from '@typescript-eslint/eslint-plugin'
 import eslintParserTypeScript from '@typescript-eslint/parser'
 import eslintConfigPrettier from 'eslint-config-prettier'
-import eslintPluginImport from 'eslint-plugin-import'
 import eslintPluginJSDoc from 'eslint-plugin-jsdoc'
 import eslintPluginPrettier from 'eslint-plugin-prettier'
 import eslintPluginUnusedImports from 'eslint-plugin-unused-imports'
@@ -25,7 +24,6 @@ const mainConfig = {
     'eslint-plugin-jsdoc': eslintPluginJSDoc,
     '@stylistic-eslint-plugin': eslintPluginStylistic,
     'eslint-plugin-vue': eslintPluginVue,
-    'eslint-plugin-import': eslintPluginImport,
   },
   rules: {
     /**
@@ -51,13 +49,6 @@ const mainConfig = {
         argsIgnorePattern: '^_', // Ignore les arguments de fonction qui commencent par un underscore.
       },
     ],
-
-    /**
-     * ESLINT PLUGIN : eslint-plugin-import
-     */
-
-    // Prévient les imports non résolus, aidant à identifier les dépendances manquantes.
-    'eslint-plugin-import/no-unresolved': 'error',
 
     /**
      * ESLINT PLUGIN : eslint-plugin-vue

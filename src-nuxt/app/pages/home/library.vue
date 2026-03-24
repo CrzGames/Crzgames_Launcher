@@ -263,7 +263,7 @@
 
 <script lang="ts" setup>
 import type { Notyf } from 'notyf'
-import { onMounted, ref, watch, watchEffect } from 'vue'
+import { nextTick, onMounted, ref, watch, watchEffect } from 'vue'
 import type { Ref } from 'vue'
 import CrzBadge from '~~/src-common/components/ui/CrzBadge.vue'
 
@@ -296,6 +296,8 @@ import PlayGameNotFoundExecutableModal from '#src-nuxt/app/components/modals/Pla
 import NavigationPages from '#src-nuxt/app/components/navigations/NavigationPages.vue'
 import Divider from '#src-nuxt/app/components/ui/Divider.vue'
 import { useAuthStore } from '#src-nuxt/app/stores/auth.store'
+import { useDownloadsStore } from '#src-nuxt/app/stores/downloads.store'
+import type { ActiveDownloadGame, CompleteDownloadGame } from '#src-nuxt/app/stores/downloads.store'
 import { useUserGameLibrariesStore } from '#src-nuxt/app/stores/userGameLibraries.store'
 
 /* LAYOUT - MIDDLEWARE - TRANSITIONS */
@@ -315,7 +317,7 @@ definePageMeta({
 /* STORE */
 const userGameLibrariesStore: any = useUserGameLibrariesStore()
 const authStore: any = useAuthStore()
-const downloadsStore: any = useDownloadsStore()
+const downloadsStore: ReturnType<typeof useDownloadsStore> = useDownloadsStore()
 
 /* DATA */
 /**
@@ -371,7 +373,9 @@ onMounted(async (): Promise<void> => {
   try {
     await scrollToTop()
     currentSystemOSInfo.value = await TauriService.getSystemOSCurrent()
-    await downloadsStore.loadActiveDownloadsPersisted(user)
+    if (user) {
+      await downloadsStore.loadActiveDownloadsPersisted(user)
+    }
     await loadGames()
   } catch (error) {
     console.error('Error occurred while loading games: ', error)
