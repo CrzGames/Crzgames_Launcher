@@ -46,6 +46,7 @@ import { TauriService } from '#src-core/services/TauriService'
 import type { Credentials } from '#src-core/services/TauriService'
 
 import { useAuthStore } from '#src-nuxt/app/stores/auth.store'
+import { useNavigationStore } from '#src-nuxt/app/stores/navigation.store'
 
 const { $notyf } = useNuxtApp()
 
