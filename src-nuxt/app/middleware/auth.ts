@@ -12,8 +12,19 @@ import { useAuthStore } from '#src-nuxt/app/stores/auth.store'
  * @param {RouteLocationNormalized} _from - Route depuis laquelle l'utilisateur souhaite accéder
  */
 export default defineNuxtRouteMiddleware(async (_to: RouteLocationNormalized, _from: RouteLocationNormalized) => {
-  await useAuthStore().fetchUser()
-  if (!useAuthStore().isConnected) {
+  const authStore: any = useAuthStore()
+
+  if (!authStore.authToken) {
+    await TauriService.adjustWindowHomeToLoginForMiddleware(400, 585)
+    await navigateTo('/login')
+    return
+  }
+
+  if (!authStore.user) {
+    await authStore.fetchUser()
+  }
+
+  if (!authStore.isConnected) {
     await TauriService.adjustWindowHomeToLoginForMiddleware(400, 585)
     await navigateTo('/login')
   }

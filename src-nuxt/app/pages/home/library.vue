@@ -1008,6 +1008,27 @@ const downloadGame: (files?: FileDetails[]) => Promise<void> = async (files?: Fi
   const createDesktopShortcutCurrent: boolean = createDesktopShortcut.value
   const currentSystemOSInfoCurrent: SystemOSInfo | undefined = currentSystemOSInfo.value
   const gameToDownloadFileSizeCurrent: number | undefined = gameToDownloadFileSize.value
+  const estimatedTotalSizeToDownload: number =
+    gameToDownloadFileSizeCurrent ||
+    (files
+      ? files.reduce((totalSize: number, file: FileDetails): number => totalSize + file.size, 0)
+      : preloadedPayload?.totalSizeToDownload || 0)
+
+  if (game && gamePathInstallLocationPathSystem) {
+    downloadsStore.addActiveDownload({
+      pathInstallLocation: gamePathInstallLocationPathSystem,
+      gameId: game.id,
+      gameTitle: game.title,
+      gamePictureUrl: game.pictureFile.url,
+      isPlaying: true,
+      progress: 0,
+      totalDownloadedBytesNow: 0,
+      totalSizeToDownload: estimatedTotalSizeToDownload,
+      gameBinarySize: estimatedTotalSizeToDownload,
+      speed: '0 B/s',
+      remainingTime: 'Calculating...',
+    } as ActiveDownloadGame)
+  }
 
   closeDownloadModal()
   await navigateTo('/home/download-manager')

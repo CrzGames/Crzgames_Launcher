@@ -29,9 +29,12 @@ const gamePictureUrlCache: Map<number, string> = new Map<number, string>()
 const pendingGamePictureByGameId: Map<number, Promise<string>> = new Map<number, Promise<string>>()
 const lastPersistAtByGameId: Map<number, number> = new Map<number, number>()
 const lastProgressLogAtByGameId: Map<number, number> = new Map<number, number>()
+const lastEnqueuedProgressEventAtByGameId: Map<number, number> = new Map<number, number>()
 
 const PERSIST_PROGRESS_INTERVAL_MS: number = 1000
 const PROGRESS_LOG_INTERVAL_MS: number = 1000
+const PROGRESS_EVENT_ENQUEUE_INTERVAL_MS_DOWNLOAD_MANAGER: number = 120
+const PROGRESS_EVENT_ENQUEUE_INTERVAL_MS_BACKGROUND: number = 900
 let tauriEventsProcessingQueue: Promise<void> = Promise.resolve()
 
 /**
@@ -109,6 +112,28 @@ const enqueueTauriEventProcessing: (handler: () => Promise<void>) => void = (han
 }
 
 /**
+ * Indique si la route active est la page Download Manager.
+ * @returns {boolean}
+ */
+const isDownloadManagerRouteActive: () => boolean = (): boolean => {
+  if (typeof window === 'undefined') {
+    return false
+  }
+
+  return window.location.pathname.includes('/home/download-manager')
+}
+
+/**
+ * Retourne l'intervalle de throttling des events de progression selon la page active.
+ * @returns {number}
+ */
+const getProgressEventEnqueueIntervalMs: () => number = (): number => {
+  return isDownloadManagerRouteActive()
+    ? PROGRESS_EVENT_ENQUEUE_INTERVAL_MS_DOWNLOAD_MANAGER
+    : PROGRESS_EVENT_ENQUEUE_INTERVAL_MS_BACKGROUND
+}
+
+/**
  * Recupere l'URL d'image d'un jeu avec cache memoize.
  * @param {number} gameId - Identifiant du jeu
  * @param {ReturnType<typeof useDownloadsStore>} downloadsStore - Store des telechargements
@@ -169,6 +194,33 @@ export default defineNuxtPlugin(async () => {
    * Ecouter l'evenement de progression du telechargement d'un jeu
    */
   unlistenDownload = await listen('download-game-progress', (event: any) => {
+    if (!event?.payload) {
+      return
+    }
+
+    const gameIdFromPayload: number = toNumber(event.payload.gameId, -1)
+    if (gameIdFromPayload < 0) {
+      return
+    }
+
+    const payloadTotalSizeToDownload: number = toNumber(event.payload.totalSizeToDownload, 0)
+    const fallbackGameBinarySize: number = toNumber(event.payload.gameBinarySize, 0)
+    const totalSizeToDownload: number =
+      payloadTotalSizeToDownload > 0 ? payloadTotalSizeToDownload : fallbackGameBinarySize
+    const rawTotalDownloaded: number = Math.max(toNumber(event.payload.totalDownloaded, 0), 0)
+    const isNearCompletionEvent: boolean = totalSizeToDownload > 0 && rawTotalDownloaded >= totalSizeToDownload
+
+    const now: number = Date.now()
+    const lastEnqueuedAt: number = lastEnqueuedProgressEventAtByGameId.get(gameIdFromPayload) || 0
+    const currentEnqueueIntervalMs: number = getProgressEventEnqueueIntervalMs()
+    const shouldEnqueueEvent: boolean = isNearCompletionEvent || now - lastEnqueuedAt >= currentEnqueueIntervalMs
+
+    if (!shouldEnqueueEvent) {
+      return
+    }
+
+    lastEnqueuedProgressEventAtByGameId.set(gameIdFromPayload, now)
+
     enqueueTauriEventProcessing(async (): Promise<void> => {
       await handleDownloadProgress(event)
     })
@@ -326,6 +378,7 @@ const handleGameInstallationComplete: (event: any) => Promise<void> = async (eve
   completedSessionByGameId.set(gameId, sessionId)
   lastPersistAtByGameId.delete(gameId)
   lastProgressLogAtByGameId.delete(gameId)
+  lastEnqueuedProgressEventAtByGameId.delete(gameId)
 
   const payloadTotalSizeToDownload: number = toNumber(event.payload.totalSizeToDownload, 0)
   const fallbackGameBinarySize: number = toNumber(event.payload.gameBinarySize, 0)

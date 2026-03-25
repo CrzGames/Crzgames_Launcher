@@ -2,12 +2,12 @@
   <CrzButton
     :variant="props.isPlaying ? 'primary' : 'green'"
     v-tooltip.top.auto="props.isPlaying ? 'Pause download' : 'Resume download'"
-    @click="props.isPlaying ? emit('pause') : emit('play')"
-    class="h-8 w-8 px-0 py-0"
+    @click.stop.prevent="props.isPlaying ? emit('pause') : emit('play')"
+    class="h-10 w-10 min-w-10 px-0 py-0 flex items-center justify-center"
     size="sm"
   >
-    <CrzIcon v-if="props.isPlaying" class="absolute" name="pause" mode="stroke" :width="20" :height="20" />
-    <CrzIcon v-else class="absolute" name="play" mode="stroke" :width="20" :height="20" />
+    <CrzIcon v-if="props.isPlaying" class="pointer-events-none" name="pause" mode="stroke" :width="20" :height="20" />
+    <CrzIcon v-else class="pointer-events-none" name="play" mode="stroke" :width="20" :height="20" />
   </CrzButton>
 </template>
 
