@@ -997,6 +997,24 @@ const closeDownloadModal: () => void = (): void => {
 }
 
 /**
+ * Calcule la taille totale des fichiers a telecharger.
+ * - Si une liste de fichiers est fournie (repair/update), elle est prioritaire.
+ * - Sinon on utilise la valeur fallback (modal/preload).
+ * @param {FileDetails[] | undefined} files - Liste des fichiers cibles
+ * @param {number | undefined} fallbackTotalSize - Taille de secours
+ * @returns {number} Taille totale a telecharger en octets.
+ */
+const resolveTotalSizeToDownload: (files?: FileDetails[], fallbackTotalSize?: number) => number = (
+  files?: FileDetails[],
+  fallbackTotalSize?: number,
+): number => {
+  if (files && files.length > 0) {
+    return files.reduce((totalSize: number, file: FileDetails): number => totalSize + file.size, 0)
+  }
+  return fallbackTotalSize || 0
+}
+
+/**
  * TÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©charger le jeu
  * @param {FileDetails[]} files - The files
  * @returns {void} - The promise
@@ -1008,11 +1026,10 @@ const downloadGame: (files?: FileDetails[]) => Promise<void> = async (files?: Fi
   const createDesktopShortcutCurrent: boolean = createDesktopShortcut.value
   const currentSystemOSInfoCurrent: SystemOSInfo | undefined = currentSystemOSInfo.value
   const gameToDownloadFileSizeCurrent: number | undefined = gameToDownloadFileSize.value
-  const estimatedTotalSizeToDownload: number =
-    gameToDownloadFileSizeCurrent ||
-    (files
-      ? files.reduce((totalSize: number, file: FileDetails): number => totalSize + file.size, 0)
-      : preloadedPayload?.totalSizeToDownload || 0)
+  const estimatedTotalSizeToDownload: number = resolveTotalSizeToDownload(
+    files,
+    gameToDownloadFileSizeCurrent || preloadedPayload?.totalSizeToDownload,
+  )
 
   if (game && gamePathInstallLocationPathSystem) {
     downloadsStore.addActiveDownload({
@@ -1041,11 +1058,7 @@ const downloadGame: (files?: FileDetails[]) => Promise<void> = async (files?: Fi
     try {
       if (user && preloadedPayload?.gameId === game.id) {
         const filesToDownload: FileDetails[] = files || preloadedPayload.gameManifestRemote.files
-        const computedTotalSizeToDownload: number =
-          gameToDownloadFileSizeCurrent ||
-          (files
-            ? files.reduce((totalSize: number, file: FileDetails): number => totalSize + file.size, 0)
-            : preloadedPayload.totalSizeToDownload)
+        const gameBinaryTotalSize: number = resolveTotalSizeToDownload(preloadedPayload.gameManifestRemote.files, 0)
 
         await TauriService.downloadGame(
           preloadedPayload.bucketName,
@@ -1054,7 +1067,7 @@ const downloadGame: (files?: FileDetails[]) => Promise<void> = async (files?: Fi
           createDesktopShortcutCurrent,
           game.title,
           preloadedPayload.latestVersion,
-          computedTotalSizeToDownload,
+          gameBinaryTotalSize,
           game.id,
           user.id,
           filesToDownload,
@@ -1103,9 +1116,7 @@ const downloadGame: (files?: FileDetails[]) => Promise<void> = async (files?: Fi
 
             if (user && gameManifestRemote) {
               const filesToDownload: FileDetails[] = files || gameManifestRemote.files
-              const computedTotalSizeToDownload: number =
-                gameToDownloadFileSizeCurrent ||
-                filesToDownload.reduce((totalSize: number, file: FileDetails): number => totalSize + file.size, 0)
+              const gameBinaryTotalSize: number = resolveTotalSizeToDownload(gameManifestRemote.files, 0)
 
               await TauriService.downloadGame(
                 gameBinaryPlatform.file.bucket.name,
@@ -1114,7 +1125,7 @@ const downloadGame: (files?: FileDetails[]) => Promise<void> = async (files?: Fi
                 createDesktopShortcutCurrent,
                 game.title,
                 latestGameVersionAvailable.version,
-                computedTotalSizeToDownload,
+                gameBinaryTotalSize,
                 game.id,
                 user.id,
                 filesToDownload,
@@ -1230,7 +1241,7 @@ const openFixGameInstalledModal: (game: GameModel) => Promise<void> = async (gam
     launcherGetPath = false
   }
 
-  await setInstallLocationDefault(false, launcherGetPath, 1000, pathInstallLocationGame)
+  await setInstallLocationDefault(false, launcherGetPath, 0, pathInstallLocationGame)
 
   showFixGameInstalledModal.value = true
 }
@@ -1337,6 +1348,9 @@ const verifyInstallationGame: (game: GameModel) => Promise<void> = async (game: 
         showFixInstallationInformationsError.value = false
 
         filesRepair.value = files
+        const repairMissingFilesSize: number = resolveTotalSizeToDownload(files, 0)
+        gameToDownloadFileSize.value = repairMissingFilesSize
+        checkIfEnoughDiskSpace(repairMissingFilesSize)
         return
       }
     }

@@ -162,14 +162,52 @@ fn clean_up_directory(game_directory: &Path, game_manifest: &GameManifestLocal) 
 }
 
 type DownloadState = Arc<Mutex<HashMap<u64, (Arc<AtomicBool>, Arc<AtomicBool>)>>>;
+type RunningDownloadsState = Arc<Mutex<HashSet<u64>>>;
 
 lazy_static! {
     static ref DOWNLOAD_STATES: DownloadState = Arc::new(Mutex::new(HashMap::new()));
+    static ref RUNNING_DOWNLOADS: RunningDownloadsState = Arc::new(Mutex::new(HashSet::new()));
 }
 
 fn get_or_create_download_state(game_id: u64) -> (Arc<AtomicBool>, Arc<AtomicBool>) {
     let mut states = DOWNLOAD_STATES.lock().unwrap();
     states.entry(game_id).or_insert_with(|| (Arc::new(AtomicBool::new(false)), Arc::new(AtomicBool::new(false)))).clone()
+}
+
+fn try_mark_download_running(game_id: u64) -> bool {
+    let mut running_downloads = RUNNING_DOWNLOADS.lock().unwrap();
+    running_downloads.insert(game_id)
+}
+
+fn unmark_download_running(game_id: u64) {
+    let mut running_downloads = RUNNING_DOWNLOADS.lock().unwrap();
+    running_downloads.remove(&game_id);
+}
+
+struct DownloadRunningGuard {
+    game_id: u64,
+}
+
+impl Drop for DownloadRunningGuard {
+    fn drop(&mut self) {
+        unmark_download_running(self.game_id);
+    }
+}
+
+fn atomic_saturating_sub(atomic: &AtomicU64, value: u64) {
+    let mut current = atomic.load(Ordering::Relaxed);
+    loop {
+        let new_value = current.saturating_sub(value);
+        match atomic.compare_exchange_weak(
+            current,
+            new_value,
+            Ordering::Relaxed,
+            Ordering::Relaxed,
+        ) {
+            Ok(_) => break,
+            Err(actual) => current = actual,
+        }
+    }
 }
 
 #[tauri::command]
@@ -329,99 +367,7 @@ async fn download_single_file_with_resume(
     total_downloaded_atomic: Arc<AtomicU64>,
     session_downloaded_atomic: Arc<AtomicU64>,
 ) -> Result<FileDetails, String> {
-    if cancel_flag.load(Ordering::Relaxed) {
-        return Err("Download canceled".to_string());
-    }
-    if pause_flag.load(Ordering::Relaxed) {
-        return Err("Download paused".to_string());
-    }
-
-    let target_path = game_directory.join(&file.name);
-    if let Some(parent) = target_path.parent() {
-        fs::create_dir_all(parent).map_err(|e| format!("Failed to create parent directory: {}", e))?;
-    }
-
-    if target_path.exists() {
-        match calculate_file_hash(&target_path) {
-            Ok(existing_hash) if existing_hash == file.hash => return Ok(file),
-            _ => {
-                let _ = fs::remove_file(&target_path);
-            }
-        }
-    }
-
-    let part_path = get_part_file_path(&target_path);
-    let mut resume_offset: u64 = 0;
-    if part_path.exists() {
-        resume_offset = fs::metadata(&part_path)
-            .map_err(|e| format!("Failed to read .part metadata for {}: {}", file.name, e))?
-            .len();
-
-        if resume_offset > file.size {
-            let _ = fs::remove_file(&part_path);
-            resume_offset = 0;
-        }
-    }
-
-    if resume_offset == file.size && file.size > 0 {
-        if !target_path.exists() {
-            fs::rename(&part_path, &target_path)
-                .map_err(|e| format!("Failed to restore complete part file for {}: {}", file.name, e))?;
-        }
-
-        let downloaded_hash = calculate_file_hash(&target_path)?;
-        if downloaded_hash == file.hash {
-            total_downloaded_atomic.fetch_add(file.size, Ordering::Relaxed);
-            return Ok(file);
-        }
-
-        let _ = fs::remove_file(&target_path);
-        let _ = fs::remove_file(&part_path);
-        resume_offset = 0;
-    }
-
-    let presigned_url = fetch_presigned_download_url(
-        &client,
-        &presign_api_url,
-        &bucket_name,
-        &full_path,
-    )
-    .await?;
-
-    let mut request_builder = client.get(&presigned_url);
-    if resume_offset > 0 {
-        request_builder = request_builder.header(reqwest::header::RANGE, format!("bytes={}-", resume_offset));
-    }
-
-    let response = request_builder
-        .send()
-        .await
-        .map_err(|e| format!("Failed to send download request for {}: {}", file.name, e))?;
-
-    if !response.status().is_success() {
-        return Err(format!(
-            "Failed to download {}: HTTP {}",
-            file.name,
-            response.status()
-        ));
-    }
-
-    if resume_offset > 0 && response.status() == reqwest::StatusCode::OK {
-        total_downloaded_atomic.fetch_sub(resume_offset, Ordering::Relaxed);
-        resume_offset = 0;
-    }
-
-    let mut output = TokioOpenOptions::new()
-        .create(true)
-        .write(true)
-        .append(resume_offset > 0)
-        .truncate(resume_offset == 0)
-        .open(&part_path)
-        .await
-        .map_err(|e| format!("Failed to open .part file for {}: {}", file.name, e))?;
-
-    let mut stream = response.bytes_stream();
-    while let Some(chunk) = stream.next().await {
+    for attempt in 0..=1 {
         if cancel_flag.load(Ordering::Relaxed) {
             return Err("Download canceled".to_string());
         }
@@ -429,50 +375,191 @@ async fn download_single_file_with_resume(
             return Err("Download paused".to_string());
         }
 
-        let bytes = chunk.map_err(|e| format!("Error receiving chunk for {}: {}", file.name, e))?;
-        output
-            .write_all(&bytes)
+        let target_path = game_directory.join(&file.name);
+        if let Some(parent) = target_path.parent() {
+            fs::create_dir_all(parent)
+                .map_err(|e| format!("Failed to create parent directory: {}", e))?;
+        }
+
+        if target_path.exists() {
+            match calculate_file_hash(&target_path) {
+                Ok(existing_hash) if existing_hash == file.hash => return Ok(file),
+                _ => {
+                    let _ = fs::remove_file(&target_path);
+                }
+            }
+        }
+
+        let part_path = get_part_file_path(&target_path);
+        let mut resume_offset: u64 = 0;
+        if part_path.exists() {
+            resume_offset = fs::metadata(&part_path)
+                .map_err(|e| format!("Failed to read .part metadata for {}: {}", file.name, e))?
+                .len();
+
+            if resume_offset > file.size {
+                let _ = fs::remove_file(&part_path);
+                resume_offset = 0;
+            }
+        }
+        let mut counted_resume_bytes: u64 = if resume_offset < file.size {
+            resume_offset
+        } else {
+            0
+        };
+
+        if resume_offset == file.size && file.size > 0 {
+            if !target_path.exists() {
+                fs::rename(&part_path, &target_path).map_err(|e| {
+                    format!("Failed to restore complete part file for {}: {}", file.name, e)
+                })?;
+            }
+
+            let downloaded_hash = calculate_file_hash(&target_path)?;
+            if downloaded_hash == file.hash {
+                total_downloaded_atomic.fetch_add(file.size, Ordering::Relaxed);
+                return Ok(file);
+            }
+
+            let _ = fs::remove_file(&target_path);
+            let _ = fs::remove_file(&part_path);
+            resume_offset = 0;
+            counted_resume_bytes = 0;
+        }
+
+        let presigned_url = fetch_presigned_download_url(
+            &client,
+            &presign_api_url,
+            &bucket_name,
+            &full_path,
+        )
+        .await?;
+
+        let mut request_builder = client.get(&presigned_url);
+        if resume_offset > 0 {
+            request_builder =
+                request_builder.header(reqwest::header::RANGE, format!("bytes={}-", resume_offset));
+        }
+
+        let response = request_builder
+            .send()
             .await
-            .map_err(|e| format!("Failed to write chunk for {}: {}", file.name, e))?;
+            .map_err(|e| format!("Failed to send download request for {}: {}", file.name, e))?;
 
-        let chunk_len = bytes.len() as u64;
-        total_downloaded_atomic.fetch_add(chunk_len, Ordering::Relaxed);
-        session_downloaded_atomic.fetch_add(chunk_len, Ordering::Relaxed);
+        if !response.status().is_success() {
+            return Err(format!(
+                "Failed to download {}: HTTP {}",
+                file.name,
+                response.status()
+            ));
+        }
+
+        if resume_offset > 0 && response.status() == reqwest::StatusCode::OK {
+            atomic_saturating_sub(&total_downloaded_atomic, counted_resume_bytes);
+            atomic_saturating_sub(&session_downloaded_atomic, counted_resume_bytes);
+            counted_resume_bytes = 0;
+            resume_offset = 0;
+        }
+
+        let mut output = TokioOpenOptions::new()
+            .create(true)
+            .write(true)
+            .append(resume_offset > 0)
+            .truncate(resume_offset == 0)
+            .open(&part_path)
+            .await
+            .map_err(|e| format!("Failed to open .part file for {}: {}", file.name, e))?;
+
+        let mut bytes_written_this_attempt: u64 = 0;
+        let mut stream = response.bytes_stream();
+        while let Some(chunk) = stream.next().await {
+            if cancel_flag.load(Ordering::Relaxed) {
+                return Err("Download canceled".to_string());
+            }
+            if pause_flag.load(Ordering::Relaxed) {
+                return Err("Download paused".to_string());
+            }
+
+            let bytes = chunk.map_err(|e| format!("Error receiving chunk for {}: {}", file.name, e))?;
+            output
+                .write_all(&bytes)
+                .await
+                .map_err(|e| format!("Failed to write chunk for {}: {}", file.name, e))?;
+
+            let chunk_len = bytes.len() as u64;
+            bytes_written_this_attempt = bytes_written_this_attempt.saturating_add(chunk_len);
+            total_downloaded_atomic.fetch_add(chunk_len, Ordering::Relaxed);
+            session_downloaded_atomic.fetch_add(chunk_len, Ordering::Relaxed);
+        }
+
+        output
+            .flush()
+            .await
+            .map_err(|e| format!("Failed to flush .part file for {}: {}", file.name, e))?;
+        drop(output);
+
+        let downloaded_size = fs::metadata(&part_path)
+            .map_err(|e| format!("Failed to read final .part size for {}: {}", file.name, e))?
+            .len();
+
+        if downloaded_size != file.size {
+            let rollback_bytes = counted_resume_bytes.saturating_add(bytes_written_this_attempt);
+            atomic_saturating_sub(&total_downloaded_atomic, rollback_bytes);
+            atomic_saturating_sub(&session_downloaded_atomic, rollback_bytes);
+
+            let _ = fs::remove_file(&part_path);
+            let _ = fs::remove_file(&target_path);
+
+            if attempt == 0 {
+                println!(
+                    "Retrying {} after size mismatch (expected {}, got {})",
+                    file.name, file.size, downloaded_size
+                );
+                continue;
+            }
+
+            return Err(format!(
+                "File size mismatch for {}: expected {}, got {}",
+                file.name, file.size, downloaded_size
+            ));
+        }
+
+        if target_path.exists() {
+            let _ = fs::remove_file(&target_path);
+        }
+        fs::rename(&part_path, &target_path)
+            .map_err(|e| format!("Failed to finalize downloaded file {}: {}", file.name, e))?;
+
+        let downloaded_hash = calculate_file_hash(&target_path)?;
+        if downloaded_hash != file.hash {
+            let rollback_bytes = counted_resume_bytes.saturating_add(bytes_written_this_attempt);
+            atomic_saturating_sub(&total_downloaded_atomic, rollback_bytes);
+            atomic_saturating_sub(&session_downloaded_atomic, rollback_bytes);
+
+            let _ = fs::remove_file(&target_path);
+            let _ = fs::remove_file(&part_path);
+
+            if attempt == 0 {
+                println!(
+                    "Retrying {} after hash mismatch (expected {}, got {})",
+                    file.name, file.hash, downloaded_hash
+                );
+                continue;
+            }
+
+            return Err(format!(
+                "File hash mismatch for {}: expected {}, got {}",
+                file.name, file.hash, downloaded_hash
+            ));
+        }
+
+        return Ok(file);
     }
 
-    output
-        .flush()
-        .await
-        .map_err(|e| format!("Failed to flush .part file for {}: {}", file.name, e))?;
-    drop(output);
-
-    let downloaded_size = fs::metadata(&part_path)
-        .map_err(|e| format!("Failed to read final .part size for {}: {}", file.name, e))?
-        .len();
-
-    if downloaded_size != file.size {
-        return Err(format!(
-            "File size mismatch for {}: expected {}, got {}",
-            file.name, file.size, downloaded_size
-        ));
-    }
-
-    if target_path.exists() {
-        let _ = fs::remove_file(&target_path);
-    }
-    fs::rename(&part_path, &target_path)
-        .map_err(|e| format!("Failed to finalize downloaded file {}: {}", file.name, e))?;
-
-    let downloaded_hash = calculate_file_hash(&target_path)?;
-    if downloaded_hash != file.hash {
-        let _ = fs::remove_file(&target_path);
-        return Err(format!(
-            "File hash mismatch for {}: expected {}, got {}",
-            file.name, file.hash, downloaded_hash
-        ));
-    }
-
-    Ok(file)
+    Err(format!(
+        "Failed to download {} after retries",
+        file.name
+    ))
 }
 
 #[tauri::command]
@@ -497,6 +584,14 @@ async fn download_and_update_game(
     let (cancel_flag, pause_flag) = get_or_create_download_state(game_id);
     cancel_flag.store(false, Ordering::Relaxed);
     pause_flag.store(false, Ordering::Relaxed);
+    if !try_mark_download_running(game_id) {
+        println!(
+            "[download_and_update_game] game_id={} already running, skipping duplicate start",
+            game_id
+        );
+        return Ok(());
+    }
+    let _download_running_guard = DownloadRunningGuard { game_id };
     let session_id = format!(
         "g{}-u{}-{}",
         game_id,
@@ -523,17 +618,47 @@ async fn download_and_update_game(
     remove_obsolete_files(&game_directory, &mut game_manifest, &game_manifest_remote)?;
     remove_duplicates(&mut game_manifest);
     game_manifest.version = game_version.clone();
-    game_manifest.gameBinarySize = game_binary_size;
+    let remote_manifest_total_size: u64 = game_manifest_remote.files.iter().map(|file| file.size).sum();
+    let resolved_game_binary_size: u64 = if remote_manifest_total_size > 0 {
+        remote_manifest_total_size
+    } else if game_binary_size > 0 {
+        game_binary_size
+    } else {
+        game_manifest.gameBinarySize
+    };
+    game_manifest.gameBinarySize = resolved_game_binary_size;
     game_manifest.gameTitle = game_title.clone();
     save_manifest(&file_location_download, &game_manifest)?;
-    let total_size_to_download: u64 = game_manifest_remote.files.iter().map(|file| file.size).sum();
-    let files_count: usize = game_manifest_remote.files.len();
+
+    let download_targets: Vec<FileDetails> = if files_to_download.is_empty() {
+        game_manifest_remote.files.clone()
+    } else {
+        let requested_names: HashSet<&str> = files_to_download
+            .iter()
+            .map(|file| file.name.as_str())
+            .collect();
+        let targets_from_remote: Vec<FileDetails> = game_manifest_remote
+            .files
+            .iter()
+            .filter(|file| requested_names.contains(file.name.as_str()))
+            .cloned()
+            .collect();
+
+        if targets_from_remote.is_empty() {
+            files_to_download.clone()
+        } else {
+            targets_from_remote
+        }
+    };
+
+    let total_size_to_download: u64 = download_targets.iter().map(|file| file.size).sum();
+    let files_count: usize = download_targets.len();
     let requested_files_count: usize = files_to_download.len();
     let initial_downloaded: u64 =
-        calculate_initial_downloaded_for_resume(&game_directory, &game_manifest_remote.files);
+        calculate_initial_downloaded_for_resume(&game_directory, &download_targets);
     println!(
-        "[download_and_update_game] session={} manifest_files={} requested_files={} total_size_to_download={} initial_downloaded={}",
-        session_id, files_count, requested_files_count, total_size_to_download, initial_downloaded
+        "[download_and_update_game] session={} requested_files={} effective_targets={} total_size_to_download={} initial_downloaded={}",
+        session_id, requested_files_count, files_count, total_size_to_download, initial_downloaded
     );
     let total_downloaded_atomic = Arc::new(AtomicU64::new(initial_downloaded));
     let session_downloaded_atomic = Arc::new(AtomicU64::new(0));
@@ -557,7 +682,7 @@ async fn download_and_update_game(
                 "progress": initial_progress,
                 "totalDownloaded": initial_downloaded,
                 "totalSizeToDownload": total_size_to_download,
-                "gameBinarySize": game_binary_size,
+                "gameBinarySize": resolved_game_binary_size,
                 "filesCount": files_count,
             })),
         )
@@ -600,7 +725,7 @@ async fn download_and_update_game(
                     "progress": progress,
                     "totalDownloaded": total_downloaded_now,
                     "totalSizeToDownload": total_size_to_download,
-                    "gameBinarySize": game_binary_size,
+                    "gameBinarySize": resolved_game_binary_size,
                     "filesCount": files_count,
                 })),
             );
@@ -614,7 +739,7 @@ async fn download_and_update_game(
             .map_err(|e| format!("Failed to build client: {}", e))?;
         let semaphore = Arc::new(Semaphore::new(MAX_CONCURRENT_DOWNLOADS));
         let mut join_set: JoinSet<Result<FileDetails, String>> = JoinSet::new();
-        for file in game_manifest_remote.files.clone() {
+        for file in download_targets.clone() {
             if cancel_flag.load(Ordering::Relaxed) {
                 return Err("Download canceled".to_string());
             }
@@ -671,6 +796,17 @@ async fn download_and_update_game(
     stop_progress_emitter.store(true, Ordering::Relaxed);
     let _ = progress_task.await;
     if let Err(error) = download_result {
+        let _ = webview.emit("download-game-error", Some(json!({
+            "sessionId": session_id,
+            "userId": user_id,
+            "pathInstallLocation": file_location_download,
+            "gameId": game_id,
+            "gameTitle": game_title,
+            "gameVersion": game_version,
+            "totalSizeToDownload": total_size_to_download,
+            "gameBinarySize": resolved_game_binary_size,
+            "error": error.clone(),
+        })));
         return Err(error);
     }
     remove_duplicates(&mut game_manifest);
@@ -680,7 +816,8 @@ async fn download_and_update_game(
         create_shortcut(file_location_download.clone())
             .map_err(|e| format!("Failed to create shortcut: {}", e))?;
     }
-    let final_total_downloaded: u64 = calculate_real_total_downloaded(&game_directory, &game_manifest);
+    let final_total_downloaded: u64 = calculate_initial_downloaded_for_resume(&game_directory, &download_targets)
+        .min(total_size_to_download);
     let final_progress: f64 = if total_size_to_download == 0 {
         100.0
     } else {
@@ -700,7 +837,7 @@ async fn download_and_update_game(
                 "progress": final_progress,
                 "totalDownloaded": final_total_downloaded,
                 "totalSizeToDownload": total_size_to_download,
-                "gameBinarySize": game_binary_size,
+                "gameBinarySize": resolved_game_binary_size,
                 "filesCount": game_manifest.files.len(),
             })),
         )
@@ -712,7 +849,7 @@ async fn download_and_update_game(
         "userId": user_id,
         "fileLocationDownload": file_location_download,
         "gameVersion": game_version,
-        "gameBinarySize": game_binary_size,
+        "gameBinarySize": resolved_game_binary_size,
         "filesCount": game_manifest.files.len(),
         "totalDownloaded": final_total_downloaded,
         "totalSizeToDownload": total_size_to_download
@@ -765,17 +902,6 @@ fn save_manifest(file_location_download: &str, manifest: &GameManifestLocal) -> 
     let updated_manifest = serde_json::to_string_pretty(&manifest).map_err(|e| e.to_string())?;
     fs::write(&manifest_path, updated_manifest).map_err(|e| e.to_string())?;
     Ok(())
-}
-
-fn calculate_real_total_downloaded(game_directory: &Path, manifest: &GameManifestLocal) -> u64 {
-    manifest.files.iter().filter_map(|file| {
-        let file_path = game_directory.join(&file.name);
-        if file_path.exists() {
-            Some(file.size)
-        } else {
-            None
-        }
-    }).sum()
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

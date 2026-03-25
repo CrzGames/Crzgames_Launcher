@@ -189,6 +189,7 @@ const getGamePictureUrlByGameId: (
 export default defineNuxtPlugin(async () => {
   let unlistenDownload: UnlistenFn
   let unlistenInstall: UnlistenFn
+  let unlistenDownloadError: UnlistenFn
 
   /**
    * Ecouter l'evenement de progression du telechargement d'un jeu
@@ -236,6 +237,16 @@ export default defineNuxtPlugin(async () => {
   })
 
   /**
+   * Ecouter les erreurs de telechargement pour remettre la card dans un etat coherent.
+   */
+  unlistenDownloadError = await listen('download-game-error', (event: any) => {
+    enqueueTauriEventProcessing((): Promise<void> => {
+      handleDownloadError(event)
+      return Promise.resolve()
+    })
+  })
+
+  /**
    * Nettoyage des evenements quand l'application est detruite
    */
   return {
@@ -247,6 +258,7 @@ export default defineNuxtPlugin(async () => {
       unlistenTauriEvents: (): void => {
         unlistenDownload()
         unlistenInstall()
+        unlistenDownloadError()
       },
     },
   }
@@ -414,4 +426,37 @@ const handleGameInstallationComplete: (event: any) => Promise<void> = async (eve
   }
 
   await downloadsStore.addCompleteDownload(gameManifest.gameId)
+}
+
+/**
+ * Gere l'evenement d'erreur de telechargement.
+ * @param {any} event - L'evenement d'erreur du telechargement
+ * @returns {void}
+ */
+const handleDownloadError: (event: any) => void = (event: any): void => {
+  if (!event?.payload) {
+    return
+  }
+
+  const downloadsStore: ReturnType<typeof useDownloadsStore> = useDownloadsStore()
+  const gameId: number = toNumber(event.payload.gameId, -1)
+  if (gameId < 0) {
+    return
+  }
+
+  const sessionId: string = getSessionIdFromPayload(event.payload, gameId)
+  latestSessionByGameId.set(gameId, sessionId)
+  completedSessionByGameId.delete(gameId)
+
+  const activeDownload: ActiveDownloadGame | undefined = downloadsStore.activeDownloads.find(
+    (download: ActiveDownloadGame): boolean => download.gameId === gameId,
+  )
+  if (activeDownload) {
+    activeDownload.isPlaying = false
+    activeDownload.speed = '0 B/s'
+  }
+
+  logger.error(
+    `[Download Error Event] session=${sessionId} gameId=${gameId} error=${String(event.payload.error || 'unknown')}`,
+  )
 }
