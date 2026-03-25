@@ -559,6 +559,11 @@ const sortOptions: SortOption[] = [
  * @type {Ref<LanguageModel[]>}
  */
 const languages: Ref<LanguageModel[]> = ref([])
+const paidAndOwnedStatusByGameId: Ref<Map<number, GamePaidAndOwnedStatus>> = ref(
+  new Map<number, GamePaidAndOwnedStatus>(),
+)
+const paidAndOwnedStatusLoaded: Ref<boolean> = ref(false)
+const paidAndOwnedStatusRequestInFlight: Ref<Promise<void> | null> = ref(null)
 
 /**
  * Liste des catégories triées par ordre alphabétique.
@@ -594,9 +599,13 @@ const moreFiltersMenu: Ref<HTMLElement | null> = ref<HTMLElement | null>(null)
  */
 onMounted(async (): Promise<void> => {
   await scrollToTop()
-  await fetchGameCategories()
-  await fetchLanguages()
-  await fetchAllGamesAndEnrichGame()
+  if (gameCategories.value.length === 0) {
+    void fetchGameCategories()
+  }
+  if (languages.value.length === 0) {
+    void fetchLanguages()
+  }
+  void fetchAllGamesAndEnrichGame()
 
   // Ajouter un écouteur pour détecter les clics en dehors
   document.addEventListener('click', handleClickOutside)
@@ -823,6 +832,45 @@ const fetchLanguages: () => Promise<void> = async (): Promise<void> => {
 }
 
 /**
+ * Charge (une seule fois) les statuts paid/owned des jeux pour l'utilisateur connecté.
+ * Évite de refaire le même appel réseau à chaque filtre/changement de page.
+ * @param {boolean} force - Force un rechargement du cache
+ * @returns {Promise<void>}
+ */
+const fetchAllGamesPaidAndOwnedStatuses: (force?: boolean) => Promise<void> = async (
+  force: boolean = false,
+): Promise<void> => {
+  if (!force && paidAndOwnedStatusLoaded.value) {
+    return
+  }
+
+  if (paidAndOwnedStatusRequestInFlight.value) {
+    await paidAndOwnedStatusRequestInFlight.value
+    return
+  }
+
+  paidAndOwnedStatusRequestInFlight.value = (async (): Promise<void> => {
+    const allGamesPaidAndOwnedStatus: GamePaidAndOwnedStatus[] = await ProductService.getAllGamesProductsPaidAndOwned()
+    const statusMap: Map<number, GamePaidAndOwnedStatus> = new Map<number, GamePaidAndOwnedStatus>()
+
+    allGamesPaidAndOwnedStatus.forEach((status: GamePaidAndOwnedStatus): void => {
+      if (typeof status.gameId === 'number') {
+        statusMap.set(status.gameId, status)
+      }
+    })
+
+    paidAndOwnedStatusByGameId.value = statusMap
+    paidAndOwnedStatusLoaded.value = true
+  })()
+
+  try {
+    await paidAndOwnedStatusRequestInFlight.value
+  } finally {
+    paidAndOwnedStatusRequestInFlight.value = null
+  }
+}
+
+/**
  * Réinitialise tous les genres sélectionnés.
  * @returns {void}
  */
@@ -869,6 +917,14 @@ const addGameToUserGameLibraryAndUpdateGameListAndNotify: (gameId: number) => Pr
       games.value[gameIndex].isFreeAndNotOwned = false
     }
 
+    // Met à jour le cache local paid/owned pour conserver la cohérence instantanément.
+    const updatedStatusMap: Map<number, GamePaidAndOwnedStatus> = new Map<number, GamePaidAndOwnedStatus>(
+      paidAndOwnedStatusByGameId.value,
+    )
+    const currentStatus: GamePaidAndOwnedStatus = updatedStatusMap.get(gameId) || { isPaid: false, isOwned: false }
+    updatedStatusMap.set(gameId, { ...currentStatus, isOwned: true })
+    paidAndOwnedStatusByGameId.value = updatedStatusMap
+
     /**
      * Affiche une notification de succès à l'utilisateur.
      * Affiche immédiatement l'icône "In Your Library"
@@ -890,6 +946,9 @@ const fetchAllGamesAndEnrichGame: () => Promise<void> = async (): Promise<void> 
   isLoadingGames.value = true
 
   try {
+    // Charge le cache paid/owned une seule fois (ou attend la requête déjà en cours).
+    await fetchAllGamesPaidAndOwnedStatuses()
+
     // Récupération des jeux depuis le store avec les paramètres de recherche, pagination et filtres
     const fetchedGames: GameModel[] = await gameStore.getAllGames(
       lastValidatedSearchTerm.value || undefined, // Utilise la recherche validée
@@ -908,18 +967,12 @@ const fetchAllGamesAndEnrichGame: () => Promise<void> = async (): Promise<void> 
     // Mettre à jour le nombre de skeletons basé sur le nombre de jeux récupérés
     skeletonCount.value = fetchedGames.length
 
-    // Récupération des statuts de paiement et de possession pour tous les jeux
-    const allGamesPaidAndOwnedStatus: GamePaidAndOwnedStatus[] = await ProductService.getAllGamesProductsPaidAndOwned()
-
-    // Création d'une map pour associer rapidement les statuts aux IDs des jeux
-    const statusMap: Map<number, GamePaidAndOwnedStatus> = new Map<number, GamePaidAndOwnedStatus>()
-    allGamesPaidAndOwnedStatus.forEach((status: GamePaidAndOwnedStatus): void => {
-      statusMap.set(status.gameId as number, status)
-    })
-
     // Enrichissement de chaque jeu avec les statuts de paiement et possession
     games.value = fetchedGames.map((game: GameModel): ExtendedGameModel => {
-      const status: GamePaidAndOwnedStatus = statusMap.get(game.id) || { isPaid: false, isOwned: false }
+      const status: GamePaidAndOwnedStatus = paidAndOwnedStatusByGameId.value.get(game.id) || {
+        isPaid: false,
+        isOwned: false,
+      }
       return {
         ...game,
         isPaidAndNotOwned: status.isPaid && !status.isOwned, // Jeu payé mais non possédé
@@ -931,12 +984,6 @@ const fetchAllGamesAndEnrichGame: () => Promise<void> = async (): Promise<void> 
     // Gestion des erreurs avec journalisation
     logger.error('[fetchAllGamesAndEnrichGame] Erreur lors de la récupération des jeux : ', error)
   } finally {
-    // Attendre le prochain tick pour s'assurer que les mises à jour réactives sont terminées
-    await nextTick()
-
-    // Ajoute une petite temporisation pour s'assurer que tout est bien chargé
-    await new Promise((resolve: any) => setTimeout(resolve, 250))
-
     // Désactivation de l'indicateur de chargement
     isLoadingGames.value = false
   }

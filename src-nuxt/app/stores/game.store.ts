@@ -21,6 +21,7 @@ type GameStoreState = {
   games: GameModel[]
   gamesSortedByPlatform: GameModel[]
   paginationMeta: PaginationMeta | null
+  currentSystemOSInfo: SystemOSInfo | null
 }
 
 /**
@@ -36,6 +37,7 @@ export const useGameStore = defineStore('gameStore', {
     games: [],
     gamesSortedByPlatform: [],
     paginationMeta: null,
+    currentSystemOSInfo: null,
   }),
   actions: {
     /**
@@ -63,6 +65,21 @@ export const useGameStore = defineStore('gameStore', {
      */
     setPaginationMeta(meta: PaginationMeta | null): void {
       this.paginationMeta = meta
+    },
+
+    /**
+     * Récupère et met en cache les informations OS locales.
+     * @param {boolean} force - Force un rafraîchissement du cache
+     * @returns {Promise<SystemOSInfo | undefined>} Les informations OS détectées localement.
+     */
+    async getCurrentSystemOSInfo(force: boolean = false): Promise<SystemOSInfo | undefined> {
+      if (!force && this.currentSystemOSInfo) {
+        return this.currentSystemOSInfo
+      }
+
+      const currentSystemOSInfo: SystemOSInfo | undefined = await TauriService.getSystemOSCurrent()
+      this.currentSystemOSInfo = currentSystemOSInfo || null
+      return currentSystemOSInfo
     },
 
     /**
@@ -107,7 +124,7 @@ export const useGameStore = defineStore('gameStore', {
         this.setPaginationMeta(response.meta)
       }
 
-      const currentSystemOSInfo: SystemOSInfo | undefined = await TauriService.getSystemOSCurrent()
+      const currentSystemOSInfo: SystemOSInfo | undefined = await this.getCurrentSystemOSInfo()
       const currentOsName: string | undefined = currentSystemOSInfo?.os
       if (currentOsName) {
         this.getAllGamesSortedByPlatform(currentOsName, games)
