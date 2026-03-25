@@ -53,7 +53,7 @@ export const useNavigationStore = defineStore('navigation', {
     goBack(): string | null {
       if (this.currentIndex > 0) {
         this.currentIndex-- // Décrémente l'index pour aller à la page précédente
-        return this.history[this.currentIndex]
+        return this.history[this.currentIndex] ?? null
       }
       return null // Retourne null si aucune page précédente n'est disponible
     },
@@ -65,7 +65,7 @@ export const useNavigationStore = defineStore('navigation', {
     goForward(): string | null {
       if (this.currentIndex < this.history.length - 1) {
         this.currentIndex++ // Incrémente l'index pour aller à la page suivante
-        return this.history[this.currentIndex]
+        return this.history[this.currentIndex] ?? null
       }
       return null // Retourne null si aucune page suivante n'est disponible
     },

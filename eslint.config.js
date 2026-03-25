@@ -55,7 +55,7 @@ const mainConfig = {
      */
 
     /**
-     * ESLINT PLUGIN : @typescript-eslint/eslint-plugin
+     * ESLINT PLUGIN : `@typescript-eslint/eslint-plugin`
      */
     // Avec des options pour forcer l'explicité des constructeurs:
     // Cela peut aider à garantir que les constructeurs de classe sont explicitement marqués comme public, private, ou protected
@@ -117,7 +117,7 @@ const mainConfig = {
     ],
 
     /**
-     * ESLINT PLUGIN : @stylistic-eslint-plugin
+     * ESLINT PLUGIN : `@stylistic-eslint-plugin`
      */
     // Cette règle impose des espaces autour des annotations de type pour une meilleure lisibilité.
     '@stylistic-eslint-plugin/type-annotation-spacing': 'error',

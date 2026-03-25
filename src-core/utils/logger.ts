@@ -25,7 +25,7 @@ export class Logger {
    * Niveaux de log avec leur ordre de priorité
    * @type {Record<string, number>}
    */
-  private readonly logLevels: Record<string, number> = {
+  private readonly logLevels: Record<LoggerOptions['level'], number> = {
     debug: 0,
     info: 1,
     warn: 2,
@@ -52,7 +52,7 @@ export class Logger {
    * @param {string} level - Niveau de log à vérifier
    * @returns {boolean} - Si le log doit être affiché
    */
-  private isLogLevelAllowed(level: string): boolean {
+  private isLogLevelAllowed(level: LoggerOptions['level']): boolean {
     // Si le logger est désactivé, aucun log n'est affiché
     if (!this.options.enabled) return false
     // Compare la priorité du niveau demandé avec le niveau minimum configuré

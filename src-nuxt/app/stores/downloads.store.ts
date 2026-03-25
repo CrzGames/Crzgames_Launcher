@@ -130,7 +130,11 @@ export const useDownloadsStore = defineStore('downloads', {
       )
 
       if (indexActiveDownload !== -1) {
-        const currentActiveDownload: ActiveDownloadGame = this.activeDownloads[indexActiveDownload]
+        const currentActiveDownload: ActiveDownloadGame | undefined = this.activeDownloads[indexActiveDownload]
+        if (!currentActiveDownload) {
+          return
+        }
+
         const hasSessionChanged: boolean =
           !!newGame.sessionId &&
           !!currentActiveDownload.sessionId &&
@@ -302,7 +306,11 @@ export const useDownloadsStore = defineStore('downloads', {
       )
 
       if (index !== -1) {
-        const game: ActiveDownloadGame = this.activeDownloads.splice(index, 1)[0]
+        const game: ActiveDownloadGame | undefined = this.activeDownloads.splice(index, 1)[0]
+        if (!game) {
+          return
+        }
+
         this.completedDownloads.push({
           gameTitle: game.gameTitle,
           gamePictureUrl: game.gamePictureUrl,

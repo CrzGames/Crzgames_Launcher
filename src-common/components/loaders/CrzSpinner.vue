@@ -26,9 +26,6 @@ interface Props {
 
 /**
  * @interface Classes
- * @property {boolean} text-amber-400 - The amber color
- * @property {boolean} text-slate-100 - The slate color
- * @property {boolean} text-gray-900 - The gray color
  */
 interface Classes {
   'text-amber-400': boolean

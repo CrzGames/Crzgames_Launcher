@@ -19,7 +19,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, defineProps } from 'vue'
+import { computed } from 'vue'
 import type { ComputedRef, DefineComponent } from 'vue'
 
 import arrowRotate from '#src-common/components/icons/arrows-rotate.vue'
@@ -136,7 +136,11 @@ const iconsMap: Record<string, IconComponent> = {
   heart: heart,
 }
 
-const iconComponent: ComputedRef<IconComponent> = computed(() => iconsMap[props.name])
+const defaultIconComponent: IconComponent = cicle
+
+const iconComponent: ComputedRef<IconComponent> = computed(
+  (): IconComponent => iconsMap[props.name] || defaultIconComponent,
+)
 </script>
 
 <style scoped>

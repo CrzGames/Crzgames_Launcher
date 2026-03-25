@@ -43,9 +43,15 @@ const props: Props = defineProps({
 /* COMPUTED */
 const initials: ComputedRef<string> = computed(() => {
   if (props.name) {
-    const nameParts: string[] = props.name.split(' ')
-    const initials: string =
-      nameParts.length >= 2 ? nameParts[0].charAt(0) + nameParts[1].charAt(0) : nameParts[0].charAt(0)
+    const nameParts: string[] = props.name
+      .split(' ')
+      .map((part: string): string => part.trim())
+      .filter((part: string): boolean => part.length > 0)
+
+    const firstInitial: string = nameParts[0]?.charAt(0) || ''
+    const secondInitial: string = nameParts[1]?.charAt(0) || ''
+    const initials: string = secondInitial ? `${firstInitial}${secondInitial}` : firstInitial
+
     return initials.toUpperCase()
   }
   return ''

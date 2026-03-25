@@ -26,34 +26,36 @@ export default class BaseApiService {
    * Get
    * @template T
    * @param {string} url - URL
-   * @returns {T} - T
+   * @returns {Promise<T>} - Promise<T>
    */
   protected static async get<T>(url: string): Promise<T> {
-    const response: AxiosResponse<any, any> = await this.client().get(url)
+    const response: AxiosResponse<T> = await this.client().get<T>(url)
     return response.data
   }
 
   /**
    * Post
    * @template T
+   * @template D
    * @param {string} url - URL
-   * @param {any} data - Data
+   * @param {D} data - Data
    * @returns {Promise<T>} - Promise<T>
    */
-  protected static async post<T>(url: string, data: any): Promise<T> {
-    const response: AxiosResponse<any, any> = await this.client().post(url, data)
+  protected static async post<T, D = unknown>(url: string, data: D): Promise<T> {
+    const response: AxiosResponse<T> = await this.client().post<T>(url, data)
     return response.data
   }
 
   /**
    * Put
    * @template T
+   * @template D
    * @param {string} url - URL
-   * @param {any} data - Data
+   * @param {D | undefined} data - Data
    * @returns {Promise<T>} - Promise<T>
    */
-  protected static async put<T>(url: string, data?: any): Promise<T> {
-    const response: AxiosResponse<any, any> = await this.client().put(url, data)
+  protected static async put<T, D = unknown>(url: string, data?: D): Promise<T> {
+    const response: AxiosResponse<T> = await this.client().put<T>(url, data)
     return response.data
   }
 
@@ -64,7 +66,7 @@ export default class BaseApiService {
    * @returns {Promise<T>} - Promise<T>
    */
   protected static async delete<T>(url: string): Promise<T> {
-    const response: AxiosResponse<any, any> = await this.client().delete(url)
+    const response: AxiosResponse<T> = await this.client().delete<T>(url)
     return response.data
   }
 }

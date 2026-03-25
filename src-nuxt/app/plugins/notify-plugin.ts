@@ -2,12 +2,18 @@ import { defineNuxtPlugin } from '#app'
 import { Notyf } from 'notyf'
 
 /**
- * Permet d'ajouter `notyf` à l'ensemble de l'application en tant que plugin
- * utilisé pour afficher des notifications à l'utilisateur comme des messages d'erreur, de succès, etc.
- * @param {any} nuxtApp - L'application Nuxt
+ * Minimal Nuxt app shape required by this plugin.
+ */
+type NotifyPluginApp = {
+  provide: (name: string, value: unknown) => void
+}
+
+/**
+ * Register Notyf globally for UI notifications.
+ * @param {NotifyPluginApp} nuxtApp - Nuxt application instance.
  * @returns {void}
  */
-export default defineNuxtPlugin((nuxtApp: any): void => {
+export default defineNuxtPlugin((nuxtApp: NotifyPluginApp): void => {
   const notyf: Notyf = new Notyf({
     dismissible: true,
     position: {
@@ -16,6 +22,5 @@ export default defineNuxtPlugin((nuxtApp: any): void => {
     },
   })
 
-  // Fournir `notyf` à l'ensemble de l'application en tant que plugin
   nuxtApp.provide('notyf', notyf)
 })

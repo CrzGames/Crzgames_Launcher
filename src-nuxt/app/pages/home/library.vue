@@ -1136,7 +1136,7 @@ const downloadGame: (files?: FileDetails[]) => Promise<void> = async (files?: Fi
               fullPathFilename,
             )
 
-            logger.debug(`gameManifestRemote.files count: ${gameManifestRemote.files.length}`)
+            logger.debug(`gameManifestRemote.files count: ${gameManifestRemote?.files.length ?? 0}`)
             logger.debug(`files override count: ${files?.length || 0}`)
 
             if (user && gameManifestRemote) {

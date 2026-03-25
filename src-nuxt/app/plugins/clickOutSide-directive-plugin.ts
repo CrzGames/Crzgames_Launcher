@@ -3,12 +3,19 @@ import { defineNuxtPlugin } from '#app'
 import clickOutside from '#src-nuxt/app/directives/clickOutSide-directive'
 
 /**
- * Plugin de directive pour les clicks en dehors d'un élément, permet d'utiliser `v-click-outside` dans les composants,
- * utilisé pour détecter les clicks en dehors d'un élément et déclencher une action
- * @param {any} nuxtApp - L'application Nuxt
+ * Minimal Nuxt app shape required by this plugin.
+ */
+type ClickOutsidePluginApp = {
+  vueApp: {
+    directive: (name: string, directive: unknown) => void
+  }
+}
+
+/**
+ * Register the click-outside directive globally.
+ * @param {ClickOutsidePluginApp} nuxtApp - Nuxt application instance.
  * @returns {void}
  */
-export default defineNuxtPlugin((nuxtApp: any): void => {
-  // Fournir `clickOutside` à l'ensemble de l'application en tant que directive
+export default defineNuxtPlugin((nuxtApp: ClickOutsidePluginApp): void => {
   nuxtApp.vueApp.directive('clickOutSide', clickOutside)
 })

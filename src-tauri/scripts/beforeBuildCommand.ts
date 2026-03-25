@@ -11,11 +11,22 @@ const getBranchOrTag: () => string | undefined = (): string | undefined => {
   if (GITHUB_REF) {
     // Sur GitHub Actions, GITHUB_REF ressemble souvent à "refs/heads/branchName" ou "refs/tags/xxx"
     const parts: string[] = GITHUB_REF.split('/')
-    const refType: string = parts[1]
+    const refType: string | undefined = parts[1]
+
+    if (!refType) {
+      console.error(`Invalid GITHUB_REF format: ${GITHUB_REF}`)
+      process.exit(1)
+    }
 
     if (refType === 'heads') {
       // ex: refs/heads/main => branch = main
-      return parts[2]
+      const branchName: string | undefined = parts[2]
+      if (!branchName) {
+        console.error(`Missing branch name in GITHUB_REF: ${GITHUB_REF}`)
+        process.exit(1)
+      }
+
+      return branchName
     } else if (refType === 'tags') {
       // ex: refs/tags/v1.0 => on considère ici que c'est un "main" ou autre
       // à adapter selon ta logique

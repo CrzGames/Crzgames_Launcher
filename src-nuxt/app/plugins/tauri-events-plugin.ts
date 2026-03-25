@@ -1,6 +1,6 @@
 import { defineNuxtPlugin } from '#app'
 import { listen } from '@tauri-apps/api/event'
-import type { UnlistenFn } from '@tauri-apps/api/event'
+import type { Event as TauriEvent, UnlistenFn } from '@tauri-apps/api/event'
 
 import type GameModel from '#src-common/core/models/GameModel'
 import { GameService } from '#src-common/core/services/GameService'
@@ -36,12 +36,35 @@ const PROGRESS_LOG_INTERVAL_MS: number = 1000
 const PROGRESS_EVENT_ENQUEUE_INTERVAL_MS_DOWNLOAD_MANAGER: number = 120
 const PROGRESS_EVENT_ENQUEUE_INTERVAL_MS_BACKGROUND: number = 900
 let tauriEventsProcessingQueue: Promise<void> = Promise.resolve()
+/**
+ * Mapping payload format for launcher Tauri events.
+ */
+type TauriEventPayload = Record<string, unknown>
+/**
+ * Generic event wrapper for launcher download events.
+ */
+type LauncherTauriEvent = TauriEvent<unknown>
+
+/**
+ * Normalise un payload Tauri en objet indexable.
+ * @param {unknown} payload - Payload brut.
+ * @returns {TauriEventPayload | null} - Payload converti ou `null` s'il est invalide.
+ */
+const toPayloadRecord: (payload: unknown) => TauriEventPayload | null = (
+  payload: unknown,
+): TauriEventPayload | null => {
+  if (!payload || typeof payload !== 'object') {
+    return null
+  }
+
+  return payload as TauriEventPayload
+}
 
 /**
  * Convertit une valeur inconnue en nombre.
  * @param {unknown} value - Valeur a convertir
  * @param {number} [fallback] - Valeur par defaut si conversion invalide
- * @returns {number}
+ * @returns {number} - Valeur numerique convertie.
  */
 const toNumber: (value: unknown, fallback?: number) => number = (value: unknown, fallback: number = 0): number => {
   const parsed: number = Number(value)
@@ -52,26 +75,31 @@ const toNumber: (value: unknown, fallback?: number) => number = (value: unknown,
  * Resolve total size from payload.
  * - If payload explicitly contains `totalSizeToDownload`, keep it (including 0).
  * - Otherwise fallback to `gameBinarySize`.
- * @param {any} payload - Tauri event payload
+ * @param {Record<string, unknown>} payload - Tauri event payload.
  * @returns {number} Total bytes to download
  */
-const resolveTotalSizeToDownloadFromPayload: (payload: any) => number = (payload: any): number => {
-  const hasTotalSizeToDownload: boolean = Object.prototype.hasOwnProperty.call(payload || {}, 'totalSizeToDownload')
+const resolveTotalSizeToDownloadFromPayload: (payload: Record<string, unknown>) => number = (
+  payload: Record<string, unknown>,
+): number => {
+  const hasTotalSizeToDownload: boolean = Object.prototype.hasOwnProperty.call(payload, 'totalSizeToDownload')
   if (hasTotalSizeToDownload) {
     return Math.max(toNumber(payload.totalSizeToDownload, 0), 0)
   }
 
-  return Math.max(toNumber(payload?.gameBinarySize, 0), 0)
+  return Math.max(toNumber(payload.gameBinarySize, 0), 0)
 }
 
 /**
  * Extrait ou construit un identifiant de session depuis le payload.
- * @param {any} payload - Payload de l'event Tauri
+ * @param {Record<string, unknown>} payload - Payload de l'event Tauri.
  * @param {number} gameId - Identifiant du jeu
- * @returns {string}
+ * @returns {string} - Identifiant de session.
  */
-const getSessionIdFromPayload: (payload: any, gameId: number) => string = (payload: any, gameId: number): string => {
-  const rawSessionId: string = typeof payload?.sessionId === 'string' ? payload.sessionId.trim() : ''
+const getSessionIdFromPayload: (payload: Record<string, unknown>, gameId: number) => string = (
+  payload: Record<string, unknown>,
+  gameId: number,
+): string => {
+  const rawSessionId: string = typeof payload.sessionId === 'string' ? payload.sessionId.trim() : ''
   if (rawSessionId.length > 0) {
     return rawSessionId
   }
@@ -83,7 +111,7 @@ const getSessionIdFromPayload: (payload: any, gameId: number) => string = (paylo
  * Verifie si un event appartient a une session deja terminee.
  * @param {number} gameId - Identifiant du jeu
  * @param {string} sessionId - Session de telechargement
- * @returns {boolean}
+ * @returns {boolean} - `true` si la session est deja finalisee.
  */
 const isCompletedSessionEvent: (gameId: number, sessionId: string) => boolean = (
   gameId: number,
@@ -94,7 +122,7 @@ const isCompletedSessionEvent: (gameId: number, sessionId: string) => boolean = 
  * Met a jour la session courante d'un jeu a partir d'un event de progression.
  * @param {number} gameId - Identifiant du jeu
  * @param {string} sessionId - Session de telechargement
- * @returns {void}
+ * @returns {void} - Ne retourne aucune valeur.
  */
 const trackSessionFromProgressEvent: (gameId: number, sessionId: string) => void = (
   gameId: number,
@@ -115,7 +143,7 @@ const trackSessionFromProgressEvent: (gameId: number, sessionId: string) => void
 /**
  * Enfile un handler d'event Tauri pour les traiter sequentiellement et garder l'ordre.
  * @param {() => Promise<void>} handler - Handler asynchrone a executer
- * @returns {void}
+ * @returns {void} - Ne retourne aucune valeur.
  */
 const enqueueTauriEventProcessing: (handler: () => Promise<void>) => void = (handler: () => Promise<void>): void => {
   tauriEventsProcessingQueue = tauriEventsProcessingQueue
@@ -129,7 +157,7 @@ const enqueueTauriEventProcessing: (handler: () => Promise<void>) => void = (han
 
 /**
  * Indique si la route active est la page Download Manager.
- * @returns {boolean}
+ * @returns {boolean} - `true` si la route active est Download Manager.
  */
 const isDownloadManagerRouteActive: () => boolean = (): boolean => {
   if (typeof window === 'undefined') {
@@ -141,7 +169,7 @@ const isDownloadManagerRouteActive: () => boolean = (): boolean => {
 
 /**
  * Retourne l'intervalle de throttling des events de progression selon la page active.
- * @returns {number}
+ * @returns {number} - Intervalle en millisecondes.
  */
 const getProgressEventEnqueueIntervalMs: () => number = (): number => {
   return isDownloadManagerRouteActive()
@@ -153,7 +181,7 @@ const getProgressEventEnqueueIntervalMs: () => number = (): number => {
  * Recupere l'URL d'image d'un jeu avec cache memoize.
  * @param {number} gameId - Identifiant du jeu
  * @param {ReturnType<typeof useDownloadsStore>} downloadsStore - Store des telechargements
- * @returns {Promise<string>}
+ * @returns {Promise<string>} - URL de l'image.
  */
 const getGamePictureUrlByGameId: (
   gameId: number,
@@ -202,7 +230,7 @@ const getGamePictureUrlByGameId: (
  * - Utilise le store 'downloadsStore' pour ajouter, mettre a jour et supprimer les telechargements actifs et termines
  * - Utilise les services 'GameService' et 'TauriService' pour recuperer les informations des jeux et les sauvegarder
  */
-export default defineNuxtPlugin(async () => {
+export default defineNuxtPlugin<{ unlistenTauriEvents: () => void }>(async () => {
   let unlistenDownload: UnlistenFn
   let unlistenInstall: UnlistenFn
   let unlistenDownloadError: UnlistenFn
@@ -210,18 +238,19 @@ export default defineNuxtPlugin(async () => {
   /**
    * Ecouter l'evenement de progression du telechargement d'un jeu
    */
-  unlistenDownload = await listen('download-game-progress', (event: any) => {
-    if (!event?.payload) {
+  unlistenDownload = await listen<TauriEventPayload>('download-game-progress', (event: LauncherTauriEvent) => {
+    const payload: TauriEventPayload | null = toPayloadRecord(event.payload)
+    if (!payload) {
       return
     }
 
-    const gameIdFromPayload: number = toNumber(event.payload.gameId, -1)
+    const gameIdFromPayload: number = toNumber(payload.gameId, -1)
     if (gameIdFromPayload < 0) {
       return
     }
 
-    const totalSizeToDownload: number = resolveTotalSizeToDownloadFromPayload(event.payload)
-    const rawTotalDownloaded: number = Math.max(toNumber(event.payload.totalDownloaded, 0), 0)
+    const totalSizeToDownload: number = resolveTotalSizeToDownloadFromPayload(payload)
+    const rawTotalDownloaded: number = Math.max(toNumber(payload.totalDownloaded, 0), 0)
     const isNearCompletionEvent: boolean = totalSizeToDownload > 0 && rawTotalDownloaded >= totalSizeToDownload
 
     const now: number = Date.now()
@@ -243,7 +272,7 @@ export default defineNuxtPlugin(async () => {
   /**
    * Ecouter l'evenement d'installation terminee d'un jeu
    */
-  unlistenInstall = await listen('game-installation-complete', (event: any) => {
+  unlistenInstall = await listen<TauriEventPayload>('game-installation-complete', (event: LauncherTauriEvent) => {
     enqueueTauriEventProcessing(async (): Promise<void> => {
       await handleGameInstallationComplete(event)
     })
@@ -252,7 +281,7 @@ export default defineNuxtPlugin(async () => {
   /**
    * Ecouter les erreurs de telechargement pour remettre la card dans un etat coherent.
    */
-  unlistenDownloadError = await listen('download-game-error', (event: any) => {
+  unlistenDownloadError = await listen<TauriEventPayload>('download-game-error', (event: LauncherTauriEvent) => {
     enqueueTauriEventProcessing((): Promise<void> => {
       handleDownloadError(event)
       return Promise.resolve()
@@ -266,7 +295,7 @@ export default defineNuxtPlugin(async () => {
     provide: {
       /**
        * Arreter d'ecouter les evenements Tauri
-       * @returns {void}
+       * @returns {void} - Ne retourne aucune valeur.
        */
       unlistenTauriEvents: (): void => {
         unlistenDownload()
@@ -279,22 +308,25 @@ export default defineNuxtPlugin(async () => {
 
 /**
  * Gerer la progression du telechargement
- * @param {any} event - L'evenement de progression du telechargement
- * @returns {Promise<void>}
+ * @param {LauncherTauriEvent} event - L'evenement de progression du telechargement.
+ * @returns {Promise<void>} - Promesse de traitement.
  */
-const handleDownloadProgress: (event: any) => Promise<void> = async (event: any): Promise<void> => {
-  if (!event.payload) {
+const handleDownloadProgress: (event: LauncherTauriEvent) => Promise<void> = async (
+  event: LauncherTauriEvent,
+): Promise<void> => {
+  const payload: TauriEventPayload | null = toPayloadRecord(event.payload)
+  if (!payload) {
     return
   }
 
   const downloadsStore: ReturnType<typeof useDownloadsStore> = useDownloadsStore()
 
-  const gameId: number = toNumber(event.payload.gameId, -1)
+  const gameId: number = toNumber(payload.gameId, -1)
   if (gameId < 0) {
     return
   }
 
-  const sessionId: string = getSessionIdFromPayload(event.payload, gameId)
+  const sessionId: string = getSessionIdFromPayload(payload, gameId)
 
   if (isCompletedSessionEvent(gameId, sessionId)) {
     return
@@ -302,12 +334,12 @@ const handleDownloadProgress: (event: any) => Promise<void> = async (event: any)
 
   trackSessionFromProgressEvent(gameId, sessionId)
 
-  const totalSizeToDownload: number = resolveTotalSizeToDownloadFromPayload(event.payload)
-  const fallbackGameBinarySize: number = toNumber(event.payload.gameBinarySize, 0)
+  const totalSizeToDownload: number = resolveTotalSizeToDownloadFromPayload(payload)
+  const fallbackGameBinarySize: number = toNumber(payload.gameBinarySize, 0)
 
-  const rawTotalDownloaded: number = Math.max(toNumber(event.payload.totalDownloaded, 0), 0)
+  const rawTotalDownloaded: number = Math.max(toNumber(payload.totalDownloaded, 0), 0)
   const totalDownloaded: number = totalSizeToDownload > 0 ? Math.min(rawTotalDownloaded, totalSizeToDownload) : 0
-  const speed: number = totalSizeToDownload > 0 ? Math.max(toNumber(event.payload.speed, 0), 0) : 0
+  const speed: number = totalSizeToDownload > 0 ? Math.max(toNumber(payload.speed, 0), 0) : 0
   const progress: number = totalSizeToDownload > 0 ? (totalDownloaded / totalSizeToDownload) * 100 : 100
 
   const gamePictureUrl: string = await getGamePictureUrlByGameId(gameId, downloadsStore)
@@ -324,9 +356,9 @@ const handleDownloadProgress: (event: any) => Promise<void> = async (event: any)
 
   if (shouldUpsertActiveDownload) {
     const activeDownloadGame: ActiveDownloadGame = {
-      pathInstallLocation: event.payload.pathInstallLocation,
+      pathInstallLocation: String(payload.pathInstallLocation || ''),
       gameId: gameId,
-      gameTitle: event.payload.gameTitle,
+      gameTitle: String(payload.gameTitle || ''),
       gamePictureUrl: gamePictureUrl,
       isPlaying: true,
       progress: progress,
@@ -379,13 +411,13 @@ const handleDownloadProgress: (event: any) => Promise<void> = async (event: any)
     lastPersistAtByGameId.set(gameId, now)
 
     const gameProgressDownload: GameProgressDownload = {
-      userId: toNumber(event.payload.userId),
+      userId: toNumber(payload.userId),
       gameId: gameId,
-      gameTitle: event.payload.gameTitle,
-      pathInstallLocation: event.payload.pathInstallLocation,
+      gameTitle: String(payload.gameTitle || ''),
+      pathInstallLocation: String(payload.pathInstallLocation || ''),
       totalSizeToDownload: totalSizeToDownload,
       totalDownloadedBytesNow: totalDownloaded,
-      gameVersion: event.payload.gameVersion,
+      gameVersion: String(payload.gameVersion || ''),
     }
 
     void TauriService.saveGameProgressDownload(gameProgressDownload)
@@ -394,22 +426,25 @@ const handleDownloadProgress: (event: any) => Promise<void> = async (event: any)
 
 /**
  * Gerer l'evenement de fin d'installation d'un jeu
- * @param {any} event - L'evenement de fin d'installation du jeu
- * @returns {Promise<void>}
+ * @param {LauncherTauriEvent} event - L'evenement de fin d'installation du jeu.
+ * @returns {Promise<void>} - Promesse de traitement.
  */
-const handleGameInstallationComplete: (event: any) => Promise<void> = async (event: any): Promise<void> => {
-  if (!event.payload) {
+const handleGameInstallationComplete: (event: LauncherTauriEvent) => Promise<void> = async (
+  event: LauncherTauriEvent,
+): Promise<void> => {
+  const payload: TauriEventPayload | null = toPayloadRecord(event.payload)
+  if (!payload) {
     return
   }
 
   const downloadsStore: ReturnType<typeof useDownloadsStore> = useDownloadsStore()
 
-  const gameId: number = toNumber(event.payload.gameId, -1)
+  const gameId: number = toNumber(payload.gameId, -1)
   if (gameId < 0) {
     return
   }
 
-  const sessionId: string = getSessionIdFromPayload(event.payload, gameId)
+  const sessionId: string = getSessionIdFromPayload(payload, gameId)
 
   latestSessionByGameId.set(gameId, sessionId)
   completedSessionByGameId.set(gameId, sessionId)
@@ -417,30 +452,30 @@ const handleGameInstallationComplete: (event: any) => Promise<void> = async (eve
   lastProgressLogAtByGameId.delete(gameId)
   lastEnqueuedProgressEventAtByGameId.delete(gameId)
 
-  const totalSizeToDownload: number = resolveTotalSizeToDownloadFromPayload(event.payload)
-  const fallbackGameBinarySize: number = toNumber(event.payload.gameBinarySize, 0)
-  const rawTotalDownloaded: number = Math.max(toNumber(event.payload.totalDownloaded, totalSizeToDownload), 0)
+  const totalSizeToDownload: number = resolveTotalSizeToDownloadFromPayload(payload)
+  const fallbackGameBinarySize: number = toNumber(payload.gameBinarySize, 0)
+  const rawTotalDownloaded: number = Math.max(toNumber(payload.totalDownloaded, totalSizeToDownload), 0)
   const totalDownloaded: number =
     totalSizeToDownload > 0 ? Math.min(rawTotalDownloaded, totalSizeToDownload) : rawTotalDownloaded
 
-  logger.info('Game downloaded and installed successfully:' + JSON.stringify(event.payload))
+  logger.info('Game downloaded and installed successfully:' + JSON.stringify(payload))
   logger.info(
-    `[Installation Complete Event] session=${sessionId} gameId=${gameId} userId=${toNumber(event.payload.userId)} filesCount=${toNumber(event.payload.filesCount)} totalDownloaded=${totalDownloaded} totalSizeToDownload=${totalSizeToDownload}`,
+    `[Installation Complete Event] session=${sessionId} gameId=${gameId} userId=${toNumber(payload.userId)} filesCount=${toNumber(payload.filesCount)} totalDownloaded=${totalDownloaded} totalSizeToDownload=${totalSizeToDownload}`,
   )
 
   const gameManifest: GameManifestLocal = {
-    pathInstallLocation: event.payload.fileLocationDownload,
+    pathInstallLocation: String(payload.fileLocationDownload || ''),
     gameId: gameId,
-    gameTitle: event.payload.gameTitle,
+    gameTitle: String(payload.gameTitle || ''),
     gameBinarySize: fallbackGameBinarySize || totalSizeToDownload,
-    version: event.payload.gameVersion,
+    version: String(payload.gameVersion || ''),
     files: [],
   }
 
   downloadsStore.updateDownloadProgress(gameId, totalDownloaded, 0, totalSizeToDownload, sessionId)
 
   try {
-    await TauriService.finalizeDownload(toNumber(event.payload.userId), gameManifest)
+    await TauriService.finalizeDownload(toNumber(payload.userId), gameManifest)
   } catch (error: unknown) {
     logger.error(
       `[Installation Complete Event] finalizeDownload failed session=${sessionId} gameId=${gameId}`,
@@ -453,21 +488,22 @@ const handleGameInstallationComplete: (event: any) => Promise<void> = async (eve
 
 /**
  * Gere l'evenement d'erreur de telechargement.
- * @param {any} event - L'evenement d'erreur du telechargement
- * @returns {void}
+ * @param {LauncherTauriEvent} event - L'evenement d'erreur du telechargement.
+ * @returns {void} - Ne retourne aucune valeur.
  */
-const handleDownloadError: (event: any) => void = (event: any): void => {
-  if (!event?.payload) {
+const handleDownloadError: (event: LauncherTauriEvent) => void = (event: LauncherTauriEvent): void => {
+  const payload: TauriEventPayload | null = toPayloadRecord(event.payload)
+  if (!payload) {
     return
   }
 
   const downloadsStore: ReturnType<typeof useDownloadsStore> = useDownloadsStore()
-  const gameId: number = toNumber(event.payload.gameId, -1)
+  const gameId: number = toNumber(payload.gameId, -1)
   if (gameId < 0) {
     return
   }
 
-  const sessionId: string = getSessionIdFromPayload(event.payload, gameId)
+  const sessionId: string = getSessionIdFromPayload(payload, gameId)
   latestSessionByGameId.set(gameId, sessionId)
   completedSessionByGameId.delete(gameId)
 
@@ -479,7 +515,7 @@ const handleDownloadError: (event: any) => void = (event: any): void => {
     activeDownload.speed = '0 B/s'
   }
 
-  const rawError: string = String(event.payload.error || 'unknown')
+  const rawError: string = String(payload.error || 'unknown')
   const normalizedError: string = rawError.toLowerCase()
   const isExpectedInterruption: boolean =
     normalizedError.includes('download paused') || normalizedError.includes('download canceled')

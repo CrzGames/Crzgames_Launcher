@@ -2,12 +2,19 @@ import { defineNuxtPlugin } from '#app'
 import { vTooltip } from 'floating-vue'
 
 /**
- * Plugin de directive pour les tooltips, permet d'utiliser `v-tooltip` dans les composants,
- * utilisé pour afficher des informations supplémentaires sur un élément lorsqu'on le survole
- * @param {any} nuxtApp - L'application Nuxt
+ * Minimal Nuxt app shape required by this plugin.
+ */
+type TooltipPluginApp = {
+  vueApp: {
+    directive: (name: string, directive: unknown) => void
+  }
+}
+
+/**
+ * Register the tooltip directive globally.
+ * @param {TooltipPluginApp} nuxtApp - Nuxt application instance.
  * @returns {void}
  */
-export default defineNuxtPlugin((nuxtApp: any): void => {
-  // Fournir `vTooltip` à l'ensemble de l'application en tant que directive
+export default defineNuxtPlugin((nuxtApp: TooltipPluginApp): void => {
   nuxtApp.vueApp.directive('tooltip', vTooltip)
 })

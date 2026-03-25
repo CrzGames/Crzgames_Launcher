@@ -9,8 +9,30 @@ on:
 env:
   TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
   TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
   XCODE_VERSION: '26.3.0'
   NODE_VERSION: '24.11.0'
+
+  # Certificat Apple au format p12 encodé en base64
+  MACOS_APPLE_CERTIFICATE_DEVELOPERIDAPPLICATION_P12_BASE64: ${{ secrets.MACOS_APPLE_CERTIFICATE_DEVELOPERIDAPPLICATION_P12_BASE64 }}
+  # Mot de passe du certificat p12
+  MACOS_APPLE_CERTIFICATE_DEVELOPERIDAPPLICATION_P12_PASSWORD: ${{ secrets.MACOS_APPLE_CERTIFICATE_DEVELOPERIDAPPLICATION_P12_PASSWORD }}
+  # Un nouveau trousseau sera créé sur le coureur, de sorte que le mot de passe du nouveau trousseau peut être n'importe quelle nouvelle chaîne aléatoire
+  KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+  # L'id de l'équipe Apple
+  APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+  # Email du compte apple developer
+  APPLE_ID: ${{ secrets.APPLE_ID }}
+  # Mot de passe de l'application spécifique Apple
+  APPLE_APPLICATION_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APPLICATION_SPECIFIC_PASSWORD }}
+
+  # Variables d'environnement pour le déploiement sur OVH S3, utilisées pour l'étape de déploiement avec AWS CLI (sync)
+  # Même si c'est écrit "AWS_", ce sont en réalité les identifiants d'accès pour le bucket OVH S3, car OVH S3 est compatible avec l'API AWS S3
+  AWS_ACCESS_KEY_ID: ${{ secrets.AETHERROYALE_S3_BUCKET_OVH_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AETHERROYALE_S3_BUCKET_OVH_SECRET_ACCESS_KEY }}
+  AWS_DEFAULT_REGION: ${{ secrets.AETHERROYALE_S3_BUCKET_OVH_REGION }}
+  OVH_S3_ENDPOINT: ${{ secrets.AETHERROYALE_S3_BUCKET_OVH_ENDPOINT }}
+  OVH_S3_BUCKET: ${{ secrets.AETHERROYALE_S3_BUCKET_OVH_NAME }}
 
 jobs:
   build_compile_app:
@@ -23,7 +45,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Install dependencies for Tauri - Linux (x86_64/arm64)
+      - name: Install dependencies for Tauri - Linux (x64/arm64)
         if: matrix.platform == 'ubuntu-22.04'
         run: >-
           sudo apt-get update &&
@@ -38,93 +60,83 @@ jobs:
           libayatana-appindicator3-dev
           librsvg2-dev
 
-      - name: Setup new version xCode - macOS
+      - name: Setup new version xCode - macOS (arm64)
         if: matrix.platform == 'macos-26'
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: ${{ env.XCODE_VERSION }}
 
-      - name: Setup Rust
+      - name: Setup Rust - All platforms
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Setup Rust cache
+      - name: Setup Rust cache - All platforms
         uses: swatinem/rust-cache@v2
         with:
           workspaces: './src-tauri -> target'
 
-      - name: Install Node.js version LTS and setup cache
+      - name: Install Node.js version LTS and setup cache - All platforms
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
-      - name: Install dependencies for project
+      - name: Install dependencies for project - All platforms
         run: npm install
 
-      - name: Modify identifier and endpoint updater in tauri.conf.json for staging
+      - name: Modify identifier and endpoint updater in tauri.conf.json for staging - All platforms
         run: |
           npx json -I -f src-tauri/tauri.conf.json -e "this.identifier = 'com.crzgames.launcher.staging'"
           npx json -I -f src-tauri/tauri.conf.json -e "this.plugins.updater.endpoints = ['https://staging.api.crzgames.com/launcher/updater-manifest/{{target}}/{{arch}}/{{current_version}}']"
           cat src-tauri/tauri.conf.json
 
-      - name: Rust Install target compilation - Windows
+      - name: Rust Install target compilation - Windows (x64/arm64)
         if: matrix.platform == 'windows-2025'
         run: npm run desktop:install:target:windows
 
-      - name: Rust Install target compilation - macOS
+      - name: Rust Install target compilation - macOS (arm64)
         if: matrix.platform == 'macos-26'
         run: npm run desktop:install:target:macos
 
-      - name: Rust Install target compilation - Linux
+      - name: Rust Install target compilation - Linux (x64/arm64)
         if: matrix.platform == 'ubuntu-22.04'
         run: npm run desktop:install:target:linux
 
       - name: Install the Apple Certificate (Developer ID Application) - Not Mac AppStore - macOS
         if: matrix.platform == 'macos-26'
-        env:
-          # Certificat Apple au format p12 encodé en base64
-          MACOS_APPLE_CERTIFICATE_DEVELOPERIDAPPLICATION_P12_BASE64: ${{ secrets.MACOS_APPLE_CERTIFICATE_DEVELOPERIDAPPLICATION_P12_BASE64 }}
-          # Mot de passe du certificat p12
-          MACOS_APPLE_CERTIFICATE_DEVELOPERIDAPPLICATION_P12_PASSWORD: ${{ secrets.MACOS_APPLE_CERTIFICATE_DEVELOPERIDAPPLICATION_P12_PASSWORD }}
-          # Un nouveau trousseau sera créé sur le coureur, de sorte que le mot de passe du nouveau trousseau peut être n'importe quelle nouvelle chaîne aléatoire
-          KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
         run: |
           # create variables
           CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
 
           # import certificate
-          echo -n "$MACOS_APPLE_CERTIFICATE_DEVELOPERIDAPPLICATION_P12_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+          echo -n "${{ env.MACOS_APPLE_CERTIFICATE_DEVELOPERIDAPPLICATION_P12_BASE64 }}" | base64 --decode -o $CERTIFICATE_PATH
 
           # create temporary keychain
-          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security create-keychain -p "${{ env.KEYCHAIN_PASSWORD }}" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security unlock-keychain -p "${{ env.KEYCHAIN_PASSWORD }}" $KEYCHAIN_PATH
 
           # import certificate to keychain
-          security import $CERTIFICATE_PATH -P "$MACOS_APPLE_CERTIFICATE_DEVELOPERIDAPPLICATION_P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
-          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security import $CERTIFICATE_PATH -P "${{ env.MACOS_APPLE_CERTIFICATE_DEVELOPERIDAPPLICATION_P12_PASSWORD }}" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple: -k "${{ env.KEYCHAIN_PASSWORD }}" $KEYCHAIN_PATH
           security list-keychain -d user -s $KEYCHAIN_PATH
 
       - name: Build app and Sign app - macOS (arm64)
         if: matrix.platform == 'macos-26'
         env:
+          # Les variable d'environnement ci-dessous sont attendu par Tauri.
           # Référence de la branche
           GITHUB_REF: ${{ github.ref }}
-          # Identifiant de signature de l'application
-          APPLE_SIGNING_IDENTITY: 'Developer ID Application: Corentin Recanzone (${{ secrets.APPLE_TEAM_ID }})'
           # Identifiant de l'équipe Apple
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_TEAM_ID: ${{ env.APPLE_TEAM_ID }}
           # Email du compte apple developer
-          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID: ${{ env.APPLE_ID }}
           # Mot de passe de l'application spécifique Apple
-          APPLE_PASSWORD: ${{ secrets.APPLE_APPLICATION_SPECIFIC_PASSWORD }}
-          # Identifiant de l'émetteur de l'API
-          APPLE_API_ISSUER: ${{ secrets.APPLE_APPSTORECONNECT_API_ISSUER_ID }}
-          # Clé de l'API
-          APPLE_API_KEY: ${{ secrets.APPLE_APPSTORECONNECT_API_KEY_ID }}
-          # Le APPLE_PROVIDER_SHORT_NAME est nécessaire si votre Apple ID est associé à plusieurs équipes.
-          # APPLE_PROVIDER_SHORT_NAME: ${{ secrets.APPLE_PROVIDER_SHORT_NAME }}
+          APPLE_PASSWORD: ${{ env.APPLE_APPLICATION_SPECIFIC_PASSWORD }}
+          # Certificat Apple au format p12 encodé en base64
+          APPLE_CERTIFICATE: ${{ env.MACOS_APPLE_CERTIFICATE_DEVELOPERIDAPPLICATION_P12_BASE64 }}
+          # Mot de passe du certificat p12
+          APPLE_CERTIFICATE_PASSWORD: ${{ env.MACOS_APPLE_CERTIFICATE_DEVELOPERIDAPPLICATION_P12_PASSWORD }}
         run: |
           npm run desktop:build:macos:arm64
 
@@ -136,7 +148,7 @@ jobs:
           npm run desktop:build:windows:x64
           npm run desktop:build:windows:arm64
 
-      - name: Build app - Linux (x86_64/arm64)
+      - name: Build app - Linux (x64/arm64)
         if: matrix.platform == 'ubuntu-22.04'
         env:
           GITHUB_REF: ${{ github.ref }}
@@ -144,7 +156,7 @@ jobs:
           npm run desktop:build:linux:x86_64
           npm run desktop:build:linux:arm64
 
-      - name: Rename file - Windows
+      - name: Rename file - Windows (x64/arm64)
         if: matrix.platform == 'windows-2025'
         run: |
           mv src-tauri\target\x86_64-pc-windows-msvc\release\bundle\msi\*.msi src-tauri\target\x86_64-pc-windows-msvc\release\bundle\msi\CrzGamesSetup_x64.msi
@@ -157,7 +169,7 @@ jobs:
           mv src-tauri\target\aarch64-pc-windows-msvc\release\bundle\msi\*.msi.sig src-tauri\target\aarch64-pc-windows-msvc\release\bundle\msi\CrzGamesSetup_arm64.msi.sig
           mv src-tauri\target\aarch64-pc-windows-msvc\release\bundle\nsis\*.nsis.sig src-tauri\target\aarch64-pc-windows-msvc\release\bundle\nsis\CrzGamesSetup_arm64.nsis.sig
 
-      - name: Rename file - Linux
+      - name: Rename file - Linux (x64/arm64)
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           mv src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage.sig src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/CrzGamesSetup_x86_64.AppImage.sig
@@ -170,7 +182,7 @@ jobs:
           mv src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb/*.deb src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb/CrzGamesSetup_arm64.deb
           mv src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/rpm/*.rpm src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/rpm/CrzGamesSetup_arm64.rpm
 
-      - name: Rename file - macOS
+      - name: Rename file - macOS (arm64)
         if: matrix.platform == 'macos-26'
         run: |
           mv src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app.tar.gz src-tauri/target/aarch64-apple-darwin/release/bundle/macos/CrzGamesSetup_arm64.app.tar.gz
@@ -178,7 +190,53 @@ jobs:
           mv src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app src-tauri/target/aarch64-apple-darwin/release/bundle/macos/CrzGamesSetup_arm64.app
           mv src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/CrzGamesSetup_arm64.dmg
 
-      - name: Upload Artifact - Linux
+      - name: Verify the signature - macOS (arm64)
+        if: matrix.platform == 'macos-26'
+        run: |
+          # Vérifier la signature de l'application .app
+          codesign --verify --deep --strict --verbose=4 src-tauri/target/aarch64-apple-darwin/release/bundle/macos/CrzGamesSetup_arm64.app
+
+          # Vérifier la signature du fichier .dmg
+          codesign --verify --strict --verbose=4 src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/CrzGamesSetup_arm64.dmg
+
+      - name: Store credentials for notarization - macOS (arm64)
+        if: matrix.platform == 'macos-26'
+        run: |
+          xcrun notarytool store-credentials login \
+          --apple-id "${{ env.APPLE_ID }}" \
+          --team-id "${{ env.APPLE_TEAM_ID }}" \
+          --password "${{ env.APPLE_APPLICATION_SPECIFIC_PASSWORD }}"
+
+      - name: Create zip for notarization - macOS (arm64)
+        if: matrix.platform == 'macos-26'
+        run: |
+          mkdir -p notarization
+          zip -r notarization/CrzGamesSetup_arm64.zip src-tauri/target/aarch64-apple-darwin/release/bundle/macos/CrzGamesSetup_arm64.app
+
+      - name: Submit app for notarization + print log if invalid - macOS (arm64)
+        if: matrix.platform == 'macos-26'
+        run: |
+          xcrun notarytool submit notarization/CrzGamesSetup_arm64.zip \
+          --keychain-profile login \
+          --wait \
+          --verbose || (xcrun notarytool log --keychain-profile login --id $(xcrun notarytool history --keychain-profile login --format json | jq -r '.[0].id') && exit 1)
+
+      - name: Staple the notarization ticket - macOS (arm64)
+        if: matrix.platform == 'macos-26'
+        run: |
+          xcrun stapler staple src-tauri/target/aarch64-apple-darwin/release/bundle/macos/CrzGamesSetup_arm64.app
+          xcrun stapler staple src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/CrzGamesSetup_arm64.dmg
+
+      - name: Verify the signature and notarization - macOS (arm64)
+        if: matrix.platform == 'macos-26'
+        run: |
+          # Vérifier la signature de l'application .app
+          codesign --verify --deep --strict --verbose=4 src-tauri/target/aarch64-apple-darwin/release/bundle/macos/CrzGamesSetup_arm64.app
+
+          # Vérifier la signature du fichier .dmg
+          codesign --verify --strict --verbose=4 src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/CrzGamesSetup_arm64.dmg
+
+      - name: Upload Artifact - Linux (x64/arm64)
         if: matrix.platform == 'ubuntu-22.04'
         uses: actions/upload-artifact@v7
         with:
@@ -196,7 +254,7 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-      - name: Upload Artifact - macOS
+      - name: Upload Artifact - macOS (arm64)
         if: matrix.platform == 'macos-26'
         uses: actions/upload-artifact@v7
         with:
@@ -209,7 +267,7 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-      - name: Upload Artifact - Windows
+      - name: Upload Artifact - Windows (x64/arm64)
         if: matrix.platform == 'windows-2025'
         uses: actions/upload-artifact@v7
         with:
@@ -309,22 +367,29 @@ jobs:
         run: |
           find windows -type f \( -name '*.msi' -o -name '*.exe' -o -name '*.msi.sig' -o -name '*.nsis.sig' \) -exec mv {} dist/ \;
 
-      - name: Deploy binaries Launcher for all platforms to bucket S3 (Minio)
-        uses: mamal72/minio-perfect-deploy-action@main
-        with:
-          endpoint: 'https://staging.s3.api.crzgames.com'
-          access_key: 'crzgames'
-          secret_key: 'Marylene59!!!'
-          bucket: 'crzgames-public'
-          source_dir: 'dist'
-          target_dir: '/launcher/download/'
+      - name: Install AWS CLI for deploy on OVH S3
+        run: |
+          python -m pip install --upgrade pip
+          pip install awscli
 
-      - name: Deploy manifest 'updater-launcher.json' and artifacts for all platforms to bucket S3 (Minio)
-        uses: mamal72/minio-perfect-deploy-action@main
-        with:
-          endpoint: 'https://staging.s3.api.crzgames.com'
-          access_key: 'crzgames'
-          secret_key: 'Marylene59!!!'
-          bucket: 'crzgames-public'
-          source_dir: 'dist-updater'
-          target_dir: '/launcher/updater/'
+      - name: Deploy binaries Launcher for all platforms to bucket S3 (OVH)
+        run: |
+          aws --endpoint-url https://${{ env.OVH_S3_ENDPOINT }} s3 sync \
+            "dist/" "s3://${{ env.OVH_S3_BUCKET }}/launcher/" \
+            --exclude "*" \
+            --include "*.deb" \
+            --include "*.rpm" \
+            --include "*.AppImage" \
+            --include "*.AppImage.sig" \
+            --include "*.dmg" \
+            --include "*.app.tar.gz" \
+            --include "*.app.tar.gz.sig" \
+            --include "*.msi" \
+            --include "*.exe" \
+            --include "*.msi.sig" \
+            --include "*.nsis.sig"
+
+      - name: Deploy manifest 'updater-launcher.json' to bucket S3 (OVH)
+        run: |
+          aws --endpoint-url https://${{ env.OVH_S3_ENDPOINT }} s3 cp \
+            "dist-updater/updater-launcher.json" "s3://${{ env.OVH_S3_BUCKET }}/launcher/updater-launcher.json"

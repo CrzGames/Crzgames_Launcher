@@ -5,7 +5,7 @@
         v-if="platforms && platforms.length > 0"
         :key="iconName"
         :title="platforms.join(', ')"
-        :platform="platforms[0]"
+        :platform="platforms[0] || ''"
       />
     </template>
   </div>
@@ -13,7 +13,7 @@
 
 <script lang="ts" setup>
 import { computed } from 'vue'
-import type { PropType } from 'vue'
+import type { ComputedRef, PropType } from 'vue'
 
 import CrzPlatformIcon from '#src-common/components/ui/CrzPlatformIcon.vue'
 import { platformsIcons } from '#src-common/components/ui/platforms-icons'
@@ -49,8 +49,11 @@ const groupedPlatforms: ComputedRef<Record<string, string[]>> = computed(() => {
 
     if (!iconInfo) return
 
-    group[iconInfo.name] = []
-    group[iconInfo.name].push(platform.name.toLowerCase())
+    if (!group[iconInfo.name]) {
+      group[iconInfo.name] = []
+    }
+
+    group[iconInfo.name]?.push(platform.name.toLowerCase())
   })
   return group
 })

@@ -109,11 +109,22 @@ const displayedCarousels: ComputedRef<GameCarouselModel[] | undefined> = compute
   const carousels: GameCarouselModel[] = gameCarouselStore.carousels
 
   if (carousels.length === 1) {
-    // Si un seul slide actif, ajoutez deux slides fictifs (un avant et un après le slide actif)
-    return [fakeSlide, ...carousels, fakeSlide]
+    const singleCarousel: GameCarouselModel | undefined = carousels[0]
+    if (!singleCarousel) {
+      return undefined
+    }
+
+    // Si un seul slide actif, ajoutez deux slides fictifs (un avant et un apres le slide actif)
+    return [fakeSlide, singleCarousel, fakeSlide]
   } else if (carousels.length >= 2) {
-    // Si deux slides actifs (ou plus), ajoutez le dernier slide au début et le premier à la fin
-    return [carousels[carousels.length - 1], ...carousels, carousels[0]]
+    const firstCarousel: GameCarouselModel | undefined = carousels[0]
+    const lastCarousel: GameCarouselModel | undefined = carousels[carousels.length - 1]
+    if (!firstCarousel || !lastCarousel) {
+      return undefined
+    }
+
+    // Si deux slides actifs (ou plus), ajoutez le dernier slide au debut et le premier a la fin
+    return [lastCarousel, ...carousels, firstCarousel]
   }
 
   return undefined
@@ -308,7 +319,12 @@ const onClickSlide: (clickedIndex: number, event: MouseEvent) => void = (
 
     // Si le slide cliqué est le slide actif (au centre)
     if (clickedIndex === mySwiper2.realIndex) {
-      const url: string = gameCarouselStore.carousels[clickedIndex].button_url
+      const clickedCarousel: GameCarouselModel | undefined = gameCarouselStore.carousels[clickedIndex]
+      if (!clickedCarousel?.button_url) {
+        return
+      }
+
+      const url: string = clickedCarousel.button_url
       open(url).catch((error: any) => {
         console.error('Erreur lors de l’ouverture du lien:', error)
       })
@@ -350,7 +366,12 @@ const updateArrowsPosition: () => void = (): void => {
     const swiperButtonNext: HTMLElement | null = document.querySelector('.swiper-button-next')
 
     if (swiperContainer && swiperButtonPrev && swiperButtonNext && mySwiper2) {
-      const slideWidth: number = mySwiper2.slides[mySwiper2.activeIndex].offsetWidth
+      const activeSlide: HTMLElement | undefined = mySwiper2.slides[mySwiper2.activeIndex] as HTMLElement | undefined
+      if (!activeSlide) {
+        return
+      }
+
+      const slideWidth: number = activeSlide.offsetWidth
       const slideSpace: number = (swiperContainer.offsetWidth - slideWidth) / 2
 
       swiperButtonPrev.style.left = `${slideSpace - swiperButtonPrev.offsetWidth / 2}px`

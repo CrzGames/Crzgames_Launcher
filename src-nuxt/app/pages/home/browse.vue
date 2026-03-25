@@ -319,7 +319,6 @@
         :per-page="perPage"
         :current-page="currentPage"
         :on-page-change="handlePageChange"
-        @update:currentPage="currentPage = $event"
       />
     </div>
 
@@ -910,7 +909,7 @@ const addGameToUserGameLibraryAndUpdateGameListAndNotify: (gameId: number) => Pr
     const gameIndex: number = games.value.findIndex((game: ExtendedGameModel): boolean => game.id === gameId)
 
     // Si le jeu est trouvé, met à jour le statut de possession
-    if (gameIndex !== -1) {
+    if (gameIndex !== -1 && games.value[gameIndex]) {
       // Marque le jeu comme possédé (évite un refetch complet)
       games.value[gameIndex].isOwned = true
       games.value[gameIndex].isPaidAndNotOwned = false
@@ -1023,9 +1022,11 @@ const handleClickOutside: (event: MouseEvent) => void = (event: MouseEvent): voi
 
 /**
  * Gère le changement de page et effectue un défilement vers le haut si nécessaire.
+ * @param {number} page - NumÃ©ro de page demandÃ©.
  * @returns {Promise<void>}
  */
-const handlePageChange: () => Promise<void> = async (): Promise<void> => {
+const handlePageChange: (page: number) => Promise<void> = async (page: number): Promise<void> => {
+  currentPage.value = page
   await fetchAllGamesAndEnrichGame()
   await scrollToTop()
 }

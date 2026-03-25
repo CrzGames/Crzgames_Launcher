@@ -7,7 +7,7 @@
 
     <Field
       :rows="rows"
-      :rules="rules"
+      :rules="rules || undefined"
       :validateOnInput="true"
       v-slot="{ meta, field }"
       :name="props.id"
