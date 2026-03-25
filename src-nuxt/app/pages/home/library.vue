@@ -776,7 +776,7 @@ const openDownloadModal: (
     // Si une plateforme correspondante est trouvée, je récupére le fichier binaire du jeu pour récupérer sa taille
     if (gamePlatform) {
       const gameBinary: GameBinaryModel | undefined = game.gameBinary.find(
-        (gameBinary: GameBinaryModel): boolean => gameBinary.game_platforms_id === gamePlatform.id,
+        (gameBinary: GameBinaryModel): boolean => gameBinary.gamePlatform.id === gamePlatform.id,
       )
 
       if (gameBinary) {
@@ -819,7 +819,7 @@ const openDownloadModal: (
     // Si une plateforme correspondante est trouvée, procédez au téléchargement
     if (gamePlatform) {
       const gameBinaryPlatform: GameBinaryModel | undefined = gameDetails.gameBinary.find(
-        (gameBinary: GameBinaryModel): boolean => gameBinary.game_platforms_id === gamePlatform.id,
+        (gameBinary: GameBinaryModel): boolean => gameBinary.gamePlatform.id === gamePlatform.id,
       )
 
       if (gameBinaryPlatform) {
@@ -972,7 +972,7 @@ const downloadGame: (files?: FileDetails[]) => Promise<void> = async (files?: Fi
         // Si une plateforme correspondante est trouvée, procédez au téléchargement
         if (gamePlatform) {
           const gameBinaryPlatform: GameBinaryModel | undefined = game.gameBinary.find(
-            (gameBinary: GameBinaryModel): boolean => gameBinary.game_platforms_id === gamePlatform.id,
+            (gameBinary: GameBinaryModel): boolean => gameBinary.gamePlatform.id === gamePlatform.id,
           )
 
           if (gameBinaryPlatform) {
@@ -1165,7 +1165,7 @@ const verifyInstallationGame: (game: GameModel) => Promise<void> = async (game: 
   // Si une plateforme correspondante est trouvée, procédez au téléchargement
   if (gamePlatform) {
     const gameBinaryPlatform: GameBinaryModel | undefined = game.gameBinary.find(
-      (gameBinary: GameBinaryModel): boolean => gameBinary.game_platforms_id === gamePlatform.id,
+      (gameBinary: GameBinaryModel): boolean => gameBinary.gamePlatform.id === gamePlatform.id,
     )
 
     if (gameBinaryPlatform) {
