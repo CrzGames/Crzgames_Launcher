@@ -506,10 +506,14 @@ const maintainActiveSlideOpacity: () => void = (): void => {
   background: #e0a100;
   text-align: center;
   border-radius: 100%;
+  color: #fff;
   &::after {
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+  svg {
+    display: none !important;
   }
   &:hover {
     background: #f59e0b;
@@ -530,10 +534,14 @@ const maintainActiveSlideOpacity: () => void = (): void => {
   top: 50%;
   transform: translateY(-50%);
   z-index: 10;
+  color: #fff;
   &::after {
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+  svg {
+    display: none !important;
   }
   &:hover {
     background: #f59e0b;
@@ -543,16 +551,22 @@ const maintainActiveSlideOpacity: () => void = (): void => {
   }
 }
 
-.swiper-button-prev {
-  &::after {
-    content: url('~~/src-nuxt/public/images/arrow-left.svg');
-  }
+.swiper-button-prev::after,
+.swiper-button-next::after {
+  content: '' !important;
+  width: 32px;
+  height: 32px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 32px 32px;
 }
 
-.swiper-button-next {
-  &::after {
-    content: url('~~/src-nuxt/public/images/arrow-right.svg');
-  }
+.swiper-button-prev::after {
+  background-image: url('/images/arrow-left.svg');
+}
+
+.swiper-button-next::after {
+  background-image: url('/images/arrow-right.svg');
 }
 
 .swiper-slide {
