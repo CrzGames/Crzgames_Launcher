@@ -39,7 +39,7 @@
           :is-playing="activeDownloadGame.isPlaying"
           :progress="activeDownloadGame.progress"
           :downloaded="bytesToSize(activeDownloadGame.totalDownloadedBytesNow || 0)"
-          :total="bytesToSize(activeDownloadGame.gameBinarySize)"
+          :total="bytesToSize(activeDownloadGame.totalSizeToDownload || activeDownloadGame.gameBinarySize)"
           :speed="activeDownloadGame.speed"
           :remaining-time="activeDownloadGame.remainingTime"
           :game-id="activeDownloadGame.gameId"
@@ -188,6 +188,7 @@ const selectedGameForDownloadCancellation: Ref<ActiveDownloadGame | null> = ref<
  * @type {Ref<boolean>}
  */
 const isCancelDownloadModalVisible: Ref<boolean> = ref<boolean>(false)
+const pendingPlayPauseGameIds: Set<number> = new Set<number>()
 
 /* COMPUTED */
 /**
@@ -356,6 +357,11 @@ const confirmGameDownloadCancellation: () => Promise<void> = async (): Promise<v
 const resumeGameDownload: (gameToResumeDownload: ActiveDownloadGame) => Promise<void> = async (
   gameToResumeDownload: ActiveDownloadGame,
 ): Promise<void> => {
+  if (pendingPlayPauseGameIds.has(gameToResumeDownload.gameId)) {
+    return
+  }
+  pendingPlayPauseGameIds.add(gameToResumeDownload.gameId)
+
   try {
     // Log l'initiation de la reprise du telechargement
     logger.info(`[Download Resume] Reprise du telechargement pour: ${gameToResumeDownload.gameTitle}`)
@@ -407,7 +413,7 @@ const resumeGameDownload: (gameToResumeDownload: ActiveDownloadGame) => Promise<
 
     // Recherche le binaire correspondant a la plateforme compatible dans les donnees du jeu
     const gameBinaryForPlatform: GameBinaryModel | undefined = gameDataDetails.gameBinary.find(
-      (binary: GameBinaryModel): boolean => binary.game_platforms_id === compatiblePlatform.id,
+      (binary: GameBinaryModel): boolean => binary.gamePlatform.id === compatiblePlatform.id,
     )
     // Verifie si un binaire a ete trouve pour la plateforme
     if (!gameBinaryForPlatform) {
@@ -480,6 +486,8 @@ const resumeGameDownload: (gameToResumeDownload: ActiveDownloadGame) => Promise<
     gameToResumeDownload.isPlaying = false
     // Affiche une notification d'erreur a l'utilisateur
     notyf.error(`Failed to resume download for ${gameToResumeDownload.gameTitle}`)
+  } finally {
+    pendingPlayPauseGameIds.delete(gameToResumeDownload.gameId)
   }
 }
 
@@ -489,12 +497,18 @@ const resumeGameDownload: (gameToResumeDownload: ActiveDownloadGame) => Promise<
  * @param {ActiveDownloadGame} gameToPauseDownload - Jeu dont le telechargement doit etre mis en pause
  * @returns {void}
  */
-const pauseGameDownload: (gameToPauseDownload: ActiveDownloadGame) => void = (
+const pauseGameDownload: (gameToPauseDownload: ActiveDownloadGame) => Promise<void> = async (
   gameToPauseDownload: ActiveDownloadGame,
-): void => {
+): Promise<void> => {
+  if (pendingPlayPauseGameIds.has(gameToPauseDownload.gameId)) {
+    return
+  }
+  pendingPlayPauseGameIds.add(gameToPauseDownload.gameId)
+
   try {
     // Log l'action de mise en pause du telechargement
     logger.info(`[Download Pause] Mise en pause pour: ${gameToPauseDownload.gameTitle}`)
+    await TauriService.pauseDownloadGame(gameToPauseDownload.gameId)
     // Modifie l'etat du telechargement pour le mettre en pause
     gameToPauseDownload.isPlaying = false
   } catch (error: unknown) {
@@ -502,6 +516,8 @@ const pauseGameDownload: (gameToPauseDownload: ActiveDownloadGame) => void = (
     logger.error(`[Download Pause] Echec de la mise en pause pour ${gameToPauseDownload.gameTitle}`, error as Error)
     // Affiche une notification d'erreur a l'utilisateur
     notyf.error(`Failed to pause download for ${gameToPauseDownload.gameTitle}`)
+  } finally {
+    pendingPlayPauseGameIds.delete(gameToPauseDownload.gameId)
   }
 }
 

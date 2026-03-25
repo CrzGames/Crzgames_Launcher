@@ -19,7 +19,7 @@
       <!-- Barre de progression -->
       <ProgressBar v-if="props.showProgress" :progress="props.progress" />
 
-      <!-- Informations supplémentaires -->
+      <!-- Informations supplÃ©mentaires -->
       <div class="grid gap-2">
         <div class="flex justify-between">
           <p class="font-serif text-sm font-medium text-zinc-400">Status:</p>
@@ -38,7 +38,7 @@
 
     <!-- Boutons d'action -->
     <div class="flex flex-col items-center gap-2">
-      <PlayPauseButton :isPlaying="props.isPlaying" @play="handlePlayPause" @pause="handlePlayPause" />
+      <PlayPauseButton :isPlaying="props.isPlaying" @play="emit('play')" @pause="emit('pause')" />
       <CrzSquareIconButton tooltip="Cancel download" variant="red" iconName="x" @click="handleCancel" />
     </div>
   </div>
@@ -46,8 +46,6 @@
 
 <script lang="ts" setup>
 import CrzSquareIconButton from '#src-common/components/buttons/CrzSquareIconButton.vue'
-
-import { TauriService } from '#src-core/services/TauriService'
 
 import PlayPauseButton from '#src-nuxt/app/components/buttons/PlayPauseButton.vue'
 import ProgressBar from '#src-nuxt/app/components/ui/ProgressBar.vue'
@@ -138,19 +136,6 @@ const props: Props = defineProps({
 const emit: (event: 'play' | 'pause' | 'cancel', ...args: any[]) => void = defineEmits(['play', 'pause', 'cancel'])
 
 /* METHODS */
-/**
- * Handles play/pause button click
- */
-const handlePlayPause: () => Promise<void> = async (): Promise<void> => {
-  if (props.isPlaying) {
-    await TauriService.pauseDownloadGame(props.gameId)
-    emit('pause')
-  } else {
-    await TauriService.resumeDownloadGame(props.gameId)
-    emit('play')
-  }
-}
-
 /**
  * Handles cancel button click
  */

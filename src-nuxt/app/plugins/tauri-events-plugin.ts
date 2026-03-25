@@ -11,44 +11,185 @@ import { createLogger } from '#src-core/utils/logger'
 import type { Logger } from '#src-core/utils/logger'
 
 import { useDownloadsStore } from '#src-nuxt/app/stores/downloads.store'
+import type { ActiveDownloadGame } from '#src-nuxt/app/stores/downloads.store'
 
 /**
  * Instance du logger pour tracer les evenements des events Tauri
- * - Utilise createLogger avec un contexte specifique à "TauriEvents"
+ * - Utilise createLogger avec un contexte specifique a "TauriEvents"
  * @type {Logger}
  */
 const logger: Logger = createLogger('TauriEvents')
 
 /**
- * Gestionnaire de téléchargements actifs et terminés pour les jeux
- * - Utilise le store 'downloadsStore' pour ajouter, mettre à jour et supprimer les téléchargements actifs et terminés
- * - Utilise les services 'GameService' et 'TauriService' pour récupérer les informations des jeux et les sauvegarder
+ * Etat local de tracking des sessions de telechargement par jeu
+ */
+const latestSessionByGameId: Map<number, string> = new Map<number, string>()
+const completedSessionByGameId: Map<number, string> = new Map<number, string>()
+const gamePictureUrlCache: Map<number, string> = new Map<number, string>()
+const pendingGamePictureByGameId: Map<number, Promise<string>> = new Map<number, Promise<string>>()
+const lastPersistAtByGameId: Map<number, number> = new Map<number, number>()
+const lastProgressLogAtByGameId: Map<number, number> = new Map<number, number>()
+
+const PERSIST_PROGRESS_INTERVAL_MS: number = 1000
+const PROGRESS_LOG_INTERVAL_MS: number = 1000
+let tauriEventsProcessingQueue: Promise<void> = Promise.resolve()
+
+/**
+ * Convertit une valeur inconnue en nombre.
+ * @param {unknown} value - Valeur a convertir
+ * @param {number} [fallback] - Valeur par defaut si conversion invalide
+ * @returns {number}
+ */
+const toNumber: (value: unknown, fallback?: number) => number = (value: unknown, fallback: number = 0): number => {
+  const parsed: number = Number(value)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+/**
+ * Extrait ou construit un identifiant de session depuis le payload.
+ * @param {any} payload - Payload de l'event Tauri
+ * @param {number} gameId - Identifiant du jeu
+ * @returns {string}
+ */
+const getSessionIdFromPayload: (payload: any, gameId: number) => string = (payload: any, gameId: number): string => {
+  const rawSessionId: string = typeof payload?.sessionId === 'string' ? payload.sessionId.trim() : ''
+  if (rawSessionId.length > 0) {
+    return rawSessionId
+  }
+
+  return `game-${gameId}-unknown-session`
+}
+
+/**
+ * Verifie si un event appartient a une session deja terminee.
+ * @param {number} gameId - Identifiant du jeu
+ * @param {string} sessionId - Session de telechargement
+ * @returns {boolean}
+ */
+const isCompletedSessionEvent: (gameId: number, sessionId: string) => boolean = (
+  gameId: number,
+  sessionId: string,
+): boolean => completedSessionByGameId.get(gameId) === sessionId
+
+/**
+ * Met a jour la session courante d'un jeu a partir d'un event de progression.
+ * @param {number} gameId - Identifiant du jeu
+ * @param {string} sessionId - Session de telechargement
+ * @returns {void}
+ */
+const trackSessionFromProgressEvent: (gameId: number, sessionId: string) => void = (
+  gameId: number,
+  sessionId: string,
+): void => {
+  const previousSessionId: string | undefined = latestSessionByGameId.get(gameId)
+
+  if (previousSessionId !== sessionId) {
+    latestSessionByGameId.set(gameId, sessionId)
+    completedSessionByGameId.delete(gameId)
+
+    logger.info(
+      `[Progress Event] session switched gameId=${gameId} previous=${previousSessionId || 'none'} current=${sessionId}`,
+    )
+  }
+}
+
+/**
+ * Enfile un handler d'event Tauri pour les traiter sequentiellement et garder l'ordre.
+ * @param {() => Promise<void>} handler - Handler asynchrone a executer
+ * @returns {void}
+ */
+const enqueueTauriEventProcessing: (handler: () => Promise<void>) => void = (handler: () => Promise<void>): void => {
+  tauriEventsProcessingQueue = tauriEventsProcessingQueue
+    .then(async (): Promise<void> => {
+      await handler()
+    })
+    .catch((error: unknown): void => {
+      logger.error('[Tauri Events Queue] Error while processing event', error as Error)
+    })
+}
+
+/**
+ * Recupere l'URL d'image d'un jeu avec cache memoize.
+ * @param {number} gameId - Identifiant du jeu
+ * @param {ReturnType<typeof useDownloadsStore>} downloadsStore - Store des telechargements
+ * @returns {Promise<string>}
+ */
+const getGamePictureUrlByGameId: (
+  gameId: number,
+  downloadsStore: ReturnType<typeof useDownloadsStore>,
+) => Promise<string> = async (
+  gameId: number,
+  downloadsStore: ReturnType<typeof useDownloadsStore>,
+): Promise<string> => {
+  const gameFromActiveDownloads: ActiveDownloadGame | undefined = downloadsStore.activeDownloads.find(
+    (activeDownload: ActiveDownloadGame): boolean => activeDownload.gameId === gameId,
+  )
+
+  if (gameFromActiveDownloads?.gamePictureUrl) {
+    return gameFromActiveDownloads.gamePictureUrl
+  }
+
+  const cachedPictureUrl: string | undefined = gamePictureUrlCache.get(gameId)
+  if (cachedPictureUrl) {
+    return cachedPictureUrl
+  }
+
+  const pendingRequest: Promise<string> | undefined = pendingGamePictureByGameId.get(gameId)
+  if (pendingRequest) {
+    return pendingRequest
+  }
+
+  const newRequest: Promise<string> = GameService.getGameById(gameId)
+    .then((game: GameModel): string => {
+      const pictureUrl: string = game.pictureFile.url
+      gamePictureUrlCache.set(gameId, pictureUrl)
+      pendingGamePictureByGameId.delete(gameId)
+      return pictureUrl
+    })
+    .catch((error: unknown): string => {
+      pendingGamePictureByGameId.delete(gameId)
+      logger.error(`[Progress Event] Failed to fetch game picture for gameId=${gameId}`, error as Error)
+      return ''
+    })
+
+  pendingGamePictureByGameId.set(gameId, newRequest)
+  return newRequest
+}
+
+/**
+ * Gestionnaire de telechargements actifs et termines pour les jeux
+ * - Utilise le store 'downloadsStore' pour ajouter, mettre a jour et supprimer les telechargements actifs et termines
+ * - Utilise les services 'GameService' et 'TauriService' pour recuperer les informations des jeux et les sauvegarder
  */
 export default defineNuxtPlugin(async () => {
-  let unlistenDownload: UnlistenFn | undefined = undefined
-  let unlistenInstall: UnlistenFn | undefined = undefined
+  let unlistenDownload: UnlistenFn
+  let unlistenInstall: UnlistenFn
 
   /**
-   * Écouter l'événement de progression du téléchargement d'un jeu
+   * Ecouter l'evenement de progression du telechargement d'un jeu
    */
   unlistenDownload = await listen('download-game-progress', (event: any) => {
-    void handleDownloadProgress(event)
+    enqueueTauriEventProcessing(async (): Promise<void> => {
+      await handleDownloadProgress(event)
+    })
   })
 
   /**
-   * Écouter l'événement d'installation terminée d'un jeu
+   * Ecouter l'evenement d'installation terminee d'un jeu
    */
   unlistenInstall = await listen('game-installation-complete', (event: any) => {
-    void handleGameInstallationComplete(event)
+    enqueueTauriEventProcessing(async (): Promise<void> => {
+      await handleGameInstallationComplete(event)
+    })
   })
 
   /**
-   * Nettoyage des événements quand l'application est détruite
+   * Nettoyage des evenements quand l'application est detruite
    */
   return {
     provide: {
       /**
-       * Arrêter d'écouter les événements Tauri
+       * Arreter d'ecouter les evenements Tauri
        * @returns {void}
        */
       unlistenTauriEvents: (): void => {
@@ -60,131 +201,164 @@ export default defineNuxtPlugin(async () => {
 })
 
 /**
- * Gérer la progression du téléchargement
- * @param {any} event - L'événement de progression du téléchargement
+ * Gerer la progression du telechargement
+ * @param {any} event - L'evenement de progression du telechargement
  * @returns {Promise<void>}
  */
 const handleDownloadProgress: (event: any) => Promise<void> = async (event: any): Promise<void> => {
-  if (event.payload) {
-    const downloadsStore: any = useDownloadsStore()
+  if (!event.payload) {
+    return
+  }
 
-    /**
-     * On construit l'objet 'GameProgressDownload' pour l'utiliser dans la méthode 'saveGameProgressDownload' en-dessous
-     * pour sauvegarder la progression du téléchargement sur le système de l'utilisateur
-     */
+  const downloadsStore: ReturnType<typeof useDownloadsStore> = useDownloadsStore()
+
+  const gameId: number = toNumber(event.payload.gameId, -1)
+  if (gameId < 0) {
+    return
+  }
+
+  const sessionId: string = getSessionIdFromPayload(event.payload, gameId)
+
+  if (isCompletedSessionEvent(gameId, sessionId)) {
+    return
+  }
+
+  trackSessionFromProgressEvent(gameId, sessionId)
+
+  const payloadTotalSizeToDownload: number = toNumber(event.payload.totalSizeToDownload, 0)
+  const fallbackGameBinarySize: number = toNumber(event.payload.gameBinarySize, 0)
+  const totalSizeToDownload: number =
+    payloadTotalSizeToDownload > 0 ? payloadTotalSizeToDownload : fallbackGameBinarySize
+
+  const rawTotalDownloaded: number = Math.max(toNumber(event.payload.totalDownloaded, 0), 0)
+  const totalDownloaded: number =
+    totalSizeToDownload > 0 ? Math.min(rawTotalDownloaded, totalSizeToDownload) : rawTotalDownloaded
+  const speed: number = Math.max(toNumber(event.payload.speed, 0), 0)
+  const progress: number = totalSizeToDownload > 0 ? (totalDownloaded / totalSizeToDownload) * 100 : 0
+
+  const gamePictureUrl: string = await getGamePictureUrlByGameId(gameId, downloadsStore)
+
+  // Re-check apres await pour ignorer les events devenus obsoletes
+  if (isCompletedSessionEvent(gameId, sessionId) || latestSessionByGameId.get(gameId) !== sessionId) {
+    return
+  }
+
+  const existingActiveDownload: ActiveDownloadGame | undefined = downloadsStore.activeDownloads.find(
+    (activeDownload: ActiveDownloadGame): boolean => activeDownload.gameId === gameId,
+  )
+  const shouldUpsertActiveDownload: boolean = existingActiveDownload?.sessionId !== sessionId
+
+  if (shouldUpsertActiveDownload) {
+    const activeDownloadGame: ActiveDownloadGame = {
+      pathInstallLocation: event.payload.pathInstallLocation,
+      gameId: gameId,
+      gameTitle: event.payload.gameTitle,
+      gamePictureUrl: gamePictureUrl,
+      isPlaying: true,
+      progress: progress,
+      totalDownloadedBytesNow: totalDownloaded,
+      totalSizeToDownload: totalSizeToDownload,
+      gameBinarySize: fallbackGameBinarySize || totalSizeToDownload,
+      speed: `${speed}`,
+      remainingTime: '',
+      sessionId: sessionId,
+    }
+    downloadsStore.addActiveDownload(activeDownloadGame)
+  } else if (existingActiveDownload?.isPlaying === false) {
+    existingActiveDownload.isPlaying = true
+  }
+
+  downloadsStore.updateDownloadProgress(gameId, totalDownloaded, speed, totalSizeToDownload, sessionId)
+
+  const now: number = Date.now()
+  const lastLogAt: number = lastProgressLogAtByGameId.get(gameId) || 0
+  const shouldLogProgress: boolean =
+    now - lastLogAt >= PROGRESS_LOG_INTERVAL_MS || totalDownloaded >= totalSizeToDownload
+
+  if (shouldLogProgress) {
+    lastProgressLogAtByGameId.set(gameId, now)
+    logger.debug(
+      `[Progress Event] session=${sessionId} gameId=${gameId} speed=${speed.toFixed(2)} totalDownloaded=${totalDownloaded} totalSize=${totalSizeToDownload} progress=${progress.toFixed(2)}%`,
+    )
+  }
+
+  const lastPersistAt: number = lastPersistAtByGameId.get(gameId) || 0
+  const shouldPersist: boolean =
+    now - lastPersistAt >= PERSIST_PROGRESS_INTERVAL_MS || totalDownloaded >= totalSizeToDownload
+
+  if (shouldPersist) {
+    lastPersistAtByGameId.set(gameId, now)
+
     const gameProgressDownload: GameProgressDownload = {
-      userId: event.payload.userId,
-      gameId: event.payload.gameId,
+      userId: toNumber(event.payload.userId),
+      gameId: gameId,
       gameTitle: event.payload.gameTitle,
       pathInstallLocation: event.payload.pathInstallLocation,
-      totalSizeToDownload: event.payload.totalSizeToDownload,
+      totalSizeToDownload: totalSizeToDownload,
+      totalDownloadedBytesNow: totalDownloaded,
       gameVersion: event.payload.gameVersion,
     }
 
-    /**
-     * On construit l'objet 'ActiveDownloadGame' pour le stocker dans le store 'downloadsStore'
-     * utiliser en-dessous pour ajouter au "téléchargements actifs" (en cours de téléchargement)
-     */
-    const game: GameModel = await GameService.getGameById(event.payload.gameId)
-    const activeDownloadGame: ActiveDownloadGame = {
-      pathInstallLocation: event.payload.pathInstallLocation,
-      gameId: event.payload.gameId,
-      gameTitle: event.payload.gameTitle,
-      gamePictureUrl: game.pictureFile.url,
-      isPlaying: true,
-      progress: event.payload.progress,
-      totalDownloadedBytesNow: event.payload.totalDownloaded,
-      totalSizeToDownload: event.payload.totalSizeToDownload,
-      gameBinarySize: event.payload.gameBinarySize,
-      speed: event.payload.speed,
-      remainingTime: '',
-    }
-
-    /**
-     * Log
-     * Afficher la vitesse de téléchargement et la progression du téléchargement
-     */
-    const speed: any = event.payload.speed
-    const progress: any = (event.payload.totalDownloaded / event.payload.gameBinarySize) * 100
-    logger.debug(`Download Speed: ${speed.toFixed(2)} bytes/sec, Progress: ${progress.toFixed(2)}%`)
-
-    /**
-     * La première fois que l'on reçoit un événement de progression de téléchargement, donc depuis cette méthode
-     * on ajoute le téléchargement actif dans le store, par rapport au jeu via son 'gameId'
-     * Dans la méthode 'addActiveDownload' du store, on vérifie si le jeu est déjà dans le tableau
-     * des téléchargements actifs, si oui on le remplace, sinon on l'ajoute
-     */
-    downloadsStore.addActiveDownload(activeDownloadGame)
-
-    /**
-     * On met à jour la progression du téléchargement dans le store, par rapport au jeu via son 'gameId'
-     * Permet d'afficher la progression du téléchargement dans l'interface utilisateur de la page "Download Manager"
-     */
-    downloadsStore.updateDownloadProgress(
-      gameProgressDownload.gameId,
-      event.payload.totalDownloaded,
-      event.payload.speed,
-      event.payload.gameBinarySize,
-    )
-
-    /**
-     * On sauvegarde la progression du téléchargement sur le système de l'utilisateur
-     * pour pouvoir reprendre le téléchargement en cas de coupure de connexion, pc éteint, etc.
-     */
-    await TauriService.saveGameProgressDownload(gameProgressDownload)
+    void TauriService.saveGameProgressDownload(gameProgressDownload)
   }
 }
 
 /**
- * Gérer l'événement de fin d'installation d'un jeu
- * @param {any} event - L'événement de fin d'installation du jeu
+ * Gerer l'evenement de fin d'installation d'un jeu
+ * @param {any} event - L'evenement de fin d'installation du jeu
  * @returns {Promise<void>}
  */
 const handleGameInstallationComplete: (event: any) => Promise<void> = async (event: any): Promise<void> => {
-  if (event.payload) {
-    const downloadsStore: any = useDownloadsStore()
-
-    /**
-     * Log
-     * Afficher le jeu téléchargé et installé avec succès
-     */
-    logger.info('Game downloaded and installed successfully:' + JSON.stringify(event.payload))
-
-    /**
-     * On construit l'objet 'GameManifestLocal' pour l'utiliser dans la méthode 'finalizeDownload' en-dessous
-     * pour finaliser le téléchargement du jeu sur le système de l'utilisateur
-     * et pour l'ajouter dans les téléchargements terminés
-     */
-    const gameManifest: GameManifestLocal = {
-      pathInstallLocation: event.payload.fileLocationDownload,
-      gameId: event.payload.gameId,
-      gameTitle: event.payload.gameTitle,
-      gameBinarySize: event.payload.gameBinarySize,
-      version: event.payload.gameVersion,
-      files: [],
-    }
-
-    /**
-     * On appel une dernière fois pour mettre à jour la progression du téléchargement à 100%
-     */
-    downloadsStore.updateDownloadProgress(
-      event.payload.gameId,
-      event.payload.gameBinarySize,
-      0,
-      event.payload.gameBinarySize,
-    )
-
-    /**
-     * Finalise le téléchargement du jeu en supprimant le jeu des "progressions de téléchargement" sur
-     * le système de l'utilisateur
-     * Et en sauvegardant le jeu dans la liste des jeux installés sur le système de l'utilisateur
-     */
-    await TauriService.finalizeDownload(event.payload.userId, gameManifest)
-
-    /**
-     * On ajoute le jeu dans les téléchargements terminés pour pouvoir le retrouver dans la page "Download Manager"
-     * et on le retire des téléchargements actifs
-     */
-    await downloadsStore.addCompleteDownload(gameManifest.gameId)
+  if (!event.payload) {
+    return
   }
+
+  const downloadsStore: ReturnType<typeof useDownloadsStore> = useDownloadsStore()
+
+  const gameId: number = toNumber(event.payload.gameId, -1)
+  if (gameId < 0) {
+    return
+  }
+
+  const sessionId: string = getSessionIdFromPayload(event.payload, gameId)
+
+  latestSessionByGameId.set(gameId, sessionId)
+  completedSessionByGameId.set(gameId, sessionId)
+  lastPersistAtByGameId.delete(gameId)
+  lastProgressLogAtByGameId.delete(gameId)
+
+  const payloadTotalSizeToDownload: number = toNumber(event.payload.totalSizeToDownload, 0)
+  const fallbackGameBinarySize: number = toNumber(event.payload.gameBinarySize, 0)
+  const totalSizeToDownload: number =
+    payloadTotalSizeToDownload > 0 ? payloadTotalSizeToDownload : fallbackGameBinarySize
+  const rawTotalDownloaded: number = Math.max(toNumber(event.payload.totalDownloaded, totalSizeToDownload), 0)
+  const totalDownloaded: number =
+    totalSizeToDownload > 0 ? Math.min(rawTotalDownloaded, totalSizeToDownload) : rawTotalDownloaded
+
+  logger.info('Game downloaded and installed successfully:' + JSON.stringify(event.payload))
+  logger.info(
+    `[Installation Complete Event] session=${sessionId} gameId=${gameId} userId=${toNumber(event.payload.userId)} filesCount=${toNumber(event.payload.filesCount)} totalDownloaded=${totalDownloaded} totalSizeToDownload=${totalSizeToDownload}`,
+  )
+
+  const gameManifest: GameManifestLocal = {
+    pathInstallLocation: event.payload.fileLocationDownload,
+    gameId: gameId,
+    gameTitle: event.payload.gameTitle,
+    gameBinarySize: fallbackGameBinarySize || totalSizeToDownload,
+    version: event.payload.gameVersion,
+    files: [],
+  }
+
+  downloadsStore.updateDownloadProgress(gameId, totalDownloaded, 0, totalSizeToDownload, sessionId)
+
+  try {
+    await TauriService.finalizeDownload(toNumber(event.payload.userId), gameManifest)
+  } catch (error: unknown) {
+    logger.error(
+      `[Installation Complete Event] finalizeDownload failed session=${sessionId} gameId=${gameId}`,
+      error as Error,
+    )
+  }
+
+  await downloadsStore.addCompleteDownload(gameManifest.gameId)
 }

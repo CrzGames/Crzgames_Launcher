@@ -15,20 +15,21 @@ use std::env;
 use std::path::{Path, PathBuf};
 use std::fs;
 use std::io::{BufReader, Read};
-use std::time::Instant;
 use core::time::Duration;
 use serde_json::json;
 use dirs;
 use sysinfo::{ Disks, System };
-use zip::ZipArchive;
 use futures::StreamExt;
 use sha2::{Digest, Sha256};
-use tokio::sync::mpsc;
+use tokio::io::AsyncWriteExt;
+use tokio::sync::{mpsc, Semaphore};
+use tokio::task::JoinSet;
+use tokio::fs::OpenOptions as TokioOpenOptions;
 use std::thread;
 use std::fs::remove_dir_all;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use lazy_static::lazy_static;
 use std::collections::HashSet;
 #[allow(unused_imports)]
@@ -44,6 +45,8 @@ const EXECUTABLE_EXTENSIONS: [&str; 1] = ["app"];
 
 #[cfg(target_os = "linux")]
 const EXECUTABLE_EXTENSIONS: [&str; 1] = ["AppImage"];
+
+const MAX_CONCURRENT_DOWNLOADS: usize = 6;
 
 // getSystemOSInfoCurrent
 #[derive(Debug, serde::Serialize)]
@@ -229,6 +232,249 @@ fn remove_obsolete_files(
     Ok(())
 }
 
+#[derive(Debug, serde::Deserialize)]
+struct LauncherPresignedDownloadResponse {
+    url: String,
+}
+
+fn get_part_file_path(target_path: &Path) -> PathBuf {
+    PathBuf::from(format!("{}.part", target_path.to_string_lossy()))
+}
+
+fn calculate_initial_downloaded_for_resume(game_directory: &Path, files_to_download: &[FileDetails]) -> u64 {
+    let mut total: u64 = 0;
+
+    for file in files_to_download {
+        let target_path = game_directory.join(&file.name);
+        if target_path.exists() {
+            if let Ok(existing_hash) = calculate_file_hash(&target_path) {
+                if existing_hash == file.hash {
+                    total = total.saturating_add(file.size);
+                    continue;
+                }
+            }
+        }
+
+        let part_path = get_part_file_path(&target_path);
+        if part_path.exists() {
+            if let Ok(metadata) = fs::metadata(&part_path) {
+                let part_size = metadata.len();
+                if part_size < file.size {
+                    total = total.saturating_add(part_size);
+                }
+            }
+        }
+    }
+
+    total
+}
+
+async fn fetch_presigned_download_url(
+    client: &reqwest::Client,
+    presign_api_url: &str,
+    bucket_name: &str,
+    path_filename: &str,
+) -> Result<String, String> {
+    let request_url = reqwest::Url::parse_with_params(
+        presign_api_url,
+        &[
+            ("bucketName", bucket_name),
+            ("pathFilename", path_filename),
+        ],
+    )
+    .map_err(|e| format!("Failed to build presign URL: {}", e))?;
+
+    let response = client
+        .get(request_url)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to fetch presigned URL: {}", e))?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let body = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unable to read error body".to_string());
+        return Err(format!(
+            "Presign API returned {} for {}: {}",
+            status, path_filename, body
+        ));
+    }
+
+    let body = response
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read presign response body: {}", e))?;
+
+    let payload: LauncherPresignedDownloadResponse = serde_json::from_str(&body)
+        .map_err(|e| format!("Invalid presign response JSON: {}", e))?;
+
+    if payload.url.trim().is_empty() {
+        return Err("Presign API returned an empty URL".to_string());
+    }
+
+    Ok(payload.url)
+}
+
+async fn download_single_file_with_resume(
+    client: reqwest::Client,
+    presign_api_url: String,
+    bucket_name: String,
+    full_path: String,
+    file: FileDetails,
+    game_directory: PathBuf,
+    cancel_flag: Arc<AtomicBool>,
+    pause_flag: Arc<AtomicBool>,
+    total_downloaded_atomic: Arc<AtomicU64>,
+    session_downloaded_atomic: Arc<AtomicU64>,
+) -> Result<FileDetails, String> {
+    if cancel_flag.load(Ordering::Relaxed) {
+        return Err("Download canceled".to_string());
+    }
+    if pause_flag.load(Ordering::Relaxed) {
+        return Err("Download paused".to_string());
+    }
+
+    let target_path = game_directory.join(&file.name);
+    if let Some(parent) = target_path.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("Failed to create parent directory: {}", e))?;
+    }
+
+    if target_path.exists() {
+        match calculate_file_hash(&target_path) {
+            Ok(existing_hash) if existing_hash == file.hash => return Ok(file),
+            _ => {
+                let _ = fs::remove_file(&target_path);
+            }
+        }
+    }
+
+    let part_path = get_part_file_path(&target_path);
+    let mut resume_offset: u64 = 0;
+    if part_path.exists() {
+        resume_offset = fs::metadata(&part_path)
+            .map_err(|e| format!("Failed to read .part metadata for {}: {}", file.name, e))?
+            .len();
+
+        if resume_offset > file.size {
+            let _ = fs::remove_file(&part_path);
+            resume_offset = 0;
+        }
+    }
+
+    if resume_offset == file.size && file.size > 0 {
+        if !target_path.exists() {
+            fs::rename(&part_path, &target_path)
+                .map_err(|e| format!("Failed to restore complete part file for {}: {}", file.name, e))?;
+        }
+
+        let downloaded_hash = calculate_file_hash(&target_path)?;
+        if downloaded_hash == file.hash {
+            total_downloaded_atomic.fetch_add(file.size, Ordering::Relaxed);
+            return Ok(file);
+        }
+
+        let _ = fs::remove_file(&target_path);
+        let _ = fs::remove_file(&part_path);
+        resume_offset = 0;
+    }
+
+    let presigned_url = fetch_presigned_download_url(
+        &client,
+        &presign_api_url,
+        &bucket_name,
+        &full_path,
+    )
+    .await?;
+
+    let mut request_builder = client.get(&presigned_url);
+    if resume_offset > 0 {
+        request_builder = request_builder.header(reqwest::header::RANGE, format!("bytes={}-", resume_offset));
+    }
+
+    let response = request_builder
+        .send()
+        .await
+        .map_err(|e| format!("Failed to send download request for {}: {}", file.name, e))?;
+
+    if !response.status().is_success() {
+        return Err(format!(
+            "Failed to download {}: HTTP {}",
+            file.name,
+            response.status()
+        ));
+    }
+
+    if resume_offset > 0 && response.status() == reqwest::StatusCode::OK {
+        total_downloaded_atomic.fetch_sub(resume_offset, Ordering::Relaxed);
+        resume_offset = 0;
+    }
+
+    let mut output = TokioOpenOptions::new()
+        .create(true)
+        .write(true)
+        .append(resume_offset > 0)
+        .truncate(resume_offset == 0)
+        .open(&part_path)
+        .await
+        .map_err(|e| format!("Failed to open .part file for {}: {}", file.name, e))?;
+
+    let mut stream = response.bytes_stream();
+    while let Some(chunk) = stream.next().await {
+        if cancel_flag.load(Ordering::Relaxed) {
+            return Err("Download canceled".to_string());
+        }
+        if pause_flag.load(Ordering::Relaxed) {
+            return Err("Download paused".to_string());
+        }
+
+        let bytes = chunk.map_err(|e| format!("Error receiving chunk for {}: {}", file.name, e))?;
+        output
+            .write_all(&bytes)
+            .await
+            .map_err(|e| format!("Failed to write chunk for {}: {}", file.name, e))?;
+
+        let chunk_len = bytes.len() as u64;
+        total_downloaded_atomic.fetch_add(chunk_len, Ordering::Relaxed);
+        session_downloaded_atomic.fetch_add(chunk_len, Ordering::Relaxed);
+    }
+
+    output
+        .flush()
+        .await
+        .map_err(|e| format!("Failed to flush .part file for {}: {}", file.name, e))?;
+    drop(output);
+
+    let downloaded_size = fs::metadata(&part_path)
+        .map_err(|e| format!("Failed to read final .part size for {}: {}", file.name, e))?
+        .len();
+
+    if downloaded_size != file.size {
+        return Err(format!(
+            "File size mismatch for {}: expected {}, got {}",
+            file.name, file.size, downloaded_size
+        ));
+    }
+
+    if target_path.exists() {
+        let _ = fs::remove_file(&target_path);
+    }
+    fs::rename(&part_path, &target_path)
+        .map_err(|e| format!("Failed to finalize downloaded file {}: {}", file.name, e))?;
+
+    let downloaded_hash = calculate_file_hash(&target_path)?;
+    if downloaded_hash != file.hash {
+        let _ = fs::remove_file(&target_path);
+        return Err(format!(
+            "File hash mismatch for {}: expected {}, got {}",
+            file.name, file.hash, downloaded_hash
+        ));
+    }
+
+    Ok(file)
+}
+
 #[tauri::command]
 async fn download_and_update_game(
     webview: Window,
@@ -247,18 +493,26 @@ async fn download_and_update_game(
     user_id: u64,
     game_manifest_remote: GameManifestRemote
 ) -> Result<(), String> {
-    println!("Starting download for game: {}", game_title);
-
+    println!("Starting optimized download for game: {}", game_title);
     let (cancel_flag, pause_flag) = get_or_create_download_state(game_id);
     cancel_flag.store(false, Ordering::Relaxed);
     pause_flag.store(false, Ordering::Relaxed);
-
-    // Crée le répertoire de téléchargement si nécessaire
-    let game_directory = Path::new(&file_location_download);
-    println!("Games directory: {:?}", game_directory);
+    let session_id = format!(
+        "g{}-u{}-{}",
+        game_id,
+        user_id,
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs()
+    );
+    let game_directory = PathBuf::from(&file_location_download);
+    println!(
+        "[download_and_update_game] session={} game_directory={}",
+        session_id,
+        game_directory.display()
+    );
     fs::create_dir_all(&game_directory).map_err(|e| e.to_string())?;
-
-    // Charger le manifeste local pour obtenir l'état actuel du téléchargement ou créer un nouveau manifeste
     let mut game_manifest = load_or_create_manifest(
         &file_location_download,
         game_id,
@@ -266,224 +520,222 @@ async fn download_and_update_game(
         game_binary_size,
         game_version.clone(),
     )?;
-
-    // Supprimer les fichiers obsolètes avant de commencer le téléchargement
-    // Par exemple si la version suivante à supprimer certains fichier / dossier par rapport à la version actuelle
     remove_obsolete_files(&game_directory, &mut game_manifest, &game_manifest_remote)?;
-
-    // Supprimer les doublons dans le manifest_local.json avant de commencer le téléchargement
     remove_duplicates(&mut game_manifest);
-
-    // Mettre à jour la version du jeu et la taille binaire dans le manifeste local
     game_manifest.version = game_version.clone();
     game_manifest.gameBinarySize = game_binary_size;
     game_manifest.gameTitle = game_title.clone();
-
-    // Sauvegarder le manifeste mis à jour après la suppression des fichiers obsolètes
     save_manifest(&file_location_download, &game_manifest)?;
-
-    // Calculer le total à télécharger en fonction des fichiers à télécharger
-    let total_size_to_download: u64 = files_to_download.iter().map(|file| file.size).sum();
-
-    // Si le manifest_local.json existe déjà, récupérer tout les file.size et les sommer
-    // Taille totale DEJA téléchargée (pour la reprise du téléchargement si nécessaire)
-    let mut total_downloaded: u64 = calculate_real_total_downloaded(&game_directory, &game_manifest);
-
-    // Utiliser seulement pour renvoyer le speed du telechargement
-    let mut bytes_downloaded = 0;
-
-    // Configuration du client HTTP pour les requêtes
-    let client = reqwest::Client::builder()
-        .build()
-        .map_err(|e| format!("Failed to build client: {}", e))?;
-
-    let start_time = Instant::now();
-    let mut last_emit_time = Instant::now();
-
-    for file in files_to_download {
-        if cancel_flag.load(Ordering::Relaxed) {
-            return Err("Download canceled".to_string());
-        }
-
-        if pause_flag.load(Ordering::Relaxed) {
-            return Err("Download paused".to_string());
-        }
-
-        // Construction de l'URL pour la requête GET avec les paramètres
-        let full_path = format!("{}{}/{}/{}", path_filename, game_version, os_architecture, file.name);
-        let request_url = format!("{}?bucketName={}&pathFilename={}", api_url, bucket_name, full_path);
-        println!("Downloading file, URL API: {}", request_url);
-
-        // Envoie la requête GET et gère la réponse
-        let response = client.get(&request_url)
-            .send()
-            .await
-            .map_err(|e| format!("Failed to send request: {}", e))?;
-
-        if !response.status().is_success() {
-            return Err(format!("Failed to download file: {} received {} response", file.name, response.status()));
-        }
-
-        // Séparation de la partie d'obtention des en-têtes HTTP
-        let content_type = response.headers()
-            .get(reqwest::header::CONTENT_TYPE)
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or("")
-            .to_string();
-
-        // Extraire le chemin du fichier à partir de son nom
-        let file_path = game_directory.join(&file.name);
-        if let Some(parent) = file_path.parent() {
-            println!("Creating directory: {}", parent.display());
-            fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
-        }
-
-        let mut file_data = vec![];
-        let mut stream = response.bytes_stream();
-        while let Some(chunk) = stream.next().await {
-            match chunk {
-                Ok(bytes) => {
-                    if cancel_flag.load(Ordering::Relaxed) {
-                        return Err("Download canceled".to_string());
-                    }
-
-                    if pause_flag.load(Ordering::Relaxed) {
-                        return Err("Download paused".to_string());
-                    }
-
-                    file_data.extend_from_slice(&bytes);
-
-                    let elapsed = start_time.elapsed().as_secs_f64();
-                    let speed = bytes_downloaded as f64 / elapsed; // bytes per second
-
-                    if last_emit_time.elapsed() >= Duration::from_millis(50) { // Émettre toutes les 200 ms
-                        last_emit_time = Instant::now();
-                        // Envoyer un événement de progression de téléchargement avec la vitesse
-                        webview.emit("download-game-progress", Some(json!({
-                            "userId": user_id,
-                            "pathInstallLocation": file_location_download,
-                            "gameId": game_id,
-                            "gameTitle": game_title,
-                            "gameVersion": game_version,
-                            "speed": speed, // vitesse en bytes par seconde
-                            "totalDownloaded": total_downloaded,
-                            "totalSizeToDownload": total_size_to_download,
-                            "gameBinarySize": game_binary_size,
-                        })))
-                            .map_err(|e| format!("Failed to emit download progress event: {}", e))?;
-                    }
-                },
-                Err(err) => return Err(format!("Error receiving chunk for {}: {}", file.name, err)),
+    let total_size_to_download: u64 = game_manifest_remote.files.iter().map(|file| file.size).sum();
+    let files_count: usize = game_manifest_remote.files.len();
+    let requested_files_count: usize = files_to_download.len();
+    let initial_downloaded: u64 =
+        calculate_initial_downloaded_for_resume(&game_directory, &game_manifest_remote.files);
+    println!(
+        "[download_and_update_game] session={} manifest_files={} requested_files={} total_size_to_download={} initial_downloaded={}",
+        session_id, files_count, requested_files_count, total_size_to_download, initial_downloaded
+    );
+    let total_downloaded_atomic = Arc::new(AtomicU64::new(initial_downloaded));
+    let session_downloaded_atomic = Arc::new(AtomicU64::new(0));
+    let stop_progress_emitter = Arc::new(AtomicBool::new(false));
+    let initial_progress: f64 = if total_size_to_download == 0 {
+        100.0
+    } else {
+        (initial_downloaded as f64 / total_size_to_download as f64) * 100.0
+    };
+    webview
+        .emit(
+            "download-game-progress",
+            Some(json!({
+                "sessionId": session_id,
+                "userId": user_id,
+                "pathInstallLocation": file_location_download,
+                "gameId": game_id,
+                "gameTitle": game_title,
+                "gameVersion": game_version,
+                "speed": 0.0,
+                "progress": initial_progress,
+                "totalDownloaded": initial_downloaded,
+                "totalSizeToDownload": total_size_to_download,
+                "gameBinarySize": game_binary_size,
+                "filesCount": files_count,
+            })),
+        )
+        .map_err(|e| format!("Failed to emit initial download progress event: {}", e))?;
+    let progress_window = webview.clone();
+    let progress_stop_flag = stop_progress_emitter.clone();
+    let progress_total_downloaded = total_downloaded_atomic.clone();
+    let progress_session_downloaded = session_downloaded_atomic.clone();
+    let progress_session_id = session_id.clone();
+    let progress_install_path = file_location_download.clone();
+    let progress_game_title = game_title.clone();
+    let progress_game_version = game_version.clone();
+    let progress_task = tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_millis(200));
+        loop {
+            interval.tick().await;
+            if progress_stop_flag.load(Ordering::Relaxed) {
+                break;
             }
+            let bytes_in_window: u64 = progress_session_downloaded.swap(0, Ordering::Relaxed);
+            let speed: f64 = bytes_in_window as f64 / 0.2_f64;
+            let total_downloaded_now: u64 = progress_total_downloaded
+                .load(Ordering::Relaxed)
+                .min(total_size_to_download);
+            let progress: f64 = if total_size_to_download == 0 {
+                100.0
+            } else {
+                (total_downloaded_now as f64 / total_size_to_download as f64) * 100.0
+            };
+            let _ = progress_window.emit(
+                "download-game-progress",
+                Some(json!({
+                    "sessionId": progress_session_id,
+                    "userId": user_id,
+                    "pathInstallLocation": progress_install_path,
+                    "gameId": game_id,
+                    "gameTitle": progress_game_title,
+                    "gameVersion": progress_game_version,
+                    "speed": speed,
+                    "progress": progress,
+                    "totalDownloaded": total_downloaded_now,
+                    "totalSizeToDownload": total_size_to_download,
+                    "gameBinarySize": game_binary_size,
+                    "filesCount": files_count,
+                })),
+            );
         }
-
-        if content_type == "application/zip" {
-            // Traitement du fichier ZIP
-            println!("Processing ZIP file: {}", file.name);
-            let cursor = std::io::Cursor::new(file_data);
-            let mut zip = ZipArchive::new(cursor).map_err(|e| format!("Failed to read zip archive: {}", e))?;
-
-            // Pour chaque fichier dans l'archive, calculer le hash et mettre à jour le manifest
-            for i in 0..zip.len() {
-                let mut zip_file = zip.by_index(i).map_err(|e| format!("Failed to access file in zip: {}", e))?;
-                let out_path = game_directory.join(&file.name);
-                println!("Extracted file path: {}", out_path.display());
-
-                // Créez les dossiers nécessaires avant d'extraire le fichier
-                if let Some(parent) = out_path.parent() {
-                    println!("Creating directory: {}", parent.display());
-                    fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
-                }
-
-                let mut buffer = Vec::new();
-                zip_file.read_to_end(&mut buffer).map_err(|e| format!("Failed to read zip file: {}", e))?;
-                fs::write(&out_path, &buffer).map_err(|e| format!("Failed to write file: {}", e))?;
-
-                let extracted_hash = calculate_file_hash(&out_path)?;
-                println!("Extracted file hash: {}", extracted_hash);
-
-                // Mettre à jour le manifest local pour chaque fichier extrait
-                let extracted_file_details = FileDetails {
-                    name: file.name.to_string(),
-                    hash: file.hash.to_string(),
-                    size: file.size,
-                };
-                game_manifest.files.push(extracted_file_details.clone());
-                remove_duplicates(&mut game_manifest);
-                save_manifest(&file_location_download, &game_manifest)?;
-                //update_local_manifest(&file_location_download, &extracted_file_details, game_id, &game_title, &game_version, game_binary_size)?;
-                total_downloaded += file.size;
-                bytes_downloaded += file.size;
+    });
+    let download_result: Result<(), String> = async {
+        let client = reqwest::Client::builder()
+            .pool_max_idle_per_host(MAX_CONCURRENT_DOWNLOADS)
+            .tcp_keepalive(Some(Duration::from_secs(30)))
+            .build()
+            .map_err(|e| format!("Failed to build client: {}", e))?;
+        let semaphore = Arc::new(Semaphore::new(MAX_CONCURRENT_DOWNLOADS));
+        let mut join_set: JoinSet<Result<FileDetails, String>> = JoinSet::new();
+        for file in game_manifest_remote.files.clone() {
+            if cancel_flag.load(Ordering::Relaxed) {
+                return Err("Download canceled".to_string());
             }
-        } else {
-            // Si le fichier doit être placé dans un sous-dossier, ajustez le chemin
-            let target_path = game_directory.join(&file.name);
-            if let Some(parent) = target_path.parent() {
-                if parent != game_directory {
-                    println!("Creating directory for nested file: {}", parent.display());
-                    fs::create_dir_all(parent).map_err(|e| format!("Failed to create nested directory: {}", e))?;
-                }
+            if pause_flag.load(Ordering::Relaxed) {
+                return Err("Download paused".to_string());
             }
-
-            // Écriture atomique du fichier
-            let temp_file_path = target_path.with_extension("tmp");
-            println!("Writing file to temporary path: {}", temp_file_path.display());
-            fs::write(&temp_file_path, &file_data).map_err(|e| format!("Failed to write file: {}", e))?;
-            fs::rename(&temp_file_path, &target_path).map_err(|e| format!("Failed to rename temp file: {}", e))?;
-
-            // Validation du fichier téléchargé (comparaison des hash)
-            let downloaded_hash = calculate_file_hash(&target_path)?;
-            println!("Downloaded file hash: {}", downloaded_hash);
-            if downloaded_hash != file.hash {
-                return Err(format!("File hash mismatch for {}: expected {}, got {}", file.name, file.hash, downloaded_hash));
-            }
-
-            // Mettre à jour le manifest local et la progression du téléchargement
-            game_manifest.files.push(file.clone());
+            let permit = semaphore
+                .clone()
+                .acquire_owned()
+                .await
+                .map_err(|e| format!("Failed to acquire semaphore permit: {}", e))?;
+            let full_path = format!(
+                "{}{}/{}/{}",
+                path_filename,
+                game_version,
+                os_architecture,
+                file.name.clone()
+            );
+            let client_clone = client.clone();
+            let presign_api_url = api_url.clone();
+            let bucket_name_clone = bucket_name.clone();
+            let game_directory_clone = game_directory.clone();
+            let cancel_flag_clone = cancel_flag.clone();
+            let pause_flag_clone = pause_flag.clone();
+            let total_downloaded_clone = total_downloaded_atomic.clone();
+            let session_downloaded_clone = session_downloaded_atomic.clone();
+            join_set.spawn(async move {
+                let _permit = permit;
+                download_single_file_with_resume(
+                    client_clone,
+                    presign_api_url,
+                    bucket_name_clone,
+                    full_path,
+                    file,
+                    game_directory_clone,
+                    cancel_flag_clone,
+                    pause_flag_clone,
+                    total_downloaded_clone,
+                    session_downloaded_clone,
+                )
+                .await
+            });
         }
+        while let Some(task_result) = join_set.join_next().await {
+            let downloaded_file = task_result
+                .map_err(|e| format!("Download task join error: {}", e))??;
+            game_manifest.files.push(downloaded_file);
+            remove_duplicates(&mut game_manifest);
+            save_manifest(&file_location_download, &game_manifest)?;
+        }
+        Ok(())
     }
-
-    // Supprimer les doublons dans le manifeste local
+    .await;
+    stop_progress_emitter.store(true, Ordering::Relaxed);
+    let _ = progress_task.await;
+    if let Err(error) = download_result {
+        return Err(error);
+    }
     remove_duplicates(&mut game_manifest);
-
-    // Sauvegarder le manifeste mis à jour après le téléchargement
     save_manifest(&file_location_download, &game_manifest)?;
-
-    // Appeler la fonction de nettoyage après avoir sauvegardé le manifeste
-    // Pour supprimer les fichiers que l'utilisateur aurait pus ajouté manuellement
     clean_up_directory(&game_directory, &game_manifest)?;
-
-    // Création d'un raccourci sur le bureau si nécessaire
     if desktop_shortcut {
-        create_shortcut(file_location_download.clone()).map_err(|e| format!("Failed to create shortcut: {}", e))?;
+        create_shortcut(file_location_download.clone())
+            .map_err(|e| format!("Failed to create shortcut: {}", e))?;
     }
-
-    // Émettre un événement de fin de téléchargement
+    let final_total_downloaded: u64 = calculate_real_total_downloaded(&game_directory, &game_manifest);
+    let final_progress: f64 = if total_size_to_download == 0 {
+        100.0
+    } else {
+        (final_total_downloaded as f64 / total_size_to_download as f64) * 100.0
+    };
+    webview
+        .emit(
+            "download-game-progress",
+            Some(json!({
+                "sessionId": session_id,
+                "userId": user_id,
+                "pathInstallLocation": file_location_download,
+                "gameId": game_id,
+                "gameTitle": game_title,
+                "gameVersion": game_version,
+                "speed": 0.0,
+                "progress": final_progress,
+                "totalDownloaded": final_total_downloaded,
+                "totalSizeToDownload": total_size_to_download,
+                "gameBinarySize": game_binary_size,
+                "filesCount": game_manifest.files.len(),
+            })),
+        )
+        .map_err(|e| format!("Failed to emit final download progress event: {}", e))?;
     webview.emit("game-installation-complete", Some(json!({
+        "sessionId": session_id,
         "gameTitle": game_title,
         "gameId": game_id,
-        "user_id": user_id,
+        "userId": user_id,
         "fileLocationDownload": file_location_download,
         "gameVersion": game_version,
-        "gameBinarySize": game_binary_size
+        "gameBinarySize": game_binary_size,
+        "filesCount": game_manifest.files.len(),
+        "totalDownloaded": final_total_downloaded,
+        "totalSizeToDownload": total_size_to_download
     })))
         .map_err(|e| format!("Failed to emit game installation complete event: {}", e))?;
-
     Ok(())
 }
-
 fn calculate_file_hash(file_path: &Path) -> Result<String, String> {
     let file = fs::File::open(file_path).map_err(|e| format!("Failed to open file: {}", e))?;
     let mut reader = BufReader::new(file);
     let mut hasher = Sha256::new();
-    let mut buffer = Vec::new();
-
-    reader.read_to_end(&mut buffer).map_err(|e| format!("Failed to read file: {}", e))?;
-    hasher.update(buffer);
-
+    let mut buffer = [0_u8; 16 * 1024];
+    loop {
+        let bytes_read = reader
+            .read(&mut buffer)
+            .map_err(|e| format!("Failed to read file: {}", e))?;
+        if bytes_read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..bytes_read]);
+    }
     Ok(format!("{:x}", hasher.finalize()))
 }
-
 fn load_or_create_manifest(
     file_location_download: &str,
     game_id: u64,
@@ -549,16 +801,6 @@ struct GameManifestLocal {
 struct GameManifestRemote {
     version: String,
     files: Vec<FileDetails>,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[allow(non_snake_case)]
-struct GameProgressDownload {
-    user_id: u64,
-    pathInstallLocation: String,
-    gameId: u64,
-    gameTitle: String,
-    version: String
 }
 
 fn find_executable_in_directory(directory_path: &Path) -> Result<String, String> {
