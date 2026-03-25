@@ -22,11 +22,11 @@ import { CloudStorageS3Service } from '#src-common/core/services/CloudStorageS3S
 export type UserConnectedStatus = 'Online' | 'Unavailable' | 'Invisible'
 
 /**
- * Informations sur le systÃƒÂ¨me d'exploitation
- * @property {string} os - SystÃƒÂ¨me d'exploitation
+ * Informations sur le systÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨me d'exploitation
+ * @property {string} os - SystÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨me d'exploitation
  * @property {Platform} platform - Plateforme
- * @property {string} architecture - Architecture du systÃƒÂ¨me
- * @property {string | null} hostname - Nom d'hÃƒÂ´te
+ * @property {string} architecture - Architecture du systÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨me
+ * @property {string | null} hostname - Nom d'hÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â´te
  */
 export type SystemOSInfo = {
   os: string
@@ -46,10 +46,10 @@ export type PathInstallLocation = {
 }
 
 /**
- * Sauvegarde d'un jeu entiÃƒÂ¨rement installÃƒÂ©
+ * Sauvegarde d'un jeu entiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨rement installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©
  * @property {number} user_id - Identifiant de l'utilisateur
- * @property {GameManifestLocal} gameManifest - Fichier manifest.json stringifiÃƒÂ© du jeu, pour le pc local de l'utilisateur
- * permet de comparer par rapport ÃƒÂ  celui du Server pour voir si il reste des fichiers ÃƒÂ  tÃƒÂ©lÃƒÂ©charger
+ * @property {GameManifestLocal} gameManifest - Fichier manifest.json stringifiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© du jeu, pour le pc local de l'utilisateur
+ * permet de comparer par rapport ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  celui du Server pour voir si il reste des fichiers ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©charger
  */
 export type GameInstalled = {
   user_id: number
@@ -57,14 +57,14 @@ export type GameInstalled = {
 }
 
 /**
- * Progression du tÃƒÂ©lÃƒÂ©chargement du jeu (en cours), sauvegardÃƒÂ©e dans un
+ * Progression du tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chargement du jeu (en cours), sauvegardÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©e dans un
  * fichier JSON dans le dossier de configuration de l'application
  * @property {number} userId - Identifiant de l'utilisateur
  * @property {string} pathInstallLocation - Emplacement d'installation du jeu
  * @property {number} gameId - Identifiant du jeu
  * @property {string} gameTitle - Titre du jeu
  * @property {string} gameVersion - Version du jeu (ex: v1.0.0)
- * @property {number} totalSizeToDownload - Taille totale du jeu ÃƒÂ  tÃƒÂ©lÃƒÂ©charger
+ * @property {number} totalSizeToDownload - Taille totale du jeu ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©charger
  */
 export type GameProgressDownload = {
   userId: number
@@ -77,7 +77,7 @@ export type GameProgressDownload = {
 }
 
 /**
- * Type reprÃƒÂ©sentant un fichier avec son nom et son hash.
+ * Type reprÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©sentant un fichier avec son nom et son hash.
  * @type {object} FileDetails
  * @property {string} name - Nom du fichier
  * @property {string} hash - Hash du fichier
@@ -90,7 +90,7 @@ export type FileDetails = {
 }
 
 /**
- * Type reprÃƒÂ©sentant la structure des donnÃƒÂ©es de la version
+ * Type reprÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©sentant la structure des donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es de la version
  * du jeu (manifest_local.json) dans le dossier d'installation du jeu.
  * @type {object} GameManifest
  * @property {string} pathInstallLocation - Emplacement d'installation du jeu
@@ -110,7 +110,7 @@ export type GameManifestLocal = {
 }
 
 /**
- * Type reprÃƒÂ©sentant la structure des donnÃƒÂ©es de la version du jeu (manifest.json) cÃƒÂ´tÃƒÂ© serveur.
+ * Type reprÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©sentant la structure des donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es de la version du jeu (manifest.json) cÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â´tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© serveur.
  * @type {object} GameManifestRemote
  * @property {string} version - Version du jeu (ex: v1.0.0)
  * @property {FileDetails[]} files - Liste des fichiers de la version du jeu
@@ -131,12 +131,22 @@ export type Credentials = {
 }
 
 /**
+ * Options de lancement pour le tÃƒÂ©lÃƒÂ©chargement d'un jeu.
+ * @property {boolean} [navigateToDownloadManager] - Rediriger automatiquement vers Download Manager
+ * @property {SystemOSInfo} [systemOSInfo] - Infos systeme deja resolues pour eviter un appel supplementaire
+ */
+export type DownloadGameOptions = {
+  navigateToDownloadManager?: boolean
+  systemOSInfo?: SystemOSInfo
+}
+
+/**
  * Service Tauri
  * @class TauriService
  */
 export class TauriService {
   /**
-   * RÃƒÂ©cupÃƒÂ¨re les informations d'espace disque pour un chemin d'installation spÃƒÂ©cifique
+   * RÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cupÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨re les informations d'espace disque pour un chemin d'installation spÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cifique
    * @param {string} pathInstallLocation - Chemin d'installation du jeu
    * @returns {Promise<PathInstallLocation | undefined>} - Informations sur l'emplacement du chemin d'installation
    */
@@ -172,7 +182,7 @@ export class TauriService {
   }
 
   /**
-   * SÃƒÂ©lectionne le chemin d'installation et vÃƒÂ©rifie l'espace disque
+   * SÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lectionne le chemin d'installation et vÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifie l'espace disque
    * @returns {Promise<PathInstallLocation | undefined>} - Emplacement d'installation
    */
   public static async selectPathForInstallAndCheckSpace(): Promise<PathInstallLocation | undefined> {
@@ -217,8 +227,8 @@ export class TauriService {
   }
 
   /**
-   * RÃƒÂ©cupÃƒÂ¨re le chemin de l'exÃƒÂ©cutable du launcher lui-mÃƒÂªme
-   * @returns {Promise<PathInstallLocation | undefined>} - Emplacement de l'exÃƒÂ©cutable
+   * RÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cupÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨re le chemin de l'exÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cutable du launcher lui-mÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªme
+   * @returns {Promise<PathInstallLocation | undefined>} - Emplacement de l'exÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cutable
    */
   public static async getLauncherExecutablePathDirectory(): Promise<PathInstallLocation | undefined> {
     try {
@@ -251,8 +261,8 @@ export class TauriService {
   }
 
   /**
-   * RÃƒÂ©cupÃƒÂ¨re les informations sur le systÃƒÂ¨me d'exploitation
-   * @returns {Promise<SystemOSInfo | undefined>} - Informations sur le systÃƒÂ¨me d'exploitation
+   * RÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cupÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨re les informations sur le systÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨me d'exploitation
+   * @returns {Promise<SystemOSInfo | undefined>} - Informations sur le systÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨me d'exploitation
    */
   public static async getSystemOSCurrent(): Promise<SystemOSInfo | undefined> {
     try {
@@ -273,19 +283,20 @@ export class TauriService {
   }
 
   /**
-   * TÃƒÂ©lÃƒÂ©charge et dÃƒÂ©compresse le jeu sur le systÃƒÂ¨me de l'utilisateur
+   * TÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©charge et dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©compresse le jeu sur le systÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨me de l'utilisateur
    * @param {string} bucketName - Nom du bucket S3
-   * @param {string} pathFilename - Chemin du fichier ou du dossier ÃƒÂ  tÃƒÂ©lÃƒÂ©charger
+   * @param {string} pathFilename - Chemin du fichier ou du dossier ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©charger
    * @param {string | undefined} fileLocationDownload - Emplacement ou les fichiers seront installer sur le pc de l'utilisateur
-   * @param {boolean} desktopShortcut - CrÃƒÂ©er un raccourci sur le bureau
+   * @param {boolean} desktopShortcut - CrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©er un raccourci sur le bureau
    * @param {string} gameTitle - Titre du jeu
    * @param {string} gameVersion - Version du jeu
    * @param {number} gameBinarySize - Taille du jeu
    * @param {number} gameId - Identifiant du jeu
    * @param {number} userId - Identifiant de l'utilisateur
-   * @param {FileDetails[]} filesToDownload - Liste des fichiers ÃƒÂ  tÃƒÂ©lÃƒÂ©charger
-   * @param {GameManifestRemote} gameManifestRemote - Fichier manifest.json du jeu cÃƒÂ´tÃƒÂ© serveur
-   * @returns {Promise<void>} - Promesse rÃƒÂ©solue
+   * @param {FileDetails[]} filesToDownload - Liste des fichiers ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©charger
+   * @param {GameManifestRemote} gameManifestRemote - Fichier manifest.json du jeu cÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â´tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© serveur
+   * @param {DownloadGameOptions} [options] - Options de navigation et infos systeme deja resolues
+   * @returns {Promise<void>} - Promesse resolue
    */
   public static async downloadGame(
     bucketName: string,
@@ -299,16 +310,23 @@ export class TauriService {
     userId: number,
     filesToDownload: FileDetails[],
     gameManifestRemote: GameManifestRemote,
+    options?: DownloadGameOptions,
   ): Promise<void> {
     try {
-      const userSystemOSInfo: SystemOSInfo | undefined = await this.getSystemOSCurrent()
+      const shouldNavigateToDownloadManager: boolean = options?.navigateToDownloadManager ?? true
+      const userSystemOSInfo: SystemOSInfo | undefined = options?.systemOSInfo ?? (await this.getSystemOSCurrent())
       const apiURL: string = import.meta.env.VITE_API_BASE_URL_S3_DOWNLOAD as string
+
+      if (!userSystemOSInfo) {
+        console.error('Failed to resolve OS info for download_and_update_game')
+        return
+      }
 
       console.log({
         bucketName,
         pathFilename,
-        os: userSystemOSInfo?.os,
-        os_architecture: userSystemOSInfo?.architecture,
+        os: userSystemOSInfo.os,
+        os_architecture: userSystemOSInfo.architecture,
         apiUrl: apiURL,
         fileLocationDownload,
         filesToDownload,
@@ -318,35 +336,35 @@ export class TauriService {
         userId,
       })
 
-      if (userSystemOSInfo) {
-        void invoke('download_and_update_game', {
-          bucketName,
-          pathFilename,
-          os: userSystemOSInfo.os,
-          osArchitecture: userSystemOSInfo.architecture,
-          apiUrl: apiURL,
-          fileLocationDownload,
-          filesToDownload,
-          desktopShortcut,
-          gameTitle,
-          gameVersion,
-          gameBinarySize,
-          gameId,
-          userId,
-          gameManifestRemote,
-        }).catch((error: unknown): void => {
-          const errorMessage: string = String(error).toLowerCase()
-          const isExpectedInterruption: boolean =
-            errorMessage.includes('download paused') || errorMessage.includes('download canceled')
+      void invoke('download_and_update_game', {
+        bucketName,
+        pathFilename,
+        os: userSystemOSInfo.os,
+        osArchitecture: userSystemOSInfo.architecture,
+        apiUrl: apiURL,
+        fileLocationDownload,
+        filesToDownload,
+        desktopShortcut,
+        gameTitle,
+        gameVersion,
+        gameBinarySize,
+        gameId,
+        userId,
+        gameManifestRemote,
+      }).catch((error: unknown): void => {
+        const errorMessage: string = String(error).toLowerCase()
+        const isExpectedInterruption: boolean =
+          errorMessage.includes('download paused') || errorMessage.includes('download canceled')
 
-          if (isExpectedInterruption) {
-            console.info('download_and_update_game interrupted:', error)
-            return
-          }
+        if (isExpectedInterruption) {
+          console.info('download_and_update_game interrupted:', error)
+          return
+        }
 
-          console.error('download_and_update_game failed:', error)
-        })
+        console.error('download_and_update_game failed:', error)
+      })
 
+      if (shouldNavigateToDownloadManager) {
         await navigateTo('/home/download-manager')
       }
     } catch (error) {
@@ -356,8 +374,8 @@ export class TauriService {
 
   /**
    * Lance le jeu
-   * @param {string | undefined} pathFileSystem - Emplacement du fichier systÃƒÂ¨me
-   * @returns {Promise<void>} - Promesse rÃƒÂ©solue
+   * @param {string | undefined} pathFileSystem - Emplacement du fichier systÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨me
+   * @returns {Promise<void>} - Promesse rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©solue
    */
   public static async launchGame(pathFileSystem: string | undefined): Promise<void> {
     try {
@@ -378,7 +396,7 @@ export class TauriService {
       // Obtient le chemin du dossier de configuration de l'application
       const configDirPath: string = await appConfigDir()
 
-      // VÃƒÂ©rifiez si le dossier existe, sinon crÃƒÂ©ez-le
+      // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifiez si le dossier existe, sinon crÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ez-le
       await mkdir(configDirPath, {
         baseDir: BaseDirectory.AppData,
         recursive: true,
@@ -408,9 +426,9 @@ export class TauriService {
   }
 
   /**
-   * VÃƒÂ©rifie si le fichier ou le dossier existe
+   * VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifie si le fichier ou le dossier existe
    * @param {string} filePath - Chemin du fichier
-   * @returns {Promise<boolean | undefined>} - VÃƒÂ©rification de l'existence du fichier ou du dossier
+   * @returns {Promise<boolean | undefined>} - VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rification de l'existence du fichier ou du dossier
    */
   public static async isExistFileOrFolder(filePath: string): Promise<boolean | undefined> {
     try {
@@ -423,25 +441,25 @@ export class TauriService {
   }
 
   /**
-   * RÃƒÂ©cupÃƒÂ¨re les progressions de tÃƒÂ©lÃƒÂ©chargement des jeux sur le systÃƒÂ¨me de l'utilisateur
+   * RÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cupÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨re les progressions de tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chargement des jeux sur le systÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨me de l'utilisateur
    * @param {number} userId - Identifiant de l'utilisateur
-   * @returns {Promise<GameProgressDownload[] | undefined>} - Progressions de tÃƒÂ©lÃƒÂ©chargement des jeux
+   * @returns {Promise<GameProgressDownload[] | undefined>} - Progressions de tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chargement des jeux
    */
   public static async getGameProgressDownloads(userId: number): Promise<GameProgressDownload[] | undefined> {
     try {
       const filePath: string = 'gameProgressDownload.json'
 
-      // VÃƒÂ©rifier si le fichier existe
+      // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier si le fichier existe
       const exist: boolean | undefined = await TauriService.isExistFileOrFolder(filePath)
 
       if (exist) {
-        // Si le fichier existe, lire les donnÃƒÂ©es existantes
+        // Si le fichier existe, lire les donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es existantes
         const data: string | undefined = await TauriService.readTextFile(filePath)
 
         if (data) {
           const downloads: GameProgressDownload[] = JSON.parse(data) as GameProgressDownload[]
 
-          // Filtrer les tÃƒÂ©lÃƒÂ©chargements pour l'utilisateur connectÃƒÂ©
+          // Filtrer les tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chargements pour l'utilisateur connectÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©
           return downloads.filter((download: GameProgressDownload): boolean => download.userId === userId)
         }
       }
@@ -451,31 +469,31 @@ export class TauriService {
   }
 
   /**
-   * Sauvegarde la progression du tÃƒÂ©lÃƒÂ©chargement du jeu dans un fichier JSON,
-   * sur le systÃƒÂ¨me de l'utilisateur
-   * @param {GameProgressDownload} gameProgressDownload - Progression du tÃƒÂ©lÃƒÂ©chargement du jeu
-   * @returns {Promise<void>} - Promesse rÃƒÂ©solue
+   * Sauvegarde la progression du tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chargement du jeu dans un fichier JSON,
+   * sur le systÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨me de l'utilisateur
+   * @param {GameProgressDownload} gameProgressDownload - Progression du tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chargement du jeu
+   * @returns {Promise<void>} - Promesse rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©solue
    */
   public static async saveGameProgressDownload(gameProgressDownload: GameProgressDownload): Promise<void> {
     try {
       const filePath: string = 'gameProgressDownload.json'
       let gameProgressDownloads: GameProgressDownload[] = []
 
-      // VÃƒÂ©rifier si le fichier existe
+      // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier si le fichier existe
       const exist: boolean | undefined = await TauriService.isExistFileOrFolder(filePath)
       if (exist) {
-        // Si le fichier existe, lire les donnÃƒÂ©es existantes
+        // Si le fichier existe, lire les donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es existantes
         const data: string | undefined = await TauriService.readTextFile(filePath)
         if (data) gameProgressDownloads = JSON.parse(data)
       }
 
-      // Filtrer les jeux existants pour enlever ceux qui ont le mÃƒÂªme titre que le nouveau jeu
+      // Filtrer les jeux existants pour enlever ceux qui ont le mÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªme titre que le nouveau jeu
       gameProgressDownloads = gameProgressDownloads.filter(
         (game: GameProgressDownload): boolean =>
           !(game.gameId === gameProgressDownload.gameId && game.userId === gameProgressDownload.userId),
       )
 
-      // Ajouter le nouveau jeu ÃƒÂ  la liste
+      // Ajouter le nouveau jeu ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  la liste
       gameProgressDownloads.push({
         userId: gameProgressDownload.userId,
         pathInstallLocation: gameProgressDownload.pathInstallLocation,
@@ -486,7 +504,7 @@ export class TauriService {
         totalDownloadedBytesNow: gameProgressDownload.totalDownloadedBytesNow,
       })
 
-      // Ãƒâ€°crire les donnÃƒÂ©es mises ÃƒÂ  jour dans le fichier
+      // ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°crire les donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es mises ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  jour dans le fichier
       await TauriService.writeTextFile(filePath, JSON.stringify(gameProgressDownloads))
     } catch (error) {
       console.error('Failed to save game progress download', error)
@@ -494,30 +512,30 @@ export class TauriService {
   }
 
   /**
-   * Supprime la progression du tÃƒÂ©lÃƒÂ©chargement du jeu
+   * Supprime la progression du tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chargement du jeu
    * @param {number} gameId - Identifiant du jeu
    * @param {number} userId - Identifiant de l'utilisateur
-   * @returns {Promise<void>} - Promesse rÃƒÂ©solue
+   * @returns {Promise<void>} - Promesse rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©solue
    */
   public static async removeGameProgressDownload(gameId: number, userId: number): Promise<void> {
     try {
       const filePath: string = 'gameProgressDownload.json'
       let gameProgressDownloads: GameProgressDownload[] = []
 
-      // VÃƒÂ©rifier si le fichier existe
+      // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier si le fichier existe
       const exist: boolean | undefined = await TauriService.isExistFileOrFolder(filePath)
       if (exist) {
-        // Si le fichier existe, lire les donnÃƒÂ©es existantes
+        // Si le fichier existe, lire les donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es existantes
         const data: string | undefined = await TauriService.readTextFile(filePath)
         if (data) gameProgressDownloads = JSON.parse(data)
       }
 
-      // Filtrer les jeux existants pour enlever ceux qui ont le mÃƒÂªme titre que le nouveau jeu
+      // Filtrer les jeux existants pour enlever ceux qui ont le mÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªme titre que le nouveau jeu
       gameProgressDownloads = gameProgressDownloads.filter(
         (game: GameProgressDownload): boolean => !(game.gameId === gameId && game.userId === userId),
       )
 
-      // Ãƒâ€°crire les donnÃƒÂ©es mises ÃƒÂ  jour dans le fichier
+      // ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°crire les donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es mises ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  jour dans le fichier
       await TauriService.writeTextFile(filePath, JSON.stringify(gameProgressDownloads))
     } catch (error) {
       console.error('Failed to remove game progress download', error)
@@ -525,35 +543,35 @@ export class TauriService {
   }
 
   /**
-   * Sauvegarde du jeu lorsque le tÃƒÂ©lÃƒÂ©chargement est terminÃƒÂ©
+   * Sauvegarde du jeu lorsque le tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chargement est terminÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©
    * @param {GameInstalled} gameInstalled - Sauvegarde du jeu
-   * @returns {Promise<void>} - Promesse rÃƒÂ©solue
+   * @returns {Promise<void>} - Promesse rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©solue
    */
   public static async saveGameInstalled(gameInstalled: GameInstalled): Promise<void> {
     try {
       const filePath: string = 'gamesInstalled.json'
       let gamesInstalled: GameInstalled[] = []
 
-      // VÃƒÂ©rifier si le fichier existe
+      // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier si le fichier existe
       const exist: boolean | undefined = await TauriService.isExistFileOrFolder(filePath)
       if (exist) {
-        // Si le fichier existe, lire les donnÃƒÂ©es existantes
+        // Si le fichier existe, lire les donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es existantes
         const data: string | undefined = await TauriService.readTextFile(filePath)
         if (data) gamesInstalled = JSON.parse(data)
       }
 
-      // Filtrer les jeux existants pour enlever ceux qui ont le mÃƒÂªme titre que le nouveau jeu
+      // Filtrer les jeux existants pour enlever ceux qui ont le mÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªme titre que le nouveau jeu
       gamesInstalled = gamesInstalled.filter(
         (game: GameInstalled): boolean => game.gameManifest.gameId !== gameInstalled.gameManifest.gameId,
       )
 
-      // Ajouter le nouveau jeu ÃƒÂ  la liste
+      // Ajouter le nouveau jeu ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  la liste
       gamesInstalled.push({
         user_id: gameInstalled.user_id,
         gameManifest: gameInstalled.gameManifest,
       })
 
-      // Ãƒâ€°crire les donnÃƒÂ©es mises ÃƒÂ  jour dans le fichier
+      // ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°crire les donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es mises ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  jour dans le fichier
       await TauriService.writeTextFile(filePath, JSON.stringify(gamesInstalled))
     } catch (error) {
       console.error('Failed to save game', error)
@@ -561,27 +579,27 @@ export class TauriService {
   }
 
   /**
-   * Supprime le jeu installÃƒÂ© de la liste des jeux installÃƒÂ©s
+   * Supprime le jeu installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© de la liste des jeux installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s
    * @param {number} gameId - Identifiant du jeu
-   * @returns {Promise<void>} - Promesse rÃƒÂ©solue
+   * @returns {Promise<void>} - Promesse rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©solue
    */
   public static async removeGameInstalled(gameId: number): Promise<void> {
     try {
       const filePath: string = 'gamesInstalled.json'
       let gamesInstalled: GameInstalled[] = []
 
-      // VÃƒÂ©rifier si le fichier existe
+      // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier si le fichier existe
       const exist: boolean | undefined = await TauriService.isExistFileOrFolder(filePath)
       if (exist) {
-        // Si le fichier existe, lire les donnÃƒÂ©es existantes
+        // Si le fichier existe, lire les donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es existantes
         const data: string | undefined = await TauriService.readTextFile(filePath)
         if (data) gamesInstalled = JSON.parse(data)
       }
 
-      // Filtrer les jeux existants pour enlever ceux qui ont le mÃƒÂªme titre que le nouveau jeu
+      // Filtrer les jeux existants pour enlever ceux qui ont le mÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªme titre que le nouveau jeu
       gamesInstalled = gamesInstalled.filter((game: GameInstalled): boolean => game.gameManifest.gameId !== gameId)
 
-      // Ãƒâ€°crire les donnÃƒÂ©es mises ÃƒÂ  jour dans le fichier
+      // ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°crire les donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es mises ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  jour dans le fichier
       await TauriService.writeTextFile(filePath, JSON.stringify(gamesInstalled))
     } catch (error) {
       console.error('Failed to remove game', error)
@@ -589,18 +607,18 @@ export class TauriService {
   }
 
   /**
-   * RÃƒÂ©cupÃƒÂ¨re les sauvegardes des jeux
+   * RÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cupÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨re les sauvegardes des jeux
    * @returns {Promise<GameInstalled[] | undefined>} - Sauvegardes des jeux
    */
   public static async getGamesInstalled(): Promise<GameInstalled[] | undefined> {
     try {
       const filePath: string = 'gamesInstalled.json'
 
-      // VÃƒÂ©rifier si le fichier existe
+      // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier si le fichier existe
       const exist: boolean | undefined = await TauriService.isExistFileOrFolder(filePath)
 
       if (exist) {
-        // Si le fichier existe, lire les donnÃƒÂ©es existantes
+        // Si le fichier existe, lire les donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es existantes
         const data: string | undefined = await TauriService.readTextFile(filePath)
 
         if (data) {
@@ -614,13 +632,13 @@ export class TauriService {
 
   /**
    * Supprime la connexion automatique
-   * @returns {Promise<void>} - Promesse rÃƒÂ©solue
+   * @returns {Promise<void>} - Promesse rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©solue
    */
   public static async removeStayLoggedIn(): Promise<void> {
     try {
       const filePath: string = 'stayLoggedIn.json'
 
-      // VÃƒÂ©rifier si le fichier existe
+      // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier si le fichier existe
       const exist: boolean | undefined = await TauriService.isExistFileOrFolder(filePath)
       if (exist) {
         const removeOptions: RemoveOptions = {
@@ -635,15 +653,15 @@ export class TauriService {
   }
 
   /**
-   * Set les identifiants de connexion enregistrÃƒÂ©s sur le systÃƒÂ¨me du joueur
+   * Set les identifiants de connexion enregistrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s sur le systÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨me du joueur
    * @param {Credentials} credentials - Informations d'identification
-   * @returns {Promise<void>} - Promesse rÃƒÂ©solue
+   * @returns {Promise<void>} - Promesse rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©solue
    */
   public static async setStayLoggedIn(credentials: Credentials): Promise<void> {
     try {
       const filePath: string = 'stayLoggedIn.json'
 
-      // Ãƒâ€°crire les donnÃƒÂ©es dans le fichier
+      // ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°crire les donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es dans le fichier
       await TauriService.writeTextFile(filePath, Base64.encode(JSON.stringify(credentials)))
     } catch (error) {
       console.error('setStayLoggedIn error : ', error)
@@ -651,24 +669,24 @@ export class TauriService {
   }
 
   /**
-   * RÃƒÂ©cupÃƒÂ¨re les identifiants de connexion enregistrÃƒÂ©s sur le systÃƒÂ¨me du joueur
+   * RÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cupÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨re les identifiants de connexion enregistrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s sur le systÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨me du joueur
    * @returns {Promise<Credentials | undefined>} - Informations d'identification
    */
   public static async getStayLoggedIn(): Promise<Credentials | undefined> {
     try {
       const filePath: string = 'stayLoggedIn.json'
 
-      // VÃƒÂ©rifier si le fichier existe
+      // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier si le fichier existe
       const exist: boolean | undefined = await TauriService.isExistFileOrFolder(filePath)
       if (exist) {
-        // Si le fichier existe, lire les donnÃƒÂ©es existantes
+        // Si le fichier existe, lire les donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es existantes
         const encodedData: string | undefined = await TauriService.readTextFile(filePath)
 
         if (encodedData) {
-          // DÃƒÂ©coder les donnÃƒÂ©es en base64
+          // DÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©coder les donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es en base64
           const decodedData: string = Base64.decode(encodedData)
 
-          // Parser les donnÃƒÂ©es JSON
+          // Parser les donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es JSON
           return JSON.parse(decodedData) as Credentials
         }
       }
@@ -682,13 +700,13 @@ export class TauriService {
   /**
    * Enregistrer le statut de connexion de l'utilisateur dans un fichier
    * @param {UserConnectedStatus} status - Statut de connexion
-   * @returns {Promise<void>} - Promesse rÃƒÂ©solue
+   * @returns {Promise<void>} - Promesse rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©solue
    */
   public static async setStatusConnected(status: UserConnectedStatus): Promise<void> {
     try {
       const filePath: string = 'statusConnected.json'
 
-      // Ãƒâ€°crire le statut dans le fichier
+      // ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°crire le statut dans le fichier
       await TauriService.writeTextFile(filePath, JSON.stringify({ status }))
     } catch (error) {
       console.error('setStatusConnected error : ', error)
@@ -696,21 +714,21 @@ export class TauriService {
   }
 
   /**
-   * RÃƒÂ©cupÃƒÂ¨re le statut de connexion de l'utilisateur dans un fichier
+   * RÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cupÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨re le statut de connexion de l'utilisateur dans un fichier
    * @returns {Promise<UserConnectedStatus | undefined>} - Statut de connexion
    */
   public static async getStatusConnected(): Promise<UserConnectedStatus | undefined> {
     try {
       const filePath: string = 'statusConnected.json'
 
-      // VÃƒÂ©rifier si le fichier existe
+      // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier si le fichier existe
       const exist: boolean | undefined = await TauriService.isExistFileOrFolder(filePath)
       if (exist) {
-        // Si le fichier existe, lire les donnÃƒÂ©es existantes
+        // Si le fichier existe, lire les donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es existantes
         const data: string | undefined = await TauriService.readTextFile(filePath)
 
         if (data) {
-          // Parser les donnÃƒÂ©es JSON
+          // Parser les donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es JSON
           const statusData: any = JSON.parse(data)
           return statusData.status as UserConnectedStatus
         }
@@ -725,9 +743,9 @@ export class TauriService {
   /**
    * Recuperer la fenetre actuelle et la redimensionner quand
    * on est sur la page de auto update du launcher vers login
-   * @param {number} width - Largeur de la fenÃƒÂªtre
-   * @param {number} height - Hauteur de la fenÃƒÂªtre
-   * @returns {Promise<void>} - Promesse rÃƒÂ©solue
+   * @param {number} width - Largeur de la fenÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªtre
+   * @param {number} height - Hauteur de la fenÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªtre
+   * @returns {Promise<void>} - Promesse rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©solue
    */
   public static async adjustWindowToLogin(width: number, height: number): Promise<void> {
     // eslint-disable-next-line @typescript-eslint/typedef
@@ -745,9 +763,9 @@ export class TauriService {
 
   /**
    * Recuperer la fenetre actuelle et la redimensionner quand on vient de login vers la page home (carousel)
-   * @param {number} width - Largeur de la fenÃƒÂªtre
-   * @param {number} height - Hauteur de la fenÃƒÂªtre
-   * @returns {Promise<void>} - Promesse rÃƒÂ©solue
+   * @param {number} width - Largeur de la fenÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªtre
+   * @param {number} height - Hauteur de la fenÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªtre
+   * @returns {Promise<void>} - Promesse rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©solue
    */
   public static async adjustWindowToHome(width: number, height: number): Promise<void> {
     // eslint-disable-next-line @typescript-eslint/typedef
@@ -767,9 +785,9 @@ export class TauriService {
 
   /**
    * Recuperer la fenetre actuelle et la redimensionner quand on vient de home vers la page login
-   * @param {number} width - Largeur de la fenÃƒÂªtre
-   * @param {number} height - Hauteur de la fenÃƒÂªtre
-   * @returns {Promise<void>} - Promesse rÃƒÂ©solue
+   * @param {number} width - Largeur de la fenÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªtre
+   * @param {number} height - Hauteur de la fenÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªtre
+   * @returns {Promise<void>} - Promesse rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©solue
    */
   public static async adjustWindowHomeToLogin(width: number, height: number): Promise<void> {
     useWindowStore().setLoading(true)
@@ -786,9 +804,9 @@ export class TauriService {
 
   /**
    * Recuperer la fenetre actuelle et la redimensionner quand on vient de home vers la page login
-   * @param {number} width - Largeur de la fenÃƒÂªtre
-   * @param {number} height - Hauteur de la fenÃƒÂªtre
-   * @returns {Promise<void>} - Promesse rÃƒÂ©solue
+   * @param {number} width - Largeur de la fenÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªtre
+   * @param {number} height - Hauteur de la fenÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªtre
+   * @returns {Promise<void>} - Promesse rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©solue
    */
   public static async adjustWindowHomeToLoginForMiddleware(width: number, height: number): Promise<void> {
     useWindowStore().setLoading(true)
@@ -802,17 +820,17 @@ export class TauriService {
   }
 
   /**
-   * Envoie une notification qui crÃƒÂ©e une pop up sur le systÃƒÂ¨me !
+   * Envoie une notification qui crÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©e une pop up sur le systÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨me !
    * @param {string} title - Titre de la notification
    * @param {string} body - Corps de la notification
-   * @returns {Promise<void>} - Promesse rÃƒÂ©solue
+   * @returns {Promise<void>} - Promesse rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©solue
    */
   public static async sendNotification(title: string, body: string): Promise<void> {
     try {
       // Avez-vous la permission d'envoyer une notification ?
       let permissionGranted: boolean = await isPermissionGranted()
 
-      // Le cas ÃƒÂ©chÃƒÂ©ant on la demande
+      // Le cas ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ant on la demande
       if (!permissionGranted) {
         const permission: NotificationPermission = await requestPermission()
         permissionGranted = permission === 'granted'
@@ -828,10 +846,10 @@ export class TauriService {
   }
 
   /**
-   * TÃƒÂ©lÃƒÂ©charge le fichier manifest.json du jeu depuis le serveur
+   * TÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©charge le fichier manifest.json du jeu depuis le serveur
    * @param {string} bucketName - Nom du bucket S3
    * @param {string} pathFilename - Chemin du fichier manifest.json
-   * @returns {Promise<GameManifestRemote | undefined>} - Fichier manifest.json du jeu cÃƒÂ´tÃƒÂ© serveur ou undefined
+   * @returns {Promise<GameManifestRemote | undefined>} - Fichier manifest.json du jeu cÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â´tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© serveur ou undefined
    */
   public static async downloadGameManifestRemote(
     bucketName: string,
@@ -849,9 +867,9 @@ export class TauriService {
   }
 
   /**
-   * VÃƒÂ©rifie les fichiers manquants sur le systÃƒÂ¨me de l'utilisateur
+   * VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifie les fichiers manquants sur le systÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨me de l'utilisateur
    * @param {string} fileLocationDownload - Emplacement ou les fichiers seront installer sur le pc de l'utilisateur
-   * @param {GameManifestLocal} localManifest - Fichier manifest_local.json du jeu cÃƒÂ´tÃƒÂ© client
+   * @param {GameManifestLocal} localManifest - Fichier manifest_local.json du jeu cÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â´tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© client
    * @returns {Promise<FileDetails[]>} -
    */
   public static async getMissingFiles(
@@ -870,18 +888,18 @@ export class TauriService {
   }
 
   /**
-   * Compare les fichiers locaux et distants pour dÃƒÂ©terminer les fichiers ÃƒÂ  tÃƒÂ©lÃƒÂ©charger
-   * @param {GameManifestLocal} localManifest - Fichier manifest_local.json du jeu cÃƒÂ´tÃƒÂ© client
-   * @param {GameManifestRemote} remoteManifest - Fichier manifest.json du jeu cÃƒÂ´tÃƒÂ© serveur
+   * Compare les fichiers locaux et distants pour dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©terminer les fichiers ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©charger
+   * @param {GameManifestLocal} localManifest - Fichier manifest_local.json du jeu cÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â´tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© client
+   * @param {GameManifestRemote} remoteManifest - Fichier manifest.json du jeu cÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â´tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© serveur
    * @param {string} fileLocationDownload - Le chemin du dossier d'installation
-   * @returns {FileDetails[]} - Liste des fichiers ÃƒÂ  tÃƒÂ©lÃƒÂ©charger
+   * @returns {FileDetails[]} - Liste des fichiers ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©charger
    */
   public static async getFilesToDownload(
     localManifest: GameManifestLocal,
     remoteManifest: GameManifestRemote,
     fileLocationDownload: string,
   ): Promise<FileDetails[]> {
-    // VÃƒÂ©rifier les fichiers manquants sur le disque
+    // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier les fichiers manquants sur le disque
     const missingFiles: FileDetails[] = await this.getMissingFiles(fileLocationDownload, localManifest)
     console.log('Missing files:', missingFiles)
 
@@ -901,11 +919,11 @@ export class TauriService {
   }
 
   /**
-   * Finalise le tÃƒÂ©lÃƒÂ©chargement du jeu en supprimant le jeu des progressions de tÃƒÂ©lÃƒÂ©chargement
-   * et en sauvegardant le jeu dans la liste des jeux installÃƒÂ©s sur le systÃƒÂ¨me de l'utilisateur
+   * Finalise le tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chargement du jeu en supprimant le jeu des progressions de tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chargement
+   * et en sauvegardant le jeu dans la liste des jeux installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s sur le systÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨me de l'utilisateur
    * @param {number} userId - Identifiant de l'utilisateur
-   * @param {GameManifestLocal} gameManifest - Fichier manifest.json du jeu cÃƒÂ´tÃƒÂ© client
-   * @returns {Promise<void>} - Promesse rÃƒÂ©solue
+   * @param {GameManifestLocal} gameManifest - Fichier manifest.json du jeu cÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â´tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© client
+   * @returns {Promise<void>} - Promesse rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©solue
    */
   public static async finalizeDownload(userId: number, gameManifest: GameManifestLocal): Promise<void> {
     // Supprimer uniquement la progression du jeu pour l'utilisateur courant,
@@ -933,9 +951,9 @@ export class TauriService {
   }
 
   /**
-   * Normalise le chemin du fichier en fonction du systÃƒÂ¨me d'exploitation
+   * Normalise le chemin du fichier en fonction du systÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨me d'exploitation
    * @param {string} path - Chemin d'installation du jeu
-   * @returns {Promise<string>} - Chemin normalisÃƒÂ©
+   * @returns {Promise<string>} - Chemin normalisÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©
    */
   private static normalizePath(path: string): string {
     const separator: string = sep()
@@ -943,7 +961,7 @@ export class TauriService {
   }
 
   /**
-   * RÃƒÂ©cupÃƒÂ¨re le fichier manifest_local.json ÃƒÂ  partir du pathInstallLocation
+   * RÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cupÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨re le fichier manifest_local.json ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  partir du pathInstallLocation
    * @param {string} pathInstallLocation - Chemin d'installation du jeu
    * @returns {Promise<GameManifestLocal | undefined>} - Le manifeste du jeu ou undefined
    */
@@ -968,9 +986,9 @@ export class TauriService {
   }
 
   /**
-   * CrÃƒÂ©e un raccourci sur le bureau pour le jeu installÃƒÂ©
+   * CrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©e un raccourci sur le bureau pour le jeu installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©
    * @param {string} pathInstallLocationGame - Chemin d'installation du jeu
-   * @returns {Promise<void>} - Promesse rÃƒÂ©solue
+   * @returns {Promise<void>} - Promesse rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©solue
    */
   public static async createShortcutOnDesktop(pathInstallLocationGame: string): Promise<void> {
     try {
@@ -982,9 +1000,9 @@ export class TauriService {
   }
 
   /**
-   * Met en pause le tÃƒÂ©lÃƒÂ©chargement du jeu
+   * Met en pause le tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chargement du jeu
    * @param {number} gameId - L'ID du jeu
-   * @returns {Promise<void>} - Promesse rÃƒÂ©solue
+   * @returns {Promise<void>} - Promesse rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©solue
    */
   public static async pauseDownloadGame(gameId: number): Promise<void> {
     try {
@@ -996,9 +1014,9 @@ export class TauriService {
   }
 
   /**
-   * Reprend le tÃƒÂ©lÃƒÂ©chargement du jeu
+   * Reprend le tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chargement du jeu
    * @param {number} gameId - L'ID du jeu
-   * @returns {Promise<void>} - Promesse rÃƒÂ©solue
+   * @returns {Promise<void>} - Promesse rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©solue
    */
   public static async resumeDownloadGame(gameId: number): Promise<void> {
     try {
@@ -1010,10 +1028,10 @@ export class TauriService {
   }
 
   /**
-   * Annule le tÃƒÂ©lÃƒÂ©chargement du jeu
+   * Annule le tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chargement du jeu
    * @param {number} gameId - L'ID du jeu
    * @param {string} pathInstallLocation - Emplacement d'installation du jeu
-   * @returns {Promise<void>} - Promesse rÃƒÂ©solue
+   * @returns {Promise<void>} - Promesse rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©solue
    */
   public static async cancelDownloadGame(gameId: number, pathInstallLocation: string): Promise<void> {
     try {
@@ -1026,9 +1044,9 @@ export class TauriService {
   }
 
   /**
-   * DÃƒÂ©sinstalle le jeu
+   * DÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©sinstalle le jeu
    * @param {string} pathInstallLocation - Le chemin d'installation du jeu
-   * @returns {Promise<void>} - Promesse rÃƒÂ©solue
+   * @returns {Promise<void>} - Promesse rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©solue
    */
   public static async uninstallGame(pathInstallLocation: string): Promise<void> {
     try {
