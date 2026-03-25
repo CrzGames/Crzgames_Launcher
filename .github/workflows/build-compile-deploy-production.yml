@@ -61,7 +61,7 @@ jobs:
 
       - name: Get latest release tag
         id: lasttag
-        uses: WyriHaximus/github-action-get-previous-tag@v1
+        uses: WyriHaximus/github-action-get-previous-tag@v2
 
       - name: Modify version in tauri.conf.json from last tag release - macOS / Linux
         if: matrix.platform == 'macos-14' || matrix.platform == 'ubuntu-latest'
@@ -293,7 +293,7 @@ jobs:
 
       - name: Get latest release tag
         id: lasttag
-        uses: WyriHaximus/github-action-get-previous-tag@v1
+        uses: WyriHaximus/github-action-get-previous-tag@v2
 
       - name: Download All Artifacts
         uses: actions/download-artifact@v4
