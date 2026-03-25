@@ -285,6 +285,8 @@ import type {
   SystemOSInfo,
 } from '#src-core/services/TauriService'
 import { TauriService } from '#src-core/services/TauriService'
+import { createLogger } from '#src-core/utils/logger'
+import type { Logger } from '#src-core/utils/logger'
 
 import DownloadModal from '#src-nuxt/app/components/modals/DownloadModal.vue'
 import FixGameInstalledInLibraryModal from '#src-nuxt/app/components/modals/FixGameInstalledInLibraryModal.vue'
@@ -322,6 +324,7 @@ const downloadsStore: ReturnType<typeof useDownloadsStore> = useDownloadsStore()
  * @type {Notyf}
  */
 const notyf: Notyf = useNuxtApp().$notyf
+const logger: Logger = createLogger('LibraryPage')
 
 const gamesInstalled: Ref<GameInstalled[] | undefined> = ref(undefined) // Jeux dÃƒÆ’Ã‚Â©jÃƒÆ’Ã‚Â  installÃƒÆ’Ã‚Â©
 const gamesNeedsUpdate: Ref<GameInstalled[]> = ref([]) // Jeux deja installÃƒÆ’Ã‚Â© qui ont besoin d'une mise ÃƒÆ’Ã‚Â  jour
@@ -991,12 +994,12 @@ const checkIfEnoughDiskSpace: (totalSizeToDownload: number) => boolean = (totalS
   }
 
   if (gamePathInstallLocation.value.diskFreeSpace >= totalSizeToDownload) {
-    console.log('ASSEZ DE DISK DUR POUR INSTALLER LE JEU')
+    logger.debug('ASSEZ DE DISK DUR POUR INSTALLER LE JEU')
     gameToDownloadFileSize.value = totalSizeToDownload
     isSufficientDiskSpaceAvailable.value = true
     return true
   } else {
-    console.log('PAS ASSEZ DE DISK DUR POUR INSTALLER LE JEU')
+    logger.debug('PAS ASSEZ DE DISK DUR POUR INSTALLER LE JEU')
     isSufficientDiskSpaceAvailable.value = false
     return false
   }
@@ -1133,8 +1136,8 @@ const downloadGame: (files?: FileDetails[]) => Promise<void> = async (files?: Fi
               fullPathFilename,
             )
 
-            console.log('gameManifestRemote.files: ', gameManifestRemote?.files)
-            console.log('files: ', files)
+            logger.debug(`gameManifestRemote.files count: ${gameManifestRemote.files.length}`)
+            logger.debug(`files override count: ${files?.length || 0}`)
 
             if (user && gameManifestRemote) {
               const filesToDownload: FileDetails[] = files || gameManifestRemote.files

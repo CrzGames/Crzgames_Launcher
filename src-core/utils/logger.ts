@@ -41,8 +41,8 @@ export class Logger {
 
     // Configuration par défaut selon l'environnement
     this.options = {
-      enabled: env === 'development' || env === 'staging', // Activé par défaut en dev/staging
-      level: env === 'production' ? 'error' : 'debug', // Seulement erreurs en prod, tout en dev/staging
+      enabled: env === 'development', // Active uniquement en developpement
+      level: env === 'development' ? 'debug' : 'error',
       ...options, // Override avec les options passées
     }
   }

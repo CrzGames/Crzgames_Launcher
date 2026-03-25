@@ -13,6 +13,11 @@ import { useWindowStore } from '~~/src-nuxt/app/stores/window.store'
 
 import { CloudStorageS3Service } from '#src-common/core/services/CloudStorageS3Service'
 
+import { createLogger } from '#src-core/utils/logger'
+import type { Logger } from '#src-core/utils/logger'
+
+const logger: Logger = createLogger('TauriService')
+
 /**
  * Statut de connexion de l'utilisateur
  * @property {string} Online - L'utilisateur est en ligne
@@ -221,9 +226,9 @@ export class TauriService {
 
       if (!mountPoint) throw new Error(`Could not determine mount point for selected path: ${selectedPath}`)
 
-      console.log('Selected directory for install game :', selectedPath)
+      logger.debug(`Selected directory for install game: ${selectedPath}`)
       const freeSpace: unknown = await invoke('check_disk_space', { path: mountPoint })
-      console.log(`Espace libre sur le disque: ${freeSpace} bytes`)
+      logger.debug(`Espace libre sur le disque: ${freeSpace} bytes`)
 
       return {
         pathSystem: selectedPath,
@@ -330,19 +335,9 @@ export class TauriService {
         return
       }
 
-      console.log({
-        bucketName,
-        pathFilename,
-        os: userSystemOSInfo.os,
-        os_architecture: userSystemOSInfo.architecture,
-        apiUrl: apiURL,
-        fileLocationDownload,
-        filesToDownload,
-        gameVersion,
-        gameBinarySize,
-        gameId,
-        userId,
-      })
+      logger.debug(
+        `[downloadGame] request bucket=${bucketName} path=${pathFilename} os=${userSystemOSInfo.os} arch=${userSystemOSInfo.architecture} gameId=${gameId} userId=${userId} version=${gameVersion} files=${filesToDownload.length}`,
+      )
 
       void invoke('download_and_update_game', {
         bucketName,
@@ -365,7 +360,7 @@ export class TauriService {
           errorMessage.includes('download paused') || errorMessage.includes('download canceled')
 
         if (isExpectedInterruption) {
-          console.info('download_and_update_game interrupted:', error)
+          logger.info(`download_and_update_game interrupted: ${String(error)}`)
           return
         }
 
@@ -979,7 +974,7 @@ export class TauriService {
   ): Promise<FileDetails[]> {
     // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier les fichiers manquants sur le disque
     const missingFiles: FileDetails[] = await this.getMissingFiles(fileLocationDownload, localManifest)
-    console.log('Missing files:', missingFiles)
+    logger.debug(`Missing files count: ${missingFiles.length}`)
 
     const localFiles: Map<string, string> = new Map(
       localManifest.files.map((file: FileDetails) => [file.name, file.hash]),
@@ -1049,7 +1044,7 @@ export class TauriService {
       const normalizedPath: string = this.normalizePath(pathInstallLocation)
       const manifestPath: string = this.normalizePath(`${normalizedPath}${sep()}${manifestFileName}`)
 
-      console.log('Trying to read manifest from path:', manifestPath)
+      logger.debug(`Trying to read manifest from path: ${manifestPath}`)
 
       // Lire le fichier manifest_local.json
       const manifestContent: string | undefined = await readTextFile(manifestPath)

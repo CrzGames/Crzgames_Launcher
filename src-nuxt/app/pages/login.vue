@@ -50,6 +50,8 @@ import CrzLogo2 from '#src-common/components/ui/CrzLogo2.vue'
 
 import type { Credentials, SystemOSInfo } from '#src-core/services/TauriService'
 import { TauriService } from '#src-core/services/TauriService'
+import { createLogger } from '#src-core/utils/logger'
+import type { Logger } from '#src-core/utils/logger'
 
 import LoginForm from '#src-nuxt/app/components/forms/LoginForm.vue'
 import LoginLinks from '#src-nuxt/app/components/login/LoginLinks.vue'
@@ -58,6 +60,7 @@ import { useWindowStore } from '#src-nuxt/app/stores/window.store'
 
 /* STORES */
 const windowStore: any = useWindowStore()
+const logger: Logger = createLogger('LoginPage')
 
 /* REFS */
 /**
@@ -88,7 +91,7 @@ const loginFormRef: Ref<InstanceType<typeof LoginForm> | null> = ref(null)
 onMounted(async (): Promise<void> => {
   // DEBUG: Get OS System Info
   const osSystemCurrent: SystemOSInfo | undefined = await TauriService.getSystemOSCurrent()
-  if (osSystemCurrent) console.log(JSON.stringify(osSystemCurrent))
+  if (osSystemCurrent) logger.debug(JSON.stringify(osSystemCurrent))
 
   retrieveSavedCredentials()
 

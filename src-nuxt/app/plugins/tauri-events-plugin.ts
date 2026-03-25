@@ -479,7 +479,15 @@ const handleDownloadError: (event: any) => void = (event: any): void => {
     activeDownload.speed = '0 B/s'
   }
 
-  logger.error(
-    `[Download Error Event] session=${sessionId} gameId=${gameId} error=${String(event.payload.error || 'unknown')}`,
-  )
+  const rawError: string = String(event.payload.error || 'unknown')
+  const normalizedError: string = rawError.toLowerCase()
+  const isExpectedInterruption: boolean =
+    normalizedError.includes('download paused') || normalizedError.includes('download canceled')
+
+  if (isExpectedInterruption) {
+    logger.info(`[Download Event] session=${sessionId} gameId=${gameId} interruption=${rawError}`)
+    return
+  }
+
+  logger.error(`[Download Error Event] session=${sessionId} gameId=${gameId} error=${rawError}`)
 }
