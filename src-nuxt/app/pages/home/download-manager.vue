@@ -317,7 +317,11 @@ const confirmGameDownloadCancellation: () => Promise<void> = async (): Promise<v
     logger.info(`[Download Cancellation] Confirmation de l'annulation pour: ${gameToCancel.gameTitle}`)
 
     // Appelle TauriService pour annuler le telechargement avec l'ID du jeu et le chemin d'installation
-    await TauriService.cancelDownloadGame(gameToCancel.gameId, gameToCancel.pathInstallLocation)
+    await TauriService.cancelDownloadGame(
+      gameToCancel.gameId,
+      gameToCancel.pathInstallLocation,
+      currentAuthenticatedUser.id,
+    )
     // Log la confirmation que Tauri a annule le telechargement
     logger.debug(`[Download Cancellation] Telechargement annule via Tauri pour: ${gameToCancel.gameTitle}`)
 

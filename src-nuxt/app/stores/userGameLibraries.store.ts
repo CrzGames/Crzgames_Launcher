@@ -61,33 +61,46 @@ export const useUserGameLibrariesStore = defineStore('userGameLibrariesStore', {
      */
     async getUserGameLibraries(title?: string): Promise<GameModel[]> {
       /**
-       * Pas besoin de checker si l'utilisateur est connecté,
-       * car les routes sont protégée par le middleware authentification.
+       * Pas besoin de checker si l''utilisateur est connecte,
+       * car les routes sont protegee par le middleware authentification.
        */
-      const userId: number = useAuthStore().user?.id
-
-      /**
-       * Récupère tous les jeux de la bibliothèque de l'utilisateur par userId et
-       * si un titre est fourni, il filtre les jeux par titre.
-       */
-      const games: GameModel[] = await UserGameLibrariesService.getAllUserGameLibrariesByUserId(userId, title)
-
-      /**
-       * Récupère le système d'exploitation actuel de l'utilisateur
-       * pour récupérer les jeux de la bibliothèque de l'utilisateur par rapport à la plateforme
-       * actuellement utiliser par le Launcher (Windows, Linux, Mac...)
-       */
-      const currentSystemOSInfo: SystemOSInfo | undefined = await TauriService.getSystemOSCurrent()
-      const currentOsName: string | undefined = currentSystemOSInfo?.os
-      if (currentOsName) {
-        this.getUserGameLibrariesSortedByPlatform(currentOsName, games)
+      const userId: number | undefined = useAuthStore().user?.id
+      if (!userId) {
+        this.setUserGameLibraries([])
+        this.setUserGameLibrariesSortedByPlatform([])
+        return []
       }
 
-      // Set les jeux de la bibliothèque de l'utilisateur
-      this.setUserGameLibraries(games)
+      try {
+        /**
+         * Recupere tous les jeux de la bibliotheque de l''utilisateur par userId et
+         * si un titre est fourni, il filtre les jeux par titre.
+         */
+        const games: GameModel[] = await UserGameLibrariesService.getAllUserGameLibrariesByUserId(userId, title)
 
-      // Retourne les jeux de la bibliothèque de l'utilisateur
-      return games
+        /**
+         * Recupere le systeme d''exploitation actuel de l''utilisateur
+         * pour recuperer les jeux de la bibliotheque de l''utilisateur par rapport a la plateforme
+         * actuellement utilisee par le Launcher (Windows, Linux, Mac...)
+         */
+        const currentSystemOSInfo: SystemOSInfo | undefined = await TauriService.getSystemOSCurrent()
+        const currentOsName: string | undefined = currentSystemOSInfo?.os
+        if (currentOsName) {
+          this.getUserGameLibrariesSortedByPlatform(currentOsName, games)
+        } else {
+          this.setUserGameLibrariesSortedByPlatform([])
+        }
+
+        // Set les jeux de la bibliotheque de l'utilisateur
+        this.setUserGameLibraries(games)
+
+        // Retourne les jeux de la bibliotheque de l'utilisateur
+        return games
+      } catch {
+        this.setUserGameLibraries([])
+        this.setUserGameLibrariesSortedByPlatform([])
+        return []
+      }
     },
 
     /**

@@ -404,6 +404,11 @@ onMounted(async (): Promise<void> => {
 watch(
   () => downloadsStore.completedDownloads,
   async (completedDownloads: CompleteDownloadGame[]) => {
+    const currentUserId: number | undefined = authStore.user?.id
+    if (!currentUserId) {
+      return
+    }
+
     for (const completedGame of completedDownloads) {
       // VÃƒÆ’Ã‚Â©rifier si le jeu tÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©chargÃƒÆ’Ã‚Â© n'est pas dÃƒÆ’Ã‚Â©jÃƒÆ’Ã‚Â  dans gamesInstalled pour ÃƒÆ’Ã‚Â©viter les doublons
       if (
@@ -411,7 +416,7 @@ watch(
       ) {
         try {
           // RÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©rer tous les jeux installÃƒÆ’Ã‚Â©s via un fichier installÃƒÆ’Ã‚Â© sur le disque de l'utilisateur
-          const gamesInstalledAll: GameInstalled[] | undefined = await TauriService.getGamesInstalled()
+          const gamesInstalledAll: GameInstalled[] | undefined = await TauriService.getGamesInstalled(currentUserId)
           if (!gamesInstalledAll) {
             console.warn('Get games installed failed')
             return
@@ -495,7 +500,8 @@ const UninstallGame: (game: GameModel) => Promise<void> = async (game: GameModel
     // DÃƒÆ’Ã‚Â©sinstaller le jeu
     await TauriService.uninstallGame(currentGame.gameManifest.pathInstallLocation)
     // Supprimer le jeu installÃƒÆ’Ã‚Â© de la liste des jeux installÃƒÆ’Ã‚Â©s dans le fichier de configuration local
-    await TauriService.removeGameInstalled(currentGame.gameManifest.gameId)
+    const currentUserId: number | undefined = authStore.user?.id
+    await TauriService.removeGameInstalled(currentGame.gameManifest.gameId, currentUserId)
 
     // Supprimer le jeu de la liste des jeux installÃƒÆ’Ã‚Â©s ou de la liste des jeux nÃƒÆ’Ã‚Â©cessitant une mise ÃƒÆ’Ã‚Â  jour
     gamesInstalled.value = gamesInstalled.value?.filter((gameInstalled: GameInstalled) => {
@@ -609,6 +615,17 @@ const checkForUpdatesGames: () => Promise<void> = async (): Promise<void> => {
 const loadGames: () => Promise<void> = async (): Promise<void> => {
   isLoading.value = true
 
+  const currentUserId: number | undefined = authStore.user?.id
+  if (!currentUserId) {
+    gamesInstalled.value = []
+    gameInstalled.value = []
+    gameNeedsUpdate.value = []
+    gameNotInstalled.value = []
+    gameActiveDownload.value = []
+    isLoading.value = false
+    return
+  }
+
   await userGameLibrariesStore.getUserGameLibraries()
 
   // RÃƒÆ’Ã‚Â©initialiser les listes avant de les remplir
@@ -616,7 +633,7 @@ const loadGames: () => Promise<void> = async (): Promise<void> => {
   gameNeedsUpdate.value = []
   gamesNeedsUpdate.value = []
 
-  const installedGames: GameInstalled[] | undefined = await TauriService.getGamesInstalled()
+  const installedGames: GameInstalled[] | undefined = await TauriService.getGamesInstalled(currentUserId)
 
   if (installedGames && installedGames.length > 0) {
     // Check for updates
@@ -743,6 +760,11 @@ const refreshLibrary: () => void = (): void => {
         (activeDownload: ActiveDownloadGame) => activeDownload.gameId === game.id,
       )
     })
+  } else {
+    gameInstalled.value = []
+    gameNeedsUpdate.value = []
+    gameNotInstalled.value = []
+    gameActiveDownload.value = []
   }
 }
 

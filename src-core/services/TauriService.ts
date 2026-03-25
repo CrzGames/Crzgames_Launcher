@@ -22,6 +22,14 @@ import { CloudStorageS3Service } from '#src-common/core/services/CloudStorageS3S
 export type UserConnectedStatus = 'Online' | 'Unavailable' | 'Invisible'
 
 /**
+ * Entree locale de statut de connexion scopee par utilisateur.
+ */
+type UserStatusConnectedEntry = {
+  userId: number
+  status: UserConnectedStatus
+}
+
+/**
  * Informations sur le systÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨me d'exploitation
  * @property {string} os - SystÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨me d'exploitation
  * @property {Platform} platform - Plateforme
@@ -562,7 +570,8 @@ export class TauriService {
 
       // Filtrer les jeux existants pour enlever ceux qui ont le mÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªme titre que le nouveau jeu
       gamesInstalled = gamesInstalled.filter(
-        (game: GameInstalled): boolean => game.gameManifest.gameId !== gameInstalled.gameManifest.gameId,
+        (game: GameInstalled): boolean =>
+          !(game.gameManifest.gameId === gameInstalled.gameManifest.gameId && game.user_id === gameInstalled.user_id),
       )
 
       // Ajouter le nouveau jeu ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  la liste
@@ -581,9 +590,10 @@ export class TauriService {
   /**
    * Supprime le jeu installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© de la liste des jeux installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s
    * @param {number} gameId - Identifiant du jeu
+   * @param {number} [userId] - Identifiant de l'utilisateur
    * @returns {Promise<void>} - Promesse rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©solue
    */
-  public static async removeGameInstalled(gameId: number): Promise<void> {
+  public static async removeGameInstalled(gameId: number, userId?: number): Promise<void> {
     try {
       const filePath: string = 'gamesInstalled.json'
       let gamesInstalled: GameInstalled[] = []
@@ -597,7 +607,17 @@ export class TauriService {
       }
 
       // Filtrer les jeux existants pour enlever ceux qui ont le mÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªme titre que le nouveau jeu
-      gamesInstalled = gamesInstalled.filter((game: GameInstalled): boolean => game.gameManifest.gameId !== gameId)
+      gamesInstalled = gamesInstalled.filter((game: GameInstalled): boolean => {
+        if (game.gameManifest.gameId !== gameId) {
+          return true
+        }
+
+        if (typeof userId === 'number') {
+          return game.user_id !== userId
+        }
+
+        return true
+      })
 
       // ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°crire les donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es mises ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  jour dans le fichier
       await TauriService.writeTextFile(filePath, JSON.stringify(gamesInstalled))
@@ -608,9 +628,10 @@ export class TauriService {
 
   /**
    * RÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cupÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨re les sauvegardes des jeux
+   * @param {number} [userId] - Identifiant de l'utilisateur
    * @returns {Promise<GameInstalled[] | undefined>} - Sauvegardes des jeux
    */
-  public static async getGamesInstalled(): Promise<GameInstalled[] | undefined> {
+  public static async getGamesInstalled(userId?: number): Promise<GameInstalled[] | undefined> {
     try {
       const filePath: string = 'gamesInstalled.json'
 
@@ -622,7 +643,11 @@ export class TauriService {
         const data: string | undefined = await TauriService.readTextFile(filePath)
 
         if (data) {
-          return JSON.parse(data) as GameInstalled[]
+          const gamesInstalled: GameInstalled[] = JSON.parse(data) as GameInstalled[]
+          if (typeof userId === 'number') {
+            return gamesInstalled.filter((game: GameInstalled): boolean => game.user_id === userId)
+          }
+          return gamesInstalled
         }
       }
     } catch (error) {
@@ -698,39 +723,92 @@ export class TauriService {
   }
 
   /**
+   * Normalise le contenu du fichier statusConnected.json en liste d'entrees par utilisateur.
+   * Compatible avec l'ancien format { status: "Online" }.
+   * @param {unknown} rawData - Donnees parsees du JSON
+   * @param {number} [fallbackUserId] - User courant utilise pour migrer l'ancien format
+   * @returns {UserStatusConnectedEntry[]} - Entrees normalisees
+   */
+  private static normalizeStatusConnectedEntries(
+    rawData: unknown,
+    fallbackUserId?: number,
+  ): UserStatusConnectedEntry[] {
+    const validStatusValues: UserConnectedStatus[] = ['Online', 'Unavailable', 'Invisible']
+
+    if (Array.isArray(rawData)) {
+      return rawData.filter(
+        (item: unknown): item is UserStatusConnectedEntry =>
+          typeof item === 'object' &&
+          item !== null &&
+          typeof (item as UserStatusConnectedEntry).userId === 'number' &&
+          validStatusValues.includes((item as UserStatusConnectedEntry).status),
+      )
+    }
+
+    if (
+      typeof rawData === 'object' &&
+      rawData !== null &&
+      validStatusValues.includes((rawData as { status: UserConnectedStatus }).status) &&
+      typeof fallbackUserId === 'number'
+    ) {
+      return [
+        {
+          userId: fallbackUserId,
+          status: (rawData as { status: UserConnectedStatus }).status,
+        },
+      ]
+    }
+
+    return []
+  }
+
+  /**
    * Enregistrer le statut de connexion de l'utilisateur dans un fichier
    * @param {UserConnectedStatus} status - Statut de connexion
-   * @returns {Promise<void>} - Promesse rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©solue
+   * @param {number} userId - Identifiant de l'utilisateur
+   * @returns {Promise<void>} - Promesse resolue
    */
-  public static async setStatusConnected(status: UserConnectedStatus): Promise<void> {
+  public static async setStatusConnected(status: UserConnectedStatus, userId: number): Promise<void> {
     try {
       const filePath: string = 'statusConnected.json'
+      let statusEntries: UserStatusConnectedEntry[] = []
 
-      // ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°crire le statut dans le fichier
-      await TauriService.writeTextFile(filePath, JSON.stringify({ status }))
+      const exist: boolean | undefined = await TauriService.isExistFileOrFolder(filePath)
+      if (exist) {
+        const data: string | undefined = await TauriService.readTextFile(filePath)
+        if (data) {
+          statusEntries = this.normalizeStatusConnectedEntries(JSON.parse(data), userId)
+        }
+      }
+
+      statusEntries = statusEntries.filter((entry: UserStatusConnectedEntry): boolean => entry.userId !== userId)
+      statusEntries.push({ userId, status })
+
+      await TauriService.writeTextFile(filePath, JSON.stringify(statusEntries))
     } catch (error) {
       console.error('setStatusConnected error : ', error)
     }
   }
 
   /**
-   * RÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cupÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨re le statut de connexion de l'utilisateur dans un fichier
+   * Recupere le statut de connexion de l'utilisateur dans un fichier
+   * @param {number} userId - Identifiant de l'utilisateur
    * @returns {Promise<UserConnectedStatus | undefined>} - Statut de connexion
    */
-  public static async getStatusConnected(): Promise<UserConnectedStatus | undefined> {
+  public static async getStatusConnected(userId: number): Promise<UserConnectedStatus | undefined> {
     try {
       const filePath: string = 'statusConnected.json'
 
-      // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier si le fichier existe
       const exist: boolean | undefined = await TauriService.isExistFileOrFolder(filePath)
       if (exist) {
-        // Si le fichier existe, lire les donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es existantes
         const data: string | undefined = await TauriService.readTextFile(filePath)
 
         if (data) {
-          // Parser les donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es JSON
-          const statusData: any = JSON.parse(data)
-          return statusData.status as UserConnectedStatus
+          const statusEntries: UserStatusConnectedEntry[] = this.normalizeStatusConnectedEntries(
+            JSON.parse(data),
+            userId,
+          )
+          return statusEntries.find((entry: UserStatusConnectedEntry): boolean => entry.userId === userId)?.status
         }
       }
 
@@ -743,9 +821,9 @@ export class TauriService {
   /**
    * Recuperer la fenetre actuelle et la redimensionner quand
    * on est sur la page de auto update du launcher vers login
-   * @param {number} width - Largeur de la fenÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªtre
-   * @param {number} height - Hauteur de la fenÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªtre
-   * @returns {Promise<void>} - Promesse rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©solue
+   * @param {number} width - Largeur de la fenetre
+   * @param {number} height - Hauteur de la fenetre
+   * @returns {Promise<void>} - Promesse resolue
    */
   public static async adjustWindowToLogin(width: number, height: number): Promise<void> {
     // eslint-disable-next-line @typescript-eslint/typedef
@@ -1031,12 +1109,13 @@ export class TauriService {
    * Annule le tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chargement du jeu
    * @param {number} gameId - L'ID du jeu
    * @param {string} pathInstallLocation - Emplacement d'installation du jeu
+   * @param {number} [userId] - Identifiant de l'utilisateur
    * @returns {Promise<void>} - Promesse rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©solue
    */
-  public static async cancelDownloadGame(gameId: number, pathInstallLocation: string): Promise<void> {
+  public static async cancelDownloadGame(gameId: number, pathInstallLocation: string, userId?: number): Promise<void> {
     try {
       await invoke('cancel_download', { gameId })
-      await TauriService.removeGameInstalled(gameId)
+      await TauriService.removeGameInstalled(gameId, userId)
       await this.uninstallGame(pathInstallLocation)
     } catch (error) {
       console.error('cancelDownloadGame error:', error)

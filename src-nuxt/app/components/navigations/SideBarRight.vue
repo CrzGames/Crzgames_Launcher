@@ -88,14 +88,15 @@ import UserMenu from '#src-nuxt/app/components/menus/UserMenu.vue'
 import { useAuthStore } from '#src-nuxt/app/stores/auth.store'
 
 /* REFS */
-const user: Ref<UserModel | undefined> = ref(useAuthStore().user)
+const authStore: ReturnType<typeof useAuthStore> = useAuthStore()
+const user: Ref<UserModel | undefined> = ref(authStore.user)
 
 const isMyProfileModalOpen: Ref<boolean> = ref(false)
 
 const menuIsExpanded: Ref<boolean> = ref(window.innerWidth >= 1448) // Modifié à 1448
 const showUserMenu: Ref<boolean> = ref(false)
 
-const statusConnected: Ref<string> = ref('Online')
+const statusConnected: Ref<UserConnectedStatus> = ref('Online')
 
 /* HOOKS */
 /**
@@ -104,9 +105,14 @@ const statusConnected: Ref<string> = ref('Online')
  */
 onMounted(async (): Promise<void> => {
   // Update status connected
-  const savedStatusConnected: UserConnectedStatus | undefined = await TauriService.getStatusConnected()
-  if (savedStatusConnected) {
-    statusConnected.value = savedStatusConnected
+  const currentUserId: number | undefined = authStore.user?.id
+  if (typeof currentUserId === 'number') {
+    const savedStatusConnected: UserConnectedStatus | undefined = await TauriService.getStatusConnected(currentUserId)
+    const resolvedStatus: UserConnectedStatus = savedStatusConnected || 'Online'
+    statusConnected.value = resolvedStatus
+
+    // Persiste automatiquement le statut par user au montage (init + migration douce du format legacy).
+    await TauriService.setStatusConnected(resolvedStatus, currentUserId)
   }
 
   // Ajouter un écouteur pour les redimensionnements
@@ -171,6 +177,9 @@ const openMyProfileModal: () => void = (): void => {
  */
 const handleStatusChange: (newStatus: UserConnectedStatus) => void = (newStatus: UserConnectedStatus): void => {
   statusConnected.value = newStatus
-  TauriService.setStatusConnected(newStatus)
+  const currentUserId: number | undefined = authStore.user?.id
+  if (typeof currentUserId === 'number') {
+    TauriService.setStatusConnected(newStatus, currentUserId)
+  }
 }
 </script>
