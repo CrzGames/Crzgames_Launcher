@@ -49,6 +49,22 @@ const toNumber: (value: unknown, fallback?: number) => number = (value: unknown,
 }
 
 /**
+ * Resolve total size from payload.
+ * - If payload explicitly contains `totalSizeToDownload`, keep it (including 0).
+ * - Otherwise fallback to `gameBinarySize`.
+ * @param {any} payload - Tauri event payload
+ * @returns {number} Total bytes to download
+ */
+const resolveTotalSizeToDownloadFromPayload: (payload: any) => number = (payload: any): number => {
+  const hasTotalSizeToDownload: boolean = Object.prototype.hasOwnProperty.call(payload || {}, 'totalSizeToDownload')
+  if (hasTotalSizeToDownload) {
+    return Math.max(toNumber(payload.totalSizeToDownload, 0), 0)
+  }
+
+  return Math.max(toNumber(payload?.gameBinarySize, 0), 0)
+}
+
+/**
  * Extrait ou construit un identifiant de session depuis le payload.
  * @param {any} payload - Payload de l'event Tauri
  * @param {number} gameId - Identifiant du jeu
@@ -204,10 +220,7 @@ export default defineNuxtPlugin(async () => {
       return
     }
 
-    const payloadTotalSizeToDownload: number = toNumber(event.payload.totalSizeToDownload, 0)
-    const fallbackGameBinarySize: number = toNumber(event.payload.gameBinarySize, 0)
-    const totalSizeToDownload: number =
-      payloadTotalSizeToDownload > 0 ? payloadTotalSizeToDownload : fallbackGameBinarySize
+    const totalSizeToDownload: number = resolveTotalSizeToDownloadFromPayload(event.payload)
     const rawTotalDownloaded: number = Math.max(toNumber(event.payload.totalDownloaded, 0), 0)
     const isNearCompletionEvent: boolean = totalSizeToDownload > 0 && rawTotalDownloaded >= totalSizeToDownload
 
@@ -289,16 +302,13 @@ const handleDownloadProgress: (event: any) => Promise<void> = async (event: any)
 
   trackSessionFromProgressEvent(gameId, sessionId)
 
-  const payloadTotalSizeToDownload: number = toNumber(event.payload.totalSizeToDownload, 0)
+  const totalSizeToDownload: number = resolveTotalSizeToDownloadFromPayload(event.payload)
   const fallbackGameBinarySize: number = toNumber(event.payload.gameBinarySize, 0)
-  const totalSizeToDownload: number =
-    payloadTotalSizeToDownload > 0 ? payloadTotalSizeToDownload : fallbackGameBinarySize
 
   const rawTotalDownloaded: number = Math.max(toNumber(event.payload.totalDownloaded, 0), 0)
-  const totalDownloaded: number =
-    totalSizeToDownload > 0 ? Math.min(rawTotalDownloaded, totalSizeToDownload) : rawTotalDownloaded
-  const speed: number = Math.max(toNumber(event.payload.speed, 0), 0)
-  const progress: number = totalSizeToDownload > 0 ? (totalDownloaded / totalSizeToDownload) * 100 : 0
+  const totalDownloaded: number = totalSizeToDownload > 0 ? Math.min(rawTotalDownloaded, totalSizeToDownload) : 0
+  const speed: number = totalSizeToDownload > 0 ? Math.max(toNumber(event.payload.speed, 0), 0) : 0
+  const progress: number = totalSizeToDownload > 0 ? (totalDownloaded / totalSizeToDownload) * 100 : 100
 
   const gamePictureUrl: string = await getGamePictureUrlByGameId(gameId, downloadsStore)
 
@@ -322,7 +332,7 @@ const handleDownloadProgress: (event: any) => Promise<void> = async (event: any)
       progress: progress,
       totalDownloadedBytesNow: totalDownloaded,
       totalSizeToDownload: totalSizeToDownload,
-      gameBinarySize: fallbackGameBinarySize || totalSizeToDownload,
+      gameBinarySize: totalSizeToDownload > 0 ? fallbackGameBinarySize || totalSizeToDownload : 0,
       speed: `${speed}`,
       remainingTime: '',
       sessionId: sessionId,
@@ -330,6 +340,21 @@ const handleDownloadProgress: (event: any) => Promise<void> = async (event: any)
     downloadsStore.addActiveDownload(activeDownloadGame)
   } else if (existingActiveDownload?.isPlaying === false) {
     existingActiveDownload.isPlaying = true
+  }
+
+  if (totalSizeToDownload === 0) {
+    const zeroDownload: ActiveDownloadGame | undefined = downloadsStore.activeDownloads.find(
+      (activeDownload: ActiveDownloadGame): boolean => activeDownload.gameId === gameId,
+    )
+    if (zeroDownload) {
+      zeroDownload.isPlaying = false
+      zeroDownload.progress = 100
+      zeroDownload.totalDownloadedBytesNow = 0
+      zeroDownload.totalSizeToDownload = 0
+      zeroDownload.speed = '0 B/s'
+      zeroDownload.remainingTime = '0 min 0 sec'
+    }
+    return
   }
 
   downloadsStore.updateDownloadProgress(gameId, totalDownloaded, speed, totalSizeToDownload, sessionId)
@@ -392,10 +417,8 @@ const handleGameInstallationComplete: (event: any) => Promise<void> = async (eve
   lastProgressLogAtByGameId.delete(gameId)
   lastEnqueuedProgressEventAtByGameId.delete(gameId)
 
-  const payloadTotalSizeToDownload: number = toNumber(event.payload.totalSizeToDownload, 0)
+  const totalSizeToDownload: number = resolveTotalSizeToDownloadFromPayload(event.payload)
   const fallbackGameBinarySize: number = toNumber(event.payload.gameBinarySize, 0)
-  const totalSizeToDownload: number =
-    payloadTotalSizeToDownload > 0 ? payloadTotalSizeToDownload : fallbackGameBinarySize
   const rawTotalDownloaded: number = Math.max(toNumber(event.payload.totalDownloaded, totalSizeToDownload), 0)
   const totalDownloaded: number =
     totalSizeToDownload > 0 ? Math.min(rawTotalDownloaded, totalSizeToDownload) : rawTotalDownloaded

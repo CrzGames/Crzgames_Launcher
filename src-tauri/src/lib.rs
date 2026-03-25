@@ -631,7 +631,7 @@ async fn download_and_update_game(
     save_manifest(&file_location_download, &game_manifest)?;
 
     let download_targets: Vec<FileDetails> = if files_to_download.is_empty() {
-        game_manifest_remote.files.clone()
+        Vec::new()
     } else {
         let requested_names: HashSet<&str> = files_to_download
             .iter()
@@ -650,6 +650,13 @@ async fn download_and_update_game(
             targets_from_remote
         }
     };
+
+    if download_targets.is_empty() {
+        println!(
+            "[download_and_update_game] session={} no files to download (cleanup/update only)",
+            session_id
+        );
+    }
 
     let total_size_to_download: u64 = download_targets.iter().map(|file| file.size).sum();
     let files_count: usize = download_targets.len();
