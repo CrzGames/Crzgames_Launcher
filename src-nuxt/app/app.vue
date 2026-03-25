@@ -13,17 +13,24 @@
 </template>
 
 <script lang="ts" setup>
+import type { UnlistenFn } from '@tauri-apps/api/event'
+import { getCurrentWindow } from '@tauri-apps/api/window'
+import type { CloseRequestedEvent, Window as TauriWindow } from '@tauri-apps/api/window'
 import { enable, isEnabled } from '@tauri-apps/plugin-autostart'
 import { onBeforeUnmount, onMounted } from 'vue'
 
 import CrzSpinner from '#src-common/components/loaders/CrzSpinner.vue'
 
+import { useAuthStore } from '#src-nuxt/app/stores/auth.store'
 import { useWindowStore } from '#src-nuxt/app/stores/window.store'
 
 const unlistenTauriEvents: () => void = useNuxtApp().$unlistenTauriEvents
 
 /* STORES */
 const windowStore: any = useWindowStore()
+const authStore: ReturnType<typeof useAuthStore> = useAuthStore()
+let unlistenWindowCloseRequested: UnlistenFn | null = null
+let isClosingWindowInProgress: boolean = false
 
 /* HOOKS */
 /**
@@ -33,6 +40,7 @@ const windowStore: any = useWindowStore()
 onMounted(async (): Promise<void> => {
   await checkAndEnableAutostart()
   disabledContextMeuRightClick()
+  await registerCloseRequestedPauseHandler()
 })
 
 /**
@@ -45,6 +53,11 @@ onBeforeUnmount(() => {
    * Cela permet de ne pas avoir de fuites mémoires.
    */
   unlistenTauriEvents()
+
+  if (unlistenWindowCloseRequested) {
+    unlistenWindowCloseRequested()
+    unlistenWindowCloseRequested = null
+  }
 })
 
 /* METHODS */
@@ -82,6 +95,34 @@ const disabledContextMeuRightClick: () => void = (): void => {
     },
     { capture: true },
   )
+}
+
+/**
+ * Intercepte la fermeture de fenetre pour mettre les telechargements en pause.
+ * @returns {Promise<void>}
+ */
+const registerCloseRequestedPauseHandler: () => Promise<void> = async (): Promise<void> => {
+  try {
+    const appWindow: TauriWindow = getCurrentWindow()
+    unlistenWindowCloseRequested = await appWindow.onCloseRequested(
+      async (event: CloseRequestedEvent): Promise<void> => {
+        if (isClosingWindowInProgress) {
+          return
+        }
+
+        event.preventDefault()
+        isClosingWindowInProgress = true
+
+        try {
+          await authStore.pauseCurrentUserActiveDownloads()
+        } finally {
+          await appWindow.close()
+        }
+      },
+    )
+  } catch (error: any) {
+    console.error('registerCloseRequestedPauseHandler error:', error)
+  }
 }
 </script>
 

@@ -229,6 +229,18 @@ fn resume_download(game_id: u64) {
     pause.store(false, Ordering::Relaxed);
 }
 
+fn pause_all_running_downloads() {
+    let running_game_ids: Vec<u64> = {
+        let running_downloads = RUNNING_DOWNLOADS.lock().unwrap();
+        running_downloads.iter().copied().collect()
+    };
+
+    for game_id in running_game_ids {
+        let (_, pause) = get_or_create_download_state(game_id);
+        pause.store(true, Ordering::Relaxed);
+    }
+}
+
 fn remove_obsolete_files(
     game_directory: &Path,
     local_manifest: &mut GameManifestLocal,
@@ -1270,7 +1282,10 @@ pub fn run() {
                 .icon(Image::from_bytes(include_bytes!("../icons/icon.png"))?)
                 .menu(&menu)
                 .on_menu_event(|app, event| match event.id().as_ref() {
-                    "quit" => app.exit(0),
+                    "quit" => {
+                        pause_all_running_downloads();
+                        app.exit(0);
+                    }
                     "hide" => {
                         let window = app.get_webview_window("main").unwrap();
                         window.hide().unwrap();

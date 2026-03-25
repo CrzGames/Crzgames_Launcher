@@ -6,6 +6,10 @@ import AuthService from '#src-common/core/services/AuthService'
 import CookieService from '#src-common/core/services/CookieService'
 
 import { TauriService } from '#src-core/services/TauriService'
+import type { GameProgressDownload } from '#src-core/services/TauriService'
+
+import { useDownloadsStore } from '#src-nuxt/app/stores/downloads.store'
+import type { ActiveDownloadGame } from '#src-nuxt/app/stores/downloads.store'
 
 /* DATA */
 const user: string | undefined = CookieService.getCookie('user')
@@ -104,10 +108,47 @@ export const useAuthStore: any = defineStore('authStore', {
       }
     },
     /**
+     * Met en pause tous les telechargements actifs de l'utilisateur connecte.
+     * @returns {Promise<void>} - Promesse resolue
+     */
+    async pauseCurrentUserActiveDownloads(): Promise<void> {
+      const currentUser: UserModel | undefined = this.user
+      if (!currentUser) {
+        return
+      }
+
+      const downloadsStore: ReturnType<typeof useDownloadsStore> = useDownloadsStore()
+      await downloadsStore.loadActiveDownloadsPersisted(currentUser)
+
+      const gameIdsFromStore: number[] = downloadsStore.activeDownloads.map(
+        (download: ActiveDownloadGame): number => download.gameId,
+      )
+      const persistedDownloads: GameProgressDownload[] =
+        (await TauriService.getGameProgressDownloads(currentUser.id)) || []
+      const gameIdsFromPersisted: number[] = persistedDownloads.map(
+        (download: GameProgressDownload): number => download.gameId,
+      )
+
+      const allGameIds: number[] = [...new Set([...gameIdsFromStore, ...gameIdsFromPersisted])]
+      if (allGameIds.length === 0) {
+        return
+      }
+
+      await TauriService.pauseMultipleDownloads(allGameIds)
+
+      downloadsStore.activeDownloads.forEach((download: ActiveDownloadGame): void => {
+        if (allGameIds.includes(download.gameId)) {
+          download.isPlaying = false
+        }
+      })
+    },
+
+    /**
      * Sign out the user
      * @returns {void} - Nothing
      */
     async signOut(): Promise<void> {
+      await this.pauseCurrentUserActiveDownloads()
       this.setAuthToken(undefined)
       this.setUser(undefined)
       await TauriService.adjustWindowHomeToLogin(400, 585)

@@ -110,7 +110,10 @@ const props: Props = defineProps({
  * To leave the application
  * @returns {Promise<void>}
  */
-const toLeave: () => Promise<void> = async (): Promise<void> => await exit(0)
+const toLeave: () => Promise<void> = async (): Promise<void> => {
+  await authStore.pauseCurrentUserActiveDownloads()
+  await exit(0)
+}
 
 /**
  * Sign out

@@ -1092,6 +1092,17 @@ export class TauriService {
   }
 
   /**
+   * Met en pause plusieurs telechargements en meme temps.
+   * @param {number[]} gameIds - Identifiants de jeux a mettre en pause
+   * @returns {Promise<void>} - Promesse resolue
+   */
+  public static async pauseMultipleDownloads(gameIds: number[]): Promise<void> {
+    const uniqueGameIds: number[] = [...new Set(gameIds)].filter((gameId: number): boolean => Number.isFinite(gameId))
+
+    await Promise.allSettled(uniqueGameIds.map((gameId: number): Promise<void> => this.pauseDownloadGame(gameId)))
+  }
+
+  /**
    * Reprend le tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chargement du jeu
    * @param {number} gameId - L'ID du jeu
    * @returns {Promise<void>} - Promesse rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©solue
