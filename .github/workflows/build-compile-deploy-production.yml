@@ -460,7 +460,7 @@ jobs:
       - name: Move and flatten Windows files to dist directory
         run: |
           find windows-x86_64 -type f \( -name '*.msi' -o -name '*.exe' -o -name '*.msi.sig' -o -name '*.exe.sig' \) -exec mv {} dist/ \;
-          find windows-aarch64 -type f \( -name '*.msi' -o -name '*.exe' -o -name '*.msi.sig' -o -name '*.exe.sig' \) -exec mv {} dist/ \;
+          find windows-arm64 -type f \( -name '*.msi' -o -name '*.exe' -o -name '*.msi.sig' -o -name '*.exe.sig' \) -exec mv {} dist/ \;
 
       - name: Install AWS CLI for deploy on OVH S3
         run: |
