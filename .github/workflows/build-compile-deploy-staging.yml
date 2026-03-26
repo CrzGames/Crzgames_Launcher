@@ -28,11 +28,11 @@ env:
 
   # Variables d'environnement pour le déploiement sur OVH S3, utilisées pour l'étape de déploiement avec AWS CLI (sync)
   # Même si c'est écrit "AWS_", ce sont en réalité les identifiants d'accès pour le bucket OVH S3, car OVH S3 est compatible avec l'API AWS S3
-  AWS_ACCESS_KEY_ID: ${{ secrets.AETHERROYALE_S3_BUCKET_OVH_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AETHERROYALE_S3_BUCKET_OVH_SECRET_ACCESS_KEY }}
-  AWS_DEFAULT_REGION: ${{ secrets.AETHERROYALE_S3_BUCKET_OVH_REGION }}
-  OVH_S3_ENDPOINT: ${{ secrets.AETHERROYALE_S3_BUCKET_OVH_ENDPOINT }}
-  OVH_S3_BUCKET: ${{ secrets.AETHERROYALE_S3_BUCKET_OVH_NAME }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.CRZGAMES_STAGING_S3_BUCKET_OVH_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.CRZGAMES_STAGING_S3_BUCKET_OVH_SECRET_ACCESS_KEY }}
+  AWS_DEFAULT_REGION: ${{ secrets.CRZGAMES_STAGING_S3_BUCKET_OVH_REGION }}
+  OVH_S3_ENDPOINT: ${{ secrets.CRZGAMES_STAGING_S3_BUCKET_OVH_ENDPOINT }}
+  OVH_S3_BUCKET: ${{ secrets.CRZGAMES_STAGING_S3_BUCKET_OVH_NAME }}
 
 jobs:
   build_app:
