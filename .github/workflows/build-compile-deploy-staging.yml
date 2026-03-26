@@ -465,7 +465,7 @@ jobs:
       - name: Deploy binaries Launcher for all platforms to bucket S3 (OVH)
         run: |
           aws --endpoint-url "$OVH_S3_ENDPOINT" s3 sync \
-            "dist/" "s3://$OVH_S3_BUCKET/launcher/" \
+            "dist/" "s3://$OVH_S3_BUCKET/launcher/download/" \
             --delete \
             --exclude "*" \
             --include "*.deb" \
@@ -484,4 +484,4 @@ jobs:
         run: |
           aws --endpoint-url "$OVH_S3_ENDPOINT" s3 cp \
             "dist-updater/updater-launcher.json" \
-            "s3://$OVH_S3_BUCKET/launcher/updater-launcher.json"
+            "s3://$OVH_S3_BUCKET/launcher/updater/updater-launcher.json"
