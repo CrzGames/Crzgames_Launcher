@@ -38,3 +38,4 @@ dist
 
 # Tests Reports
 tests/unit/test-reports
+src-tauri/**
