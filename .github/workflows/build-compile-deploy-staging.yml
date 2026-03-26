@@ -372,7 +372,7 @@ jobs:
           echo "WINDOWS_X86_64_SIGNATURE=$(cat windows-x86_64/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi.sig)" >> $GITHUB_ENV
           echo "WINDOWS_AARCH64_SIGNATURE=$(cat windows-arm64/src-tauri/target/aarch64-pc-windows-msvc/release/bundle/msi/*.msi.sig)" >> $GITHUB_ENV
 
-      - name: Modify the updater-launcher.json file for the signature and version
+      - name: Modify the updater-launcher.json file for the signature
         run: |
           jq --arg sig "$DARWIN_AARCH64_SIGNATURE" '.platforms["darwin-aarch64"].signature = $sig' src-tauri/updater-launcher.json > src-tauri/updater-launcher.tmp.json
           mv src-tauri/updater-launcher.tmp.json src-tauri/updater-launcher.json
