@@ -45,6 +45,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Install Node.js version LTS and setup cache - All platforms
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies for project - All platforms
+        run: npm install
+
+      - name: Run lint typescript and eslint - All platforms
+        run: npm run lint:ts && npm run lint:eslint
+
       - name: Install dependencies for Tauri - Linux (x64/arm64)
         if: matrix.platform == 'ubuntu-22.04' || matrix.platform == 'ubuntu-22.04-arm'
         run: >-
@@ -73,15 +85,6 @@ jobs:
         uses: swatinem/rust-cache@v2
         with:
           workspaces: './src-tauri -> target'
-
-      - name: Install Node.js version LTS and setup cache - All platforms
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies for project - All platforms
-        run: npm install
 
       - name: Modify identifier and endpoint updater in tauri.conf.json for staging - All platforms
         run: |
