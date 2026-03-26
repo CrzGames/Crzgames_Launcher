@@ -365,12 +365,36 @@ jobs:
         run: mkdir dist && mkdir dist-updater
 
       - name: Extract signatures and set environment variables
+        shell: bash
         run: |
-          echo "DARWIN_AARCH64_SIGNATURE=$(cat macos/src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app.tar.gz.sig)" >> $GITHUB_ENV
-          echo "LINUX_X86_64_SIGNATURE=$(cat linux-x86_64/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage.sig)" >> $GITHUB_ENV
-          echo "LINUX_AARCH64_SIGNATURE=$(cat linux-arm64/src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/appimage/*.AppImage.sig)" >> $GITHUB_ENV
-          echo "WINDOWS_X86_64_SIGNATURE=$(cat windows-x86_64/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi.sig)" >> $GITHUB_ENV
-          echo "WINDOWS_AARCH64_SIGNATURE=$(cat windows-arm64/src-tauri/target/aarch64-pc-windows-msvc/release/bundle/msi/*.msi.sig)" >> $GITHUB_ENV
+          set -euo pipefail
+
+          {
+            echo 'DARWIN_AARCH64_SIGNATURE<<EOF'
+            cat "$(find macos -type f -name '*.app.tar.gz.sig' | head -n 1)"
+            echo
+            echo 'EOF'
+
+            echo 'LINUX_X86_64_SIGNATURE<<EOF'
+            cat "$(find linux-x86_64 -type f -name '*.AppImage.sig' | head -n 1)"
+            echo
+            echo 'EOF'
+
+            echo 'LINUX_AARCH64_SIGNATURE<<EOF'
+            cat "$(find linux-arm64 -type f -name '*.AppImage.sig' | head -n 1)"
+            echo
+            echo 'EOF'
+
+            echo 'WINDOWS_X86_64_SIGNATURE<<EOF'
+            cat "$(find windows-x86_64 -type f -name '*.msi.sig' | head -n 1)"
+            echo
+            echo 'EOF'
+
+            echo 'WINDOWS_AARCH64_SIGNATURE<<EOF'
+            cat "$(find windows-arm64 -type f -name '*.msi.sig' | head -n 1)"
+            echo
+            echo 'EOF'
+          } >> "$GITHUB_ENV"
 
       - name: Modify the updater-launcher.json file for the signature
         run: |
@@ -408,6 +432,7 @@ jobs:
           find macos -type f \( -name '*.dmg' -o -name '*.app.tar.gz' -o -name '*.app.tar.gz.sig' \) -exec mv {} dist/ \;
 
       - name: Move macOS .app folders to dist directory
+        # Bundle .app a revoir, puisque via le step S3 cela envoie pas le bundle actuellement
         run: |
           # Définir le chemin de base où se trouvent les dossiers .app
           base_path="macos/target"
