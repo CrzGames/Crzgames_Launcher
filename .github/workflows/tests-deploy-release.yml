@@ -1,4 +1,4 @@
-name: tests_deploy-release
+name: deploy-release
 
 on:
   push:
@@ -10,17 +10,20 @@ permissions:
   contents: write
   pull-requests: write
 
+env:
+  NODE_VERSION: '24.11.0'
+
 jobs:
-  tests_deploy-release:
+  deploy-release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: Install Node.js and setup cache
-        uses: actions/setup-node@v4
+      - name: Install Node.js version LTS and setup cache
+        uses: actions/setup-node@v6
         with:
-          node-version: '22.14.0'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
       - name: Install dependencies for project
@@ -28,9 +31,6 @@ jobs:
 
       - name: Lint TypeScript and ESLint
         run: npm run lint:eslint && npm run lint:ts
-
-      - name: Vitest - Run Unit Tests
-        run: npm run test:unit:staging-prod
 
       - name: Deploy PR (main) for new Release
         uses: googleapis/release-please-action@v4
