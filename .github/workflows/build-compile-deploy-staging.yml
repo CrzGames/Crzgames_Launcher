@@ -207,16 +207,22 @@ jobs:
           --team-id "${{ env.APPLE_TEAM_ID }}" \
           --password "${{ env.APPLE_APPLICATION_SPECIFIC_PASSWORD }}"
 
-      - name: Create zip for notarization - macOS (arm64)
+      - name: Create zip for notarization .dmg and .app - macOS (arm64)
         if: matrix.platform == 'macos-26'
         run: |
           mkdir -p notarization
-          zip -r notarization/CrzGamesSetup_arm64.zip src-tauri/target/aarch64-apple-darwin/release/bundle/macos/CrzGamesSetup_arm64.app
+          zip -r notarization/CrzGamesSetup_arm64.app.zip src-tauri/target/aarch64-apple-darwin/release/bundle/macos/CrzGamesSetup_arm64.app
+          zip -r notarization/CrzGamesSetup_arm64.dmg.zip src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/CrzGamesSetup_arm64.dmg
 
-      - name: Submit app for notarization + print log if invalid - macOS (arm64)
+      - name: Submit .dmg and .app for notarization + print log if invalid or valid - macOS (arm64)
         if: matrix.platform == 'macos-26'
         run: |
-          xcrun notarytool submit notarization/CrzGamesSetup_arm64.zip \
+          xcrun notarytool submit notarization/CrzGamesSetup_arm64.app.zip \
+          --keychain-profile login \
+          --wait \
+          --verbose || (xcrun notarytool log --keychain-profile login --id $(xcrun notarytool history --keychain-profile login --format json | jq -r '.[0].id') && exit 1)
+
+          xcrun notarytool submit notarization/CrzGamesSetup_arm64.dmg.zip \
           --keychain-profile login \
           --wait \
           --verbose || (xcrun notarytool log --keychain-profile login --id $(xcrun notarytool history --keychain-profile login --format json | jq -r '.[0].id') && exit 1)
