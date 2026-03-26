@@ -400,7 +400,8 @@ jobs:
 
       - name: Move and flatten Linux files to dist directory
         run: |
-          find linux -type f \( -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' -o -name '*.AppImage.sig' \) -exec mv {} dist/ \;
+          find linux-x86_64 -type f \( -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' -o -name '*.AppImage.sig' \) -exec mv {} dist/ \;
+          find linux-arm64 -type f \( -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' -o -name '*.AppImage.sig' \) -exec mv {} dist/ \;
 
       - name: Move and flatten macOS files to dist directory
         run: |
@@ -428,7 +429,8 @@ jobs:
 
       - name: Move and flatten Windows files to dist directory
         run: |
-          find windows -type f \( -name '*.msi' -o -name '*.exe' -o -name '*.msi.sig' -o -name '*.exe.sig' \) -exec mv {} dist/ \;
+          find windows-x86_64 -type f \( -name '*.msi' -o -name '*.exe' -o -name '*.msi.sig' -o -name '*.exe.sig' \) -exec mv {} dist/ \;
+          find windows-aarch64 -type f \( -name '*.msi' -o -name '*.exe' -o -name '*.msi.sig' -o -name '*.exe.sig' \) -exec mv {} dist/ \;
 
       - name: Install AWS CLI for deploy on OVH S3
         run: |
