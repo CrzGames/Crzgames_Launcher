@@ -35,7 +35,7 @@ env:
   OVH_S3_BUCKET: ${{ secrets.AETHERROYALE_S3_BUCKET_OVH_NAME }}
 
 jobs:
-  build_compile_app:
+  build_app:
     strategy:
       fail-fast: true
       matrix:
@@ -348,8 +348,8 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-  deploy_release-updater_website:
-    needs: [build_compile_app]
+  deploy_binaries_and_updater_in_s3:
+    needs: [build_app]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
