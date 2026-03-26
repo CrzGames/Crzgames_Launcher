@@ -160,7 +160,7 @@ npm run desktop:install:target:macos
 rustup default
 
 # Pour changer la chaine d'outils par défault utilisé, exemples :
-rustup default stable-aarch64-unknown-linux-gnu # macOS Apple Silicon arm64
+rustup default stable-aarch64-apple-darwin # macOS Apple Silicon arm64
 ```
 
 <br />
