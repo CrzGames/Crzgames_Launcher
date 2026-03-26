@@ -171,21 +171,29 @@ const signIn: () => Promise<void> = async (): Promise<void> => {
    * Sinon, on affiche un message d'erreur à l'utilisateur par rapport à l'erreur rencontrée.
    */
   let isConnected: AuthModel | null = null
+  let shouldResetCredentials: boolean = true
   try {
     isConnected = await useAuthStore().signIn(credentials.value)
   } catch (error: any) {
     // Récupération du code HTTP et du message d'erreur
-    const statusCode: any = error.response?.status
-    const errorMessage: any = error.response?.data
+    const statusCode: number = Number(error.response?.status)
+    const errorData: unknown = error.response?.data
+    const errorMessage: string =
+      typeof errorData === 'string'
+        ? errorData
+        : errorData && typeof errorData === 'object' && 'message' in errorData
+          ? String(errorData.message || '')
+          : ''
 
     // Cas où le compte n'est pas activé
-    if (errorMessage && typeof errorMessage === 'string' && errorMessage === 'Account is not active') {
+    if (errorMessage === 'Account is not active') {
       showModal.value = true
+      shouldResetCredentials = false
       return
     }
 
     // Cas où les identifiants sont incorrects (400+)
-    if (statusCode >= 400 || statusCode < 500) {
+    if (statusCode >= 400 && statusCode < 500) {
       $notyf.error({
         message: `
           <div style="font-size: 14px; line-height: 1.4; max-width: 280px;">
@@ -231,7 +239,9 @@ const signIn: () => Promise<void> = async (): Promise<void> => {
       await goToPageHome()
     } else {
       // Si l'utilisateur n'a pas réussi à se connecter, on vide les champs du formulaire
-      credentials.value = { email: '', password: '' }
+      if (shouldResetCredentials) {
+        credentials.value = { email: '', password: '' }
+      }
 
       /**
        * On réactive le bouton de connexion pour permettre à l'utilisateur
