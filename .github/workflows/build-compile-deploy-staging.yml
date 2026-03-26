@@ -197,7 +197,7 @@ jobs:
           mv src-tauri\target\x86_64-pc-windows-msvc\release\bundle\msi\*.msi src-tauri\target\x86_64-pc-windows-msvc\release\bundle\msi\CrzGamesSetup_x64.msi
           mv src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\*.exe src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\CrzGamesSetup_x64.exe
           mv src-tauri\target\x86_64-pc-windows-msvc\release\bundle\msi\*.msi.sig src-tauri\target\x86_64-pc-windows-msvc\release\bundle\msi\CrzGamesSetup_x64.msi.sig
-          mv src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\*.nsis.sig src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\CrzGamesSetup_x64.nsis.sig
+          mv src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\*.nsis.sig src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\CrzGamesSetup_x64.exe.sig
 
       - name: Rename file - Windows (arm64)
         if: matrix.platform == 'windows-11-arm'
@@ -205,7 +205,7 @@ jobs:
           mv src-tauri\target\aarch64-pc-windows-msvc\release\bundle\msi\*.msi src-tauri\target\aarch64-pc-windows-msvc\release\bundle\msi\CrzGamesSetup_arm64.msi
           mv src-tauri\target\aarch64-pc-windows-msvc\release\bundle\nsis\*.exe src-tauri\target\aarch64-pc-windows-msvc\release\bundle\nsis\CrzGamesSetup_arm64.exe
           mv src-tauri\target\aarch64-pc-windows-msvc\release\bundle\msi\*.msi.sig src-tauri\target\aarch64-pc-windows-msvc\release\bundle\msi\CrzGamesSetup_arm64.msi.sig
-          mv src-tauri\target\aarch64-pc-windows-msvc\release\bundle\nsis\*.nsis.sig src-tauri\target\aarch64-pc-windows-msvc\release\bundle\nsis\CrzGamesSetup_arm64.nsis.sig
+          mv src-tauri\target\aarch64-pc-windows-msvc\release\bundle\nsis\*.nsis.sig src-tauri\target\aarch64-pc-windows-msvc\release\bundle\nsis\CrzGamesSetup_arm64.exe.sig
 
       - name: Rename file - Linux (x64)
         if: matrix.platform == 'ubuntu-22.04'
