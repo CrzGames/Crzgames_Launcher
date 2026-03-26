@@ -54,7 +54,7 @@ jobs:
       - name: Install dependencies for project - All platforms
         run: npm install
 
-      - name: Run lint typescript and eslint - All platforms
+      - name: Lint TypeScript and ESLint - All platforms
         run: npm run lint:ts && npm run lint:eslint
 
       - name: Install dependencies for Tauri - Linux (x64/arm64)
