@@ -437,22 +437,23 @@ jobs:
           python -m pip install --upgrade pip
           pip install awscli
 
-      - name: Deploy binaries Launcher for all platforms to bucket S3 (OVH)
-        run: |
-          aws --endpoint-url "$OVH_S3_ENDPOINT" s3 sync \
-            "dist/" "s3://$OVH_S3_BUCKET/launcher/" \
-            --exclude "*" \
-            --include "*.deb" \
-            --include "*.rpm" \
-            --include "*.AppImage" \
-            --include "*.AppImage.sig" \
-            --include "*.dmg" \
-            --include "*.app.tar.gz" \
-            --include "*.app.tar.gz.sig" \
-            --include "*.msi" \
-            --include "*.exe" \
-            --include "*.msi.sig" \
-            --include "*.exe.sig"
+- name: Deploy binaries Launcher for all platforms to bucket S3 (OVH)
+  run: |
+    aws --endpoint-url "$OVH_S3_ENDPOINT" s3 sync \
+      "dist/" "s3://$OVH_S3_BUCKET/launcher/" \
+      --delete \
+      --exclude "*" \
+      --include "*.deb" \
+      --include "*.rpm" \
+      --include "*.AppImage" \
+      --include "*.AppImage.sig" \
+      --include "*.dmg" \
+      --include "*.app.tar.gz" \
+      --include "*.app.tar.gz.sig" \
+      --include "*.msi" \
+      --include "*.exe" \
+      --include "*.msi.sig" \
+      --include "*.exe.sig"
 
       - name: Deploy manifest 'updater-launcher.json' to bucket S3 (OVH)
         run: |

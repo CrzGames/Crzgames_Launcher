@@ -471,6 +471,7 @@ jobs:
         run: |
           aws --endpoint-url "$OVH_S3_ENDPOINT" s3 sync \
             "dist/" "s3://$OVH_S3_BUCKET/launcher/" \
+            --delete \
             --exclude "*" \
             --include "*.deb" \
             --include "*.rpm" \
