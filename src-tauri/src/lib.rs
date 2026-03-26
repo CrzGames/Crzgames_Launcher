@@ -324,6 +324,7 @@ async fn fetch_presigned_download_url(
     presign_api_url: &str,
     bucket_name: &str,
     path_filename: &str,
+    auth_token: Option<&str>,
 ) -> Result<String, String> {
     let request_url = reqwest::Url::parse_with_params(
         presign_api_url,
@@ -334,8 +335,14 @@ async fn fetch_presigned_download_url(
     )
     .map_err(|e| format!("Failed to build presign URL: {}", e))?;
 
-    let response = client
-        .get(request_url)
+    let mut request_builder = client.get(request_url);
+    if let Some(token) = auth_token {
+        if !token.trim().is_empty() {
+            request_builder = request_builder.bearer_auth(token);
+        }
+    }
+
+    let response = request_builder
         .send()
         .await
         .map_err(|e| format!("Failed to fetch presigned URL: {}", e))?;
@@ -372,6 +379,7 @@ async fn download_single_file_with_resume(
     presign_api_url: String,
     bucket_name: String,
     full_path: String,
+    auth_token: Option<String>,
     file: FileDetails,
     game_directory: PathBuf,
     cancel_flag: Arc<AtomicBool>,
@@ -444,6 +452,7 @@ async fn download_single_file_with_resume(
             &presign_api_url,
             &bucket_name,
             &full_path,
+            auth_token.as_deref(),
         )
         .await?;
 
@@ -582,6 +591,7 @@ async fn download_and_update_game(
     _os: String,
     os_architecture: String,
     api_url: String,
+    auth_token: String,
     file_location_download: String,
     files_to_download: Vec<FileDetails>,
     desktop_shortcut: bool,
@@ -780,6 +790,7 @@ async fn download_and_update_game(
             let client_clone = client.clone();
             let presign_api_url = api_url.clone();
             let bucket_name_clone = bucket_name.clone();
+            let auth_token_clone = auth_token.clone();
             let game_directory_clone = game_directory.clone();
             let cancel_flag_clone = cancel_flag.clone();
             let pause_flag_clone = pause_flag.clone();
@@ -792,6 +803,7 @@ async fn download_and_update_game(
                     presign_api_url,
                     bucket_name_clone,
                     full_path,
+                    Some(auth_token_clone),
                     file,
                     game_directory_clone,
                     cancel_flag_clone,

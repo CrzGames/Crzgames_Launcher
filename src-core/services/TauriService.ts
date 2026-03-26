@@ -15,6 +15,7 @@ import { CloudStorageS3Service } from '#src-common/core/services/CloudStorageS3S
 
 import { createLogger } from '#src-core/utils/logger'
 import type { Logger } from '#src-core/utils/logger'
+import CookieService from '#src-common/core/services/CookieService'
 
 const logger: Logger = createLogger('TauriService')
 
@@ -329,9 +330,15 @@ export class TauriService {
       const shouldNavigateToDownloadManager: boolean = options?.navigateToDownloadManager ?? true
       const userSystemOSInfo: SystemOSInfo | undefined = options?.systemOSInfo ?? (await this.getSystemOSCurrent())
       const apiURL: string = import.meta.env.VITE_API_BASE_URL_S3_DOWNLOAD as string
+      const authToken: string | undefined = CookieService.getCookie('authToken')
 
       if (!userSystemOSInfo) {
         console.error('Failed to resolve OS info for download_and_update_game')
+        return
+      }
+
+      if (!authToken) {
+        console.error('Missing auth token for download_and_update_game')
         return
       }
 
@@ -345,6 +352,7 @@ export class TauriService {
         os: userSystemOSInfo.os,
         osArchitecture: userSystemOSInfo.architecture,
         apiUrl: apiURL,
+        authToken,
         fileLocationDownload,
         filesToDownload,
         desktopShortcut,
