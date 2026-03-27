@@ -90,6 +90,7 @@ jobs:
         run: |
           npx json -I -f src-tauri/tauri.conf.json -e "this.identifier = 'com.crzgames.launcher.staging'"
           npx json -I -f src-tauri/tauri.conf.json -e "this.plugins.updater.endpoints = ['https://staging.api.crzgames.com/launcher/updater-manifest/{{target}}/{{arch}}/{{current_version}}']"
+          npx json -I -f src-tauri/tauri.conf.json -e "this.productName = 'CrzGames Launcher Staging'"
           cat src-tauri/tauri.conf.json
 
       - name: Rust Install target compilation - Windows (x64/arm64)
