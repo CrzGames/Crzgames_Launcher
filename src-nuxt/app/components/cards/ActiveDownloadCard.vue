@@ -44,6 +44,10 @@
           <p class="font-serif text-sm font-medium text-zinc-400">Issue:</p>
           <p class="font-medium text-red-400 text-right">{{ errorLabel }}</p>
         </div>
+        <div v-if="props.gameVersion" class="flex justify-between">
+          <p class="font-serif text-sm font-medium text-zinc-400">Version:</p>
+          <p class="font-medium">{{ props.gameVersion }}</p>
+        </div>
         <div class="flex justify-between">
           <p class="font-serif text-sm font-medium text-zinc-400">Downloaded:</p>
           <p class="font-medium">{{ props.downloaded }} / {{ props.total }}</p>
@@ -93,6 +97,7 @@ type Props = {
   total: string
   speed: string
   remainingTime: string
+  gameVersion: string
   hasError: boolean
   errorMessage: string
   gameId: number
@@ -141,6 +146,11 @@ const props: Props = defineProps({
   remainingTime: {
     type: String,
     required: true,
+  },
+  gameVersion: {
+    type: String,
+    required: false,
+    default: '',
   },
   hasError: {
     type: Boolean,

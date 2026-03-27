@@ -100,6 +100,7 @@ export const useDownloadsStore = defineStore('downloads', {
             pathInstallLocation: gameProgressDownload.pathInstallLocation,
             gameId: gameManifestLocal.gameId,
             gameTitle: gameManifestLocal.gameTitle,
+            gameVersion: gameProgressDownload.gameVersion || gameManifestLocal.version,
             gamePictureUrl: game.pictureFile.url,
             isPlaying: false,
             progress: totalSizeToDownload > 0 ? Math.round((clampedDownloadedBytesNow / totalSizeToDownload) * 100) : 0,
@@ -399,6 +400,7 @@ export type ActiveDownloadGame = {
   pathInstallLocation: string
   gameId: number
   gameTitle: string
+  gameVersion?: string
   gamePictureUrl: string
   isPlaying: boolean
   progress: number

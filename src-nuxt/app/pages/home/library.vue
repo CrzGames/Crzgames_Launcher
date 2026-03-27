@@ -47,7 +47,7 @@
 
       <div class="grid grid-cols-auto-fit gap-8" style="grid-template-columns: repeat(auto-fit, minmax(180px, 220px))">
         <template v-for="game in gameActiveDownload" :key="game.id">
-          <div class="relative">
+          <div class="grid gap-1">
             <!-- Carte du jeu -->
             <CrzGameCard
               :pictureFileUrl="game.pictureFile?.url"
@@ -64,6 +64,9 @@
               :newGame="game.new_game"
               :showButtonDownloadProgress="true"
             />
+            <p v-if="getLibraryVersionLabel(game.id, 'active-download')" class="text-xs font-medium text-zinc-400">
+              {{ getLibraryVersionLabel(game.id, 'active-download') }}
+            </p>
           </div>
         </template>
       </div>
@@ -80,28 +83,33 @@
       </h4>
       <div class="grid grid-cols-auto-fit gap-8" style="grid-template-columns: repeat(auto-fit, minmax(180px, 220px))">
         <template v-for="game in gameNeedsUpdate" :key="game.id">
-          <CrzGameCard
-            :pictureFileUrl="game.pictureFile?.url"
-            :trailerFileUrl="game.trailerFile?.url"
-            :logoFileUrl="game.logoFile?.url"
-            :gameCategory="game.gameCategory"
-            :gamePlatform="game.gamePlatform"
-            :title="game.title"
-            :showPlatforms="false"
-            :showVideo="false"
-            :showSubTitle="false"
-            :smallText="true"
-            :upcomingGame="game.upcoming_game"
-            :newGame="game.new_game"
-            :showUpdateIndicator="true"
-            :showFixGameInstalledInLibraryButton="true"
-            :showDownloadButton="true"
-            :showEllipsisButton="true"
-            @fixGameInstalledInLibrary="openFixGameInstalledModal(game)"
-            @createDesktopShortcut="createShortcutOnDesktop(game)"
-            @uninstallGame="UninstallGame(game)"
-            @download="openDownloadModal(game, false, false)"
-          />
+          <div class="grid gap-1">
+            <CrzGameCard
+              :pictureFileUrl="game.pictureFile?.url"
+              :trailerFileUrl="game.trailerFile?.url"
+              :logoFileUrl="game.logoFile?.url"
+              :gameCategory="game.gameCategory"
+              :gamePlatform="game.gamePlatform"
+              :title="game.title"
+              :showPlatforms="false"
+              :showVideo="false"
+              :showSubTitle="false"
+              :smallText="true"
+              :upcomingGame="game.upcoming_game"
+              :newGame="game.new_game"
+              :showUpdateIndicator="true"
+              :showFixGameInstalledInLibraryButton="true"
+              :showDownloadButton="true"
+              :showEllipsisButton="true"
+              @fixGameInstalledInLibrary="openFixGameInstalledModal(game)"
+              @createDesktopShortcut="createShortcutOnDesktop(game)"
+              @uninstallGame="UninstallGame(game)"
+              @download="openDownloadModal(game, false, false)"
+            />
+            <p v-if="getLibraryVersionLabel(game.id, 'needs-update')" class="text-xs font-medium text-zinc-400">
+              {{ getLibraryVersionLabel(game.id, 'needs-update') }}
+            </p>
+          </div>
         </template>
       </div>
     </div>
@@ -117,27 +125,32 @@
       </h4>
       <div class="grid grid-cols-auto-fit gap-8" style="grid-template-columns: repeat(auto-fit, minmax(180px, 220px))">
         <template v-for="game in gameInstalled" :key="game.id">
-          <CrzGameCard
-            :pictureFileUrl="game.pictureFile?.url"
-            :trailerFileUrl="game.trailerFile?.url"
-            :logoFileUrl="game.logoFile?.url"
-            :gameCategory="game.gameCategory"
-            :gamePlatform="game.gamePlatform"
-            :title="game.title"
-            :showPlatforms="false"
-            :showVideo="false"
-            :showSubTitle="false"
-            :smallText="true"
-            :showPlayButton="true"
-            :upcomingGame="game.upcoming_game"
-            :newGame="game.new_game"
-            :showFixGameInstalledInLibraryButton="true"
-            :showEllipsisButton="true"
-            @play="onPlayGame(game)"
-            @fixGameInstalledInLibrary="openFixGameInstalledModal(game)"
-            @createDesktopShortcut="createShortcutOnDesktop(game)"
-            @uninstallGame="UninstallGame(game)"
-          />
+          <div class="grid gap-1">
+            <CrzGameCard
+              :pictureFileUrl="game.pictureFile?.url"
+              :trailerFileUrl="game.trailerFile?.url"
+              :logoFileUrl="game.logoFile?.url"
+              :gameCategory="game.gameCategory"
+              :gamePlatform="game.gamePlatform"
+              :title="game.title"
+              :showPlatforms="false"
+              :showVideo="false"
+              :showSubTitle="false"
+              :smallText="true"
+              :showPlayButton="true"
+              :upcomingGame="game.upcoming_game"
+              :newGame="game.new_game"
+              :showFixGameInstalledInLibraryButton="true"
+              :showEllipsisButton="true"
+              @play="onPlayGame(game)"
+              @fixGameInstalledInLibrary="openFixGameInstalledModal(game)"
+              @createDesktopShortcut="createShortcutOnDesktop(game)"
+              @uninstallGame="UninstallGame(game)"
+            />
+            <p v-if="getLibraryVersionLabel(game.id, 'installed')" class="text-xs font-medium text-zinc-400">
+              {{ getLibraryVersionLabel(game.id, 'installed') }}
+            </p>
+          </div>
         </template>
       </div>
     </div>
@@ -153,22 +166,27 @@
       </h4>
       <div class="grid grid-cols-auto-fit gap-8" style="grid-template-columns: repeat(auto-fit, minmax(180px, 220px))">
         <template v-for="game in gameNotInstalledVisible" :key="game.id">
-          <CrzGameCard
-            :pictureFileUrl="game.pictureFile?.url"
-            :trailerFileUrl="game.trailerFile?.url"
-            :logoFileUrl="game.logoFile?.url"
-            :gameCategory="game.gameCategory"
-            :gamePlatform="game.gamePlatform"
-            :title="game.title"
-            :showPlatforms="false"
-            :showVideo="false"
-            :showSubTitle="false"
-            :smallText="true"
-            :showDownloadButton="true"
-            :showFixGameInstalledInLibraryButton="true"
-            @download="openDownloadModal(game, true, true)"
-            @fixGameInstalledInLibrary="openFixGameInstalledModal(game)"
-          />
+          <div class="grid gap-1">
+            <CrzGameCard
+              :pictureFileUrl="game.pictureFile?.url"
+              :trailerFileUrl="game.trailerFile?.url"
+              :logoFileUrl="game.logoFile?.url"
+              :gameCategory="game.gameCategory"
+              :gamePlatform="game.gamePlatform"
+              :title="game.title"
+              :showPlatforms="false"
+              :showVideo="false"
+              :showSubTitle="false"
+              :smallText="true"
+              :showDownloadButton="true"
+              :showFixGameInstalledInLibraryButton="true"
+              @download="openDownloadModal(game, true, true)"
+              @fixGameInstalledInLibrary="openFixGameInstalledModal(game)"
+            />
+            <p v-if="getLibraryVersionLabel(game.id, 'not-installed')" class="text-xs font-medium text-zinc-400">
+              {{ getLibraryVersionLabel(game.id, 'not-installed') }}
+            </p>
+          </div>
         </template>
       </div>
     </div>
@@ -382,6 +400,7 @@ const gameInstalled: Ref<GameModel[]> = ref([])
 const gameNotInstalled: Ref<GameModel[]> = ref([])
 const gameNeedsUpdate: Ref<GameModel[]> = ref([])
 const gameActiveDownload: Ref<GameModel[]> = ref([])
+const latestAvailableVersionByGameId: Ref<Record<number, string>> = ref({})
 const pendingActiveDownloadGameIds: Set<number> = new Set()
 const gameNotInstalledVisible: ComputedRef<GameModel[]> = computed((): GameModel[] => {
   const activeDownloadGameIds: Set<number> = new Set(
@@ -425,6 +444,144 @@ const showButtonChangePath: Ref<boolean> = ref(true)
  */
 const normalizeGameTitle: (value?: string) => string = (value?: string): string =>
   (value || '').trim().toLowerCase()
+
+/**
+ * Normalise une version de jeu pour l'affichage.
+ * @param {string | undefined} version - Version brute.
+ * @returns {string | undefined} - Version nettoyee.
+ */
+const normalizeGameVersion: (version?: string) => string | undefined = (version?: string): string | undefined => {
+  const normalizedVersion: string = String(version || '').trim()
+  return normalizedVersion.length > 0 ? normalizedVersion : undefined
+}
+
+/**
+ * Retourne le telechargement actif associe a un jeu.
+ * @param {number} gameId - Id du jeu.
+ * @returns {ActiveDownloadGame | undefined} - Telechargement actif si present.
+ */
+const findActiveDownloadByGameId: (gameId: number) => ActiveDownloadGame | undefined = (
+  gameId: number,
+): ActiveDownloadGame | undefined => {
+  return downloadsStore.activeDownloads.find(
+    (activeDownload: ActiveDownloadGame): boolean => activeDownload.gameId === gameId,
+  )
+}
+
+/**
+ * Retourne la version actuellement telechargee.
+ * @param {number} gameId - Id du jeu.
+ * @returns {string | undefined} - Version en cours de telechargement.
+ */
+const getActiveDownloadVersionByGameId: (gameId: number) => string | undefined = (
+  gameId: number,
+): string | undefined => normalizeGameVersion(findActiveDownloadByGameId(gameId)?.gameVersion)
+
+/**
+ * Retourne la version installee localement pour un jeu.
+ * @param {number} gameId - Id du jeu.
+ * @returns {string | undefined} - Version installee.
+ */
+const getInstalledVersionByGameId: (gameId: number) => string | undefined = (gameId: number): string | undefined => {
+  const installedEntry: GameInstalled | undefined =
+    findInstalledEntryByCanonicalGameId(gamesInstalled.value, gameId) ||
+    findInstalledEntryByCanonicalGameId(gamesNeedsUpdate.value, gameId)
+
+  return normalizeGameVersion(installedEntry?.gameManifest.version)
+}
+
+/**
+ * Met en cache la derniere version disponible pour un jeu.
+ * @param {number} gameId - Id du jeu.
+ * @param {string | undefined} latestVersion - Derniere version recuperee.
+ * @returns {void}
+ */
+const cacheLatestAvailableVersion: (gameId: number, latestVersion?: string) => void = (
+  gameId: number,
+  latestVersion?: string,
+): void => {
+  const normalizedVersion: string | undefined = normalizeGameVersion(latestVersion)
+  if (!normalizedVersion) {
+    return
+  }
+
+  latestAvailableVersionByGameId.value = {
+    ...latestAvailableVersionByGameId.value,
+    [gameId]: normalizedVersion,
+  }
+}
+
+/**
+ * Retourne la version disponible cote backend, si deja connue localement.
+ * @param {number} gameId - Id du jeu.
+ * @returns {string | undefined} - Derniere version disponible.
+ */
+const getLatestAvailableVersionByGameId: (gameId: number) => string | undefined = (
+  gameId: number,
+): string | undefined => normalizeGameVersion(latestAvailableVersionByGameId.value[gameId])
+
+type LibraryVersionContext = 'active-download' | 'needs-update' | 'installed' | 'not-installed'
+
+/**
+ * Construit le label de version affiche sur une card de My Library.
+ * @param {number} gameId - Id du jeu.
+ * @param {LibraryVersionContext} context - Contexte d'affichage.
+ * @returns {string | undefined} - Label pret a afficher.
+ */
+const getLibraryVersionLabel: (gameId: number, context: LibraryVersionContext) => string | undefined = (
+  gameId: number,
+  context: LibraryVersionContext,
+): string | undefined => {
+  const downloadingVersion: string | undefined = getActiveDownloadVersionByGameId(gameId)
+  const installedVersion: string | undefined = getInstalledVersionByGameId(gameId)
+  const latestVersion: string | undefined = getLatestAvailableVersionByGameId(gameId)
+
+  if (context === 'active-download') {
+    if (downloadingVersion) {
+      return `Downloading: ${downloadingVersion}`
+    }
+
+    if (latestVersion) {
+      return `Downloading: ${latestVersion}`
+    }
+
+    if (installedVersion) {
+      return `Downloading: ${installedVersion}`
+    }
+
+    return undefined
+  }
+
+  if (context === 'needs-update') {
+    if (installedVersion && latestVersion && installedVersion !== latestVersion) {
+      return `Installed: ${installedVersion} -> Latest: ${latestVersion}`
+    }
+
+    if (latestVersion) {
+      return `Latest: ${latestVersion}`
+    }
+
+    if (installedVersion) {
+      return `Installed: ${installedVersion}`
+    }
+
+    return undefined
+  }
+
+  if (context === 'installed') {
+    if (installedVersion) {
+      return `Installed: ${installedVersion}`
+    }
+
+    return undefined
+  }
+
+  if (latestVersion) {
+    return `Latest: ${latestVersion}`
+  }
+
+  return undefined
+}
 
 /**
  * Resolves the canonical game id from an installed local manifest entry.
@@ -746,6 +903,7 @@ const checkForGameUpdate: (game: GameModel) => Promise<boolean> = async (game: G
   const canonicalGameId: number = game.id
   const latestGameVersionAvailable: GameVersionModel | undefined =
     await GameVersionService.getLatestAvailableGameVersionByGameId(canonicalGameId)
+  cacheLatestAvailableVersion(canonicalGameId, latestGameVersionAvailable?.version)
 
   const installedGame: GameInstalled | undefined = findInstalledEntryByCanonicalGameId(
     gamesInstalled.value,
@@ -801,6 +959,7 @@ const loadGames: () => Promise<void> = async (): Promise<void> => {
   gamesInstalled.value = []
   gameNeedsUpdate.value = []
   gamesNeedsUpdate.value = []
+  latestAvailableVersionByGameId.value = {}
 
   const installedGames: GameInstalled[] | undefined = await TauriService.getGamesInstalled(currentUserId)
 
@@ -817,6 +976,7 @@ const loadGames: () => Promise<void> = async (): Promise<void> => {
       try {
         const latestGameVersionAvailable: GameVersionModel | undefined =
           await GameVersionService.getLatestAvailableGameVersionByGameId(canonicalGameId)
+        cacheLatestAvailableVersion(canonicalGameId, latestGameVersionAvailable?.version)
 
         if (latestGameVersionAvailable.version !== installedGame.gameManifest.version) {
           const gameModel: GameModel | undefined = userGameLibrariesStore.userGameLibrariesSortedByPlatform.find(
@@ -998,6 +1158,7 @@ const openDownloadModal: (
 
         const latestGameVersionAvailable: GameVersionModel =
           await GameVersionService.getLatestAvailableGameVersionByGameId(game.id)
+        cacheLatestAvailableVersion(game.id, latestGameVersionAvailable.version)
 
         const fullPathFilename: string = `${gameBinary.file.pathfilename}${latestGameVersionAvailable.version}/${currentSystemOSInfo.value.architecture}/`
         const gameManifestRemote: GameManifestRemote | undefined = await TauriService.downloadGameManifestRemote(
@@ -1228,10 +1389,12 @@ const downloadGame: (files?: FileDetails[]) => Promise<void> = async (files?: Fi
   )
 
   if (game && gamePathInstallLocationPathSystem) {
+    const preloadedLatestVersion: string | undefined = preloadedPayload?.latestVersion?.trim()
     downloadsStore.addActiveDownload({
       pathInstallLocation: gamePathInstallLocationPathSystem,
       gameId: game.id,
       gameTitle: game.title,
+      ...(preloadedLatestVersion ? { gameVersion: preloadedLatestVersion } : {}),
       gamePictureUrl: game.pictureFile.url,
       isPlaying: true,
       progress: 0,

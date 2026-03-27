@@ -355,10 +355,12 @@ const handleDownloadProgress: (event: LauncherTauriEvent) => Promise<void> = asy
   const shouldUpsertActiveDownload: boolean = existingActiveDownload?.sessionId !== sessionId
 
   if (shouldUpsertActiveDownload) {
+    const gameVersionFromPayload: string = String(payload.gameVersion || '').trim()
     const activeDownloadGame: ActiveDownloadGame = {
       pathInstallLocation: String(payload.pathInstallLocation || ''),
       gameId: gameId,
       gameTitle: String(payload.gameTitle || ''),
+      ...(gameVersionFromPayload ? { gameVersion: gameVersionFromPayload } : {}),
       gamePictureUrl: gamePictureUrl,
       isPlaying: true,
       progress: progress,
@@ -394,6 +396,16 @@ const handleDownloadProgress: (event: LauncherTauriEvent) => Promise<void> = asy
   }
 
   downloadsStore.updateDownloadProgress(gameId, totalDownloaded, speed, totalSizeToDownload, sessionId)
+
+  const activeDownloadAfterProgressUpdate: ActiveDownloadGame | undefined = downloadsStore.activeDownloads.find(
+    (activeDownload: ActiveDownloadGame): boolean => activeDownload.gameId === gameId,
+  )
+  if (activeDownloadAfterProgressUpdate) {
+    const gameVersionFromPayload: string = String(payload.gameVersion || '').trim()
+    if (gameVersionFromPayload) {
+      activeDownloadAfterProgressUpdate.gameVersion = gameVersionFromPayload
+    }
+  }
 
   const now: number = Date.now()
   const lastLogAt: number = lastProgressLogAtByGameId.get(gameId) || 0

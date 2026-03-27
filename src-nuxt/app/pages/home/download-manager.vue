@@ -42,6 +42,7 @@
           :total="bytesToSize(activeDownloadGame.totalSizeToDownload || activeDownloadGame.gameBinarySize)"
           :speed="activeDownloadGame.speed"
           :remaining-time="activeDownloadGame.remainingTime"
+          :game-version="activeDownloadGame.gameVersion || ''"
           :has-error="!!activeDownloadGame.hasError"
           :error-message="activeDownloadGame.errorMessage || ''"
           :game-id="activeDownloadGame.gameId"
@@ -498,6 +499,7 @@ const resumeGameDownload: (gameToResumeDownload: ActiveDownloadGame) => Promise<
     const latestGameVersion: GameVersionModel = await GameVersionService.getLatestAvailableGameVersionByGameId(
       gameDataDetails.id,
     )
+    gameToResumeDownload.gameVersion = latestGameVersion.version
     // Log la version disponible recuperee
     logger.debug(`[Download Resume] Derniere version disponible: ${latestGameVersion.version}`)
 
