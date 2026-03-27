@@ -49,6 +49,8 @@ definePageMeta({
  * @type {Logger}
  */
 const logger: Logger = createLogger('Carrousel')
+const CAROUSEL_IMAGES_PRELOAD_TIMEOUT_MS: number = 8000
+const MIN_CAROUSEL_SPINNER_MS: number = 250
 
 /* REFS */
 /**
@@ -85,23 +87,76 @@ onMounted(async (): Promise<void> => {
  * @returns {Promise<void>}
  */
 const fetchCarousels: () => Promise<void> = async (): Promise<void> => {
+  const spinnerStartAt: number = Date.now()
+
   try {
     await carouselsStore.getAllCarousels()
   } catch (error: any) {
     logger.error('[fetchCarousels] error : ', error)
   } finally {
-    // Attendre le prochain tick pour s'assurer que les mises à jour réactives sont terminées
     await nextTick()
+    await preloadCarouselImages()
 
-    // Ajoute une petite temporisation pour s'assurer que tout est bien chargé
-    await new Promise((resolve: any) => setTimeout(resolve, 250))
+    const elapsedMs: number = Date.now() - spinnerStartAt
+    if (elapsedMs < MIN_CAROUSEL_SPINNER_MS) {
+      await new Promise((resolve) => setTimeout(resolve, MIN_CAROUSEL_SPINNER_MS - elapsedMs))
+    }
 
     /**
      * A la fin du chargement des carrousels, isLoadingCarousels est
-     * mis à false pour afficher le carrousel et non le spinner.
+     * mis � false pour afficher le carrousel et non le spinner.
      */
     isLoadingCarousels.value = false
   }
+}
+
+const preloadCarouselImages: () => Promise<void> = async (): Promise<void> => {
+  const imageUrls: string[] = getCarouselImageUrls()
+  if (imageUrls.length === 0) {
+    return
+  }
+
+  await Promise.race([
+    Promise.all(imageUrls.map((url: string) => preloadImage(url))),
+    new Promise<void>((resolve) => setTimeout(resolve, CAROUSEL_IMAGES_PRELOAD_TIMEOUT_MS)),
+  ])
+}
+
+const getCarouselImageUrls: () => string[] = (): string[] => {
+  const urls: Set<string> = new Set()
+
+  for (const carousel of carouselsStore.carousels as Array<{ imageFile?: { url?: string } }>) {
+    const url: string | undefined = carousel?.imageFile?.url
+    if (url) {
+      urls.add(url)
+    }
+  }
+
+  return Array.from(urls)
+}
+
+const preloadImage: (url: string) => Promise<void> = (url: string): Promise<void> => {
+  return new Promise((resolve) => {
+    const image: HTMLImageElement = new Image()
+    let settled: boolean = false
+
+    const done = (): void => {
+      if (settled) {
+        return
+      }
+
+      settled = true
+      resolve()
+    }
+
+    image.onload = done
+    image.onerror = done
+    image.src = url
+
+    if (image.complete) {
+      done()
+    }
+  })
 }
 
 /**
@@ -151,3 +206,4 @@ const scrollToTop: () => Promise<void> = async (): Promise<void> => {
   }
 }
 </style>
+

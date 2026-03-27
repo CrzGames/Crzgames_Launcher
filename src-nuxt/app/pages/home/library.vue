@@ -34,7 +34,9 @@
     <Divider />
 
     <!-- Spinner de chargement : s'affiche seulement pendant le chargement des jeux -->
-    <CrzSpinner v-if="isLoading" />
+    <div v-if="isLoading" class="flex min-h-[320px] w-full items-center justify-center">
+      <CrzSpinner />
+    </div>
 
     <!-- Liste des jeux en cours de tÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©chargement -->
     <div v-if="!isLoading && gameActiveDownload && gameActiveDownload.length > 0" class="mb-8 grid gap-4">
@@ -667,6 +669,8 @@ const preloadedDownloadPayload: Ref<PreloadedDownloadPayload | null> = ref(null)
 const isSufficientDiskSpaceAvailable: Ref<boolean> = ref(false)
 const showButtonCreateDesktopShortcut: Ref<boolean> = ref(true)
 const showButtonChangePath: Ref<boolean> = ref(true)
+const LIBRARY_IMAGES_PRELOAD_TIMEOUT_MS: number = 8000
+const MIN_LIBRARY_SPINNER_MS: number = 250
 const MIN_UNINSTALL_MODAL_VISIBLE_MS: number = 2000
 const MIN_PREPARE_DOWNLOAD_DISK_STEP_VISIBLE_MS: number = 550
 const pendingOpenDownloadModalGameIds: Set<number> = new Set()
@@ -1485,9 +1489,7 @@ const checkForGameUpdate: (game: GameModel) => Promise<boolean> = async (game: G
  * @returns {Promise<void>} - The promise
  */
 const checkForUpdatesGames: () => Promise<void> = async (): Promise<void> => {
-  isLoading.value = true
   await loadGames()
-  isLoading.value = false
   notyf.success('Games have been checked for updates')
 }
 
@@ -1496,68 +1498,75 @@ const checkForUpdatesGames: () => Promise<void> = async (): Promise<void> => {
  * @returns {Promise<void>} - The promise
  */
 const loadGames: () => Promise<void> = async (): Promise<void> => {
+  const loadingStartAtMs: number = Date.now()
   isLoading.value = true
 
-  const currentUserId: number | undefined = authStore.user?.id
-  if (!currentUserId) {
+  try {
+    const currentUserId: number | undefined = authStore.user?.id
+    if (!currentUserId) {
+      gamesInstalled.value = []
+      gameInstalled.value = []
+      gameNeedsUpdate.value = []
+      gameNotInstalled.value = []
+      gameActiveDownload.value = []
+      return
+    }
+
+    await userGameLibrariesStore.getUserGameLibraries()
+
     gamesInstalled.value = []
-    gameInstalled.value = []
     gameNeedsUpdate.value = []
-    gameNotInstalled.value = []
-    gameActiveDownload.value = []
-    isLoading.value = false
-    return
-  }
+    gamesNeedsUpdate.value = []
+    latestAvailableVersionByGameId.value = {}
 
-  await userGameLibrariesStore.getUserGameLibraries()
+    const installedGames: GameInstalled[] | undefined = await TauriService.getGamesInstalled(currentUserId)
 
-  gamesInstalled.value = []
-  gameNeedsUpdate.value = []
-  gamesNeedsUpdate.value = []
-  latestAvailableVersionByGameId.value = {}
-
-  const installedGames: GameInstalled[] | undefined = await TauriService.getGamesInstalled(currentUserId)
-
-  if (installedGames && installedGames.length > 0) {
-    for (const installedGame of installedGames) {
-      const canonicalGameId: number | undefined = resolveCanonicalGameIdForInstalledGame(installedGame)
-      if (!canonicalGameId) {
-        logger.warn(
-          `[Library] Unable to resolve canonical gameId for installed manifest title="${installedGame.gameManifest.gameTitle}" id=${installedGame.gameManifest.gameId}`,
-        )
-        continue
-      }
-
-      try {
-        const latestGameVersionAvailable: GameVersionModel | undefined =
-          await GameVersionService.getLatestAvailableGameVersionByGameId(canonicalGameId)
-        cacheLatestAvailableVersion(canonicalGameId, latestGameVersionAvailable?.version)
-
-        if (latestGameVersionAvailable.version !== installedGame.gameManifest.version) {
-          const gameModel: GameModel | undefined = userGameLibrariesStore.userGameLibrariesSortedByPlatform.find(
-            (libraryGame: GameModel): boolean => libraryGame.id === canonicalGameId,
+    if (installedGames && installedGames.length > 0) {
+      for (const installedGame of installedGames) {
+        const canonicalGameId: number | undefined = resolveCanonicalGameIdForInstalledGame(installedGame)
+        if (!canonicalGameId) {
+          logger.warn(
+            `[Library] Unable to resolve canonical gameId for installed manifest title="${installedGame.gameManifest.gameTitle}" id=${installedGame.gameManifest.gameId}`,
           )
-
-          if (!gameModel) {
-            continue
-          }
-
-          gameNeedsUpdate.value.push(gameModel)
-          gamesNeedsUpdate.value = [...gamesNeedsUpdate.value, installedGame]
-        } else {
-          gamesInstalled.value = [...gamesInstalled.value, installedGame]
+          continue
         }
-      } catch (error: unknown) {
-        logger.warn(
-          `[Library] Failed to check latest version for canonicalGameId=${canonicalGameId} localManifestId=${installedGame.gameManifest.gameId}: ${error instanceof Error ? error.message : String(error)}`,
-        )
+
+        try {
+          const latestGameVersionAvailable: GameVersionModel | undefined =
+            await GameVersionService.getLatestAvailableGameVersionByGameId(canonicalGameId)
+          cacheLatestAvailableVersion(canonicalGameId, latestGameVersionAvailable?.version)
+
+          if (latestGameVersionAvailable.version !== installedGame.gameManifest.version) {
+            const gameModel: GameModel | undefined = userGameLibrariesStore.userGameLibrariesSortedByPlatform.find(
+              (libraryGame: GameModel): boolean => libraryGame.id === canonicalGameId,
+            )
+
+            if (!gameModel) {
+              continue
+            }
+
+            gameNeedsUpdate.value.push(gameModel)
+            gamesNeedsUpdate.value = [...gamesNeedsUpdate.value, installedGame]
+          } else {
+            gamesInstalled.value = [...gamesInstalled.value, installedGame]
+          }
+        } catch (error: unknown) {
+          logger.warn(
+            `[Library] Failed to check latest version for canonicalGameId=${canonicalGameId} localManifestId=${installedGame.gameManifest.gameId}: ${error instanceof Error ? error.message : String(error)}`,
+          )
+        }
       }
     }
+
+    refreshLibrary()
+    await preloadLibraryCardsImages()
+  } finally {
+    const elapsedMs: number = Date.now() - loadingStartAtMs
+    if (elapsedMs < MIN_LIBRARY_SPINNER_MS) {
+      await new Promise((resolve) => setTimeout(resolve, MIN_LIBRARY_SPINNER_MS - elapsedMs))
+    }
+    isLoading.value = false
   }
-
-  refreshLibrary()
-
-  isLoading.value = false
 }
 
 /**
@@ -1660,6 +1669,65 @@ const refreshLibrary: () => void = (): void => {
     gameNotInstalled.value = []
     gameActiveDownload.value = []
   }
+}
+
+const preloadLibraryCardsImages: () => Promise<void> = async (): Promise<void> => {
+  const imageUrls: string[] = getLibraryCardImageUrls()
+  if (imageUrls.length === 0) {
+    return
+  }
+
+  await Promise.race([
+    Promise.all(imageUrls.map((url: string) => preloadLibraryImage(url))),
+    new Promise<void>((resolve) => setTimeout(resolve, LIBRARY_IMAGES_PRELOAD_TIMEOUT_MS)),
+  ])
+}
+
+const getLibraryCardImageUrls: () => string[] = (): string[] => {
+  const urls: Set<string> = new Set<string>()
+  const allGames: GameModel[] = [
+    ...gameActiveDownload.value,
+    ...gameNeedsUpdate.value,
+    ...gameInstalled.value,
+    ...gameNotInstalledVisible.value,
+  ]
+
+  for (const game of allGames) {
+    const pictureUrl: string | undefined = game.pictureFile?.url
+    const logoUrl: string | undefined = game.logoFile?.url
+
+    if (pictureUrl) {
+      urls.add(pictureUrl)
+    }
+    if (logoUrl) {
+      urls.add(logoUrl)
+    }
+  }
+
+  return Array.from(urls)
+}
+
+const preloadLibraryImage: (url: string) => Promise<void> = (url: string): Promise<void> => {
+  return new Promise((resolve) => {
+    const image: HTMLImageElement = new Image()
+    let settled: boolean = false
+
+    const done = (): void => {
+      if (settled) {
+        return
+      }
+      settled = true
+      resolve()
+    }
+
+    image.onload = done
+    image.onerror = done
+    image.src = url
+
+    if (image.complete) {
+      done()
+    }
+  })
 }
 
 /**
@@ -2503,11 +2571,11 @@ const scrollToTop: () => Promise<void> = async (): Promise<void> => {
  * @returns {void}
  */
 watch(searchTerm, async (newValue: string): Promise<void> => {
-  if (newValue.length === 0) isLoading.value = true
+  const loadingStartAtMs: number = Date.now()
+  isLoading.value = true
 
   await userGameLibrariesStore.getUserGameLibraries(newValue)
 
-  // VÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©rification aprÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¨s la recherche
   if (
     newValue &&
     (userGameLibrariesStore.userGameLibrariesSortedByPlatform.length === 0 ||
@@ -2519,6 +2587,13 @@ watch(searchTerm, async (newValue: string): Promise<void> => {
     gameActiveDownload.value = []
   } else {
     refreshLibrary()
+  }
+
+  await preloadLibraryCardsImages()
+
+  const elapsedMs: number = Date.now() - loadingStartAtMs
+  if (elapsedMs < MIN_LIBRARY_SPINNER_MS) {
+    await new Promise((resolve) => setTimeout(resolve, MIN_LIBRARY_SPINNER_MS - elapsedMs))
   }
 
   isLoading.value = false
@@ -2570,5 +2645,6 @@ watchEffect((): void => {
   }
 }
 </style>
+
 
 

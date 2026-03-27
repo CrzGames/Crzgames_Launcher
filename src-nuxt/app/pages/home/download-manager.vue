@@ -12,8 +12,12 @@
     <!-- Diviseur -->
     <Divider class="mt-5" />
 
+    <div v-if="isPageLoading" class="flex min-h-[320px] w-full items-center justify-center">
+      <CrzSpinner />
+    </div>
+
     <!-- Section affichant les téléchargements en cours -->
-    <div v-if="activeDownloadGameList.length > 0" class="grid gap-4">
+    <div v-if="!isPageLoading && activeDownloadGameList.length > 0" class="grid gap-4">
       <!-- Icone + Titre "Active Downloads" -->
       <div class="flex items-center gap-3">
         <CrzIcon
@@ -56,7 +60,7 @@
     </div>
 
     <!-- Section affichant les téléchargements terminés -->
-    <div v-if="completedDownloadGameList.length > 0" class="grid gap-4">
+    <div v-if="!isPageLoading && completedDownloadGameList.length > 0" class="grid gap-4">
       <!-- Icone + Titre "Completed Downloads" -->
       <div class="flex items-center gap-3">
         <CrzIcon name="circle-check" view-box="0 0 512 512" color="#00ff84" :width="20" :height="20" />
@@ -77,7 +81,7 @@
 
     <!-- Message affiché quand il n'y a aucun téléchargement actif ou terminé -->
     <div
-      v-if="!hasActiveOrCompletedDownloads"
+      v-if="!isPageLoading && !hasActiveOrCompletedDownloads"
       class="flex flex-col items-center justify-center w-full max-w-3xl mx-auto bg-[#141724] text-center p-6 rounded-xl"
     >
       <CrzIcon name="search" color="#6b7280" view-box="0 0 24 24" class="w-12 h-12 mb-4" />
@@ -108,6 +112,7 @@ import type { ComputedRef, Ref } from 'vue'
 import NavigationPages from '~/components/navigations/NavigationPages.vue'
 import Divider from '~/components/ui/Divider.vue'
 import CrzButton from '~~/src-common/components/buttons/CrzButton.vue'
+import CrzSpinner from '~~/src-common/components/loaders/CrzSpinner.vue'
 import CrzIcon from '~~/src-common/components/ui/CrzIcon.vue'
 
 import CrzConfirmModal from '#src-common/components/modals/CrzConfirmModal.vue'
@@ -191,9 +196,12 @@ const selectedGameForDownloadCancellation: Ref<ActiveDownloadGame | null> = ref<
  * @type {Ref<boolean>}
  */
 const isCancelDownloadModalVisible: Ref<boolean> = ref<boolean>(false)
+const isPageLoading: Ref<boolean> = ref<boolean>(true)
 const pendingPlayPauseGameIds: Set<number> = new Set<number>()
 const shouldResumeDownloadAfterCancelModalClose: Ref<boolean> = ref<boolean>(false)
 const isConfirmingDownloadCancellation: Ref<boolean> = ref<boolean>(false)
+const DOWNLOAD_MANAGER_IMAGES_PRELOAD_TIMEOUT_MS: number = 8000
+const MIN_DOWNLOAD_MANAGER_SPINNER_MS: number = 250
 
 /* COMPUTED */
 /**
@@ -237,6 +245,59 @@ const cancelDownloadModalMessage: ComputedRef<string> = computed(
 const hasActiveOrCompletedDownloads: ComputedRef<boolean> = computed(
   (): boolean => activeDownloadGameList.value.length > 0 || completedDownloadGameList.value.length > 0,
 )
+
+const preloadDownloadManagerCardsImages: () => Promise<void> = async (): Promise<void> => {
+  const imageUrls: string[] = getDownloadManagerCardImageUrls()
+  if (imageUrls.length === 0) {
+    return
+  }
+
+  await Promise.race([
+    Promise.all(imageUrls.map((url: string) => preloadDownloadManagerImage(url))),
+    new Promise<void>((resolve) => setTimeout(resolve, DOWNLOAD_MANAGER_IMAGES_PRELOAD_TIMEOUT_MS)),
+  ])
+}
+
+const getDownloadManagerCardImageUrls: () => string[] = (): string[] => {
+  const urls: Set<string> = new Set<string>()
+
+  for (const activeDownloadGame of activeDownloadGameList.value) {
+    if (activeDownloadGame.gamePictureUrl) {
+      urls.add(activeDownloadGame.gamePictureUrl)
+    }
+  }
+
+  for (const completedDownloadGame of completedDownloadGameList.value) {
+    if (completedDownloadGame.gamePictureUrl) {
+      urls.add(completedDownloadGame.gamePictureUrl)
+    }
+  }
+
+  return Array.from(urls)
+}
+
+const preloadDownloadManagerImage: (url: string) => Promise<void> = (url: string): Promise<void> => {
+  return new Promise((resolve) => {
+    const image: HTMLImageElement = new Image()
+    let settled: boolean = false
+
+    const done = (): void => {
+      if (settled) {
+        return
+      }
+      settled = true
+      resolve()
+    }
+
+    image.onload = done
+    image.onerror = done
+    image.src = url
+
+    if (image.complete) {
+      done()
+    }
+  })
+}
 
 /**
  * Normalise un titre de jeu pour les comparaisons.
@@ -392,11 +453,15 @@ const isLocalManifestCompatibleForResume: (localManifest: GameManifestLocal, gam
  * @returns {Promise<void>} Promesse resolue une fois l'initialisation terminee
  */
 onMounted(async (): Promise<void> => {
+  const loadingStartAtMs: number = Date.now()
+  isPageLoading.value = true
+
   try {
     await scrollToTop()
 
     // Charge les telechargements persistants depuis le store pour l'utilisateur actuel
     await downloadsStore.loadActiveDownloadsPersisted(currentAuthenticatedUser)
+    await preloadDownloadManagerCardsImages()
 
     // Log la reussite du chargement des telechargements
     logger.info(`[Component Mounting] Telechargements actifs charges avec succes`)
@@ -406,6 +471,12 @@ onMounted(async (): Promise<void> => {
 
     // Affiche une notification d'erreur a l'utilisateur
     notyf.error('Failed to load active downloads')
+  } finally {
+    const elapsedMs: number = Date.now() - loadingStartAtMs
+    if (elapsedMs < MIN_DOWNLOAD_MANAGER_SPINNER_MS) {
+      await new Promise((resolve) => setTimeout(resolve, MIN_DOWNLOAD_MANAGER_SPINNER_MS - elapsedMs))
+    }
+    isPageLoading.value = false
   }
 })
 

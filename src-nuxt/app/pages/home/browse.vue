@@ -52,8 +52,12 @@
     <!-- Diviseur -->
     <Divider />
 
+    <div v-if="isLoadingGames" class="flex min-h-[320px] w-full items-center justify-center">
+      <CrzSpinner />
+    </div>
+
     <!-- Section des genres, tri et plus de filtres (masquée si "Featured Games" est actif) -->
-    <div v-if="!isSearchActive && activeFilter === 'all'" class="flex items-center justify-between w-full">
+    <div v-if="!isLoadingGames && !isSearchActive && activeFilter === 'all'" class="flex items-center justify-between w-full">
       <!-- Conteneur pour "Genres" et "More Filters" à gauche -->
       <div class="flex items-center gap-2">
         <!-- Bouton "Genres" et son menu -->
@@ -266,51 +270,39 @@
       </div>
     </div>
 
-    <!-- Grille des jeux ou skeleton loading -->
+    <!-- Grille des jeux -->
     <div
+      v-if="!isLoadingGames && games && games.length > 0"
       class="grid grid-cols-auto-fit gap-8 relative flex-grow"
       style="grid-template-columns: repeat(auto-fit, minmax(180px, 220px))"
     >
-      <!-- Skeleton loading ou jeux réels -->
-      <template v-if="isLoadingGames">
-        <!-- Afficher des placeholders (skeleton) pendant le chargement -->
-        <div v-for="n in skeletonCount" :key="'skeleton-' + n">
-          <div class="w-full h-[290px] bg-gray-700 rounded-lg"></div>
-          <div class="mt-2 h-[25px] bg-gray-700 rounded w-3/4"></div>
-          <div class="mt-1 h-[18px] bg-gray-700 rounded w-1/2"></div>
-        </div>
-      </template>
-      <template v-else-if="games && games.length > 0">
-        <!-- Afficher les jeux réels une fois chargés -->
-        <div v-for="game in games" :key="game.id">
-          <CrzGameCard
-            :pictureFileUrl="game.pictureFile?.url"
-            :trailerFileUrl="game.trailerFile?.url"
-            :logoFileUrl="game.logoFile?.url"
-            :gameCategory="game.gameCategory"
-            :gamePlatform="game.gamePlatform"
-            :title="game.title"
-            :showPlatforms="false"
-            :showDownloadButton="false"
-            :showVideo="true"
-            :showSubTitle="true"
-            :showAddGameInLibraryButton="game.isFreeAndNotOwned && !game.upcoming_game"
-            :showPaidGameButton="game.isPaidAndNotOwned && !game.upcoming_game"
-            :smallText="true"
-            :upcomingGame="game.upcoming_game"
-            :newGame="game.new_game"
-            :showFavoritesGameButton="true"
-            :enableHoverEffect="true"
-            @add-to-library="addGameToUserGameLibraryAndUpdateGameListAndNotify(game.id)"
-          />
-          <CrzBadge v-if="game.isOwned" variant="gray" size="sm" class="mt-2">
-            <CrzIcon color="#00ff84" name="circle-check" view-box="0 0 512 512" :width="12" :height="12" />
-            In your library
-          </CrzBadge>
-        </div>
-      </template>
+      <div v-for="game in games" :key="game.id">
+        <CrzGameCard
+          :pictureFileUrl="game.pictureFile?.url"
+          :trailerFileUrl="game.trailerFile?.url"
+          :logoFileUrl="game.logoFile?.url"
+          :gameCategory="game.gameCategory"
+          :gamePlatform="game.gamePlatform"
+          :title="game.title"
+          :showPlatforms="false"
+          :showDownloadButton="false"
+          :showVideo="true"
+          :showSubTitle="true"
+          :showAddGameInLibraryButton="game.isFreeAndNotOwned && !game.upcoming_game"
+          :showPaidGameButton="game.isPaidAndNotOwned && !game.upcoming_game"
+          :smallText="true"
+          :upcomingGame="game.upcoming_game"
+          :newGame="game.new_game"
+          :showFavoritesGameButton="true"
+          :enableHoverEffect="true"
+          @add-to-library="addGameToUserGameLibraryAndUpdateGameListAndNotify(game.id)"
+        />
+        <CrzBadge v-if="game.isOwned" variant="gray" size="sm" class="mt-2">
+          <CrzIcon color="#00ff84" name="circle-check" view-box="0 0 512 512" :width="12" :height="12" />
+          In your library
+        </CrzBadge>
+      </div>
     </div>
-
     <!-- Composant de pagination -->
     <div class="mt-auto">
       <CrzPagination
@@ -350,6 +342,7 @@ import { useGameStore } from '~~/src-nuxt/app/stores/game.store'
 
 import CrzButton from '#src-common/components/buttons/CrzButton.vue'
 import CrzGameCard from '#src-common/components/cards/CrzGameCard.vue'
+import CrzSpinner from '#src-common/components/loaders/CrzSpinner.vue'
 import CrzSearchBar from '#src-common/components/inputs/CrzSearchBar.vue'
 import CrzBadge from '#src-common/components/ui/CrzBadge.vue'
 import CrzIcon from '#src-common/components/ui/CrzIcon.vue'
@@ -392,6 +385,8 @@ const notyf: Notyf = useNuxtApp().$notyf
  * @type {Logger}
  */
 const logger: Logger = createLogger('Browse')
+const BROWSE_IMAGES_PRELOAD_TIMEOUT_MS: number = 8000
+const MIN_BROWSE_SPINNER_MS: number = 250
 
 /* STORE */
 const gameStore: any = useGameStore()
@@ -505,11 +500,6 @@ const perPage: Ref<number> = ref(24)
  */
 const total: Ref<number> = ref(0)
 
-/**
- * Nombre de skeletons à afficher, basé sur le nombre de jeux de la page courante.
- * @type {Ref<number>}
- */
-const skeletonCount: Ref<number> = ref(perPage.value)
 
 /**
  * Liste des catégories de jeux récupérées depuis l'API.
@@ -941,51 +931,107 @@ const addGameToUserGameLibraryAndUpdateGameListAndNotify: (gameId: number) => Pr
  * @returns {Promise<void>} Une promesse qui se résout une fois les données chargées.
  */
 const fetchAllGamesAndEnrichGame: () => Promise<void> = async (): Promise<void> => {
-  // Activation de l'indicateur de chargement
+  const loadingStartAtMs: number = Date.now()
   isLoadingGames.value = true
 
   try {
-    // Charge le cache paid/owned une seule fois (ou attend la requête déjà en cours).
     await fetchAllGamesPaidAndOwnedStatuses()
 
-    // Récupération des jeux depuis le store avec les paramètres de recherche, pagination et filtres
     const fetchedGames: GameModel[] = await gameStore.getAllGames(
-      lastValidatedSearchTerm.value || undefined, // Utilise la recherche validée
-      currentPage.value, // Page actuelle
-      perPage.value, // Nombre d'éléments par page
-      selectedGenres.value.length > 0 ? selectedGenres.value : undefined, // Genres sélectionnés
-      selectedLanguages.value.length > 0 ? selectedLanguages.value : undefined, // Langues sélectionnées
-      selectedGameModes.value.length > 0 ? selectedGameModes.value : undefined, // Modes de jeu sélectionnés
-      activeFilter.value === 'featured', // Filtre actif pour les jeux à la une (nouveaux ou à venir)
-      sortOption.value, // Option de tri sélectionnée
+      lastValidatedSearchTerm.value || undefined,
+      currentPage.value,
+      perPage.value,
+      selectedGenres.value.length > 0 ? selectedGenres.value : undefined,
+      selectedLanguages.value.length > 0 ? selectedLanguages.value : undefined,
+      selectedGameModes.value.length > 0 ? selectedGameModes.value : undefined,
+      activeFilter.value === 'featured',
+      sortOption.value,
     )
 
-    // Mise à jour du total basé sur les métadonnées de pagination
     total.value = gameStore.paginationMeta.total
 
-    // Mettre à jour le nombre de skeletons basé sur le nombre de jeux récupérés
-    skeletonCount.value = fetchedGames.length
-
-    // Enrichissement de chaque jeu avec les statuts de paiement et possession
     games.value = fetchedGames.map((game: GameModel): ExtendedGameModel => {
       const status: GamePaidAndOwnedStatus = paidAndOwnedStatusByGameId.value.get(game.id) || {
         isPaid: false,
         isOwned: false,
       }
+
       return {
         ...game,
-        isPaidAndNotOwned: status.isPaid && !status.isOwned, // Jeu payé mais non possédé
-        isFreeAndNotOwned: !status.isPaid && !status.isOwned, // Jeu gratuit et non possédé
-        isOwned: status.isOwned, // Jeu possédé
+        isPaidAndNotOwned: status.isPaid && !status.isOwned,
+        isFreeAndNotOwned: !status.isPaid && !status.isOwned,
+        isOwned: status.isOwned,
       } as ExtendedGameModel
     })
+
+    await preloadBrowseCardImages(games.value)
   } catch (error: any) {
-    // Gestion des erreurs avec journalisation
-    logger.error('[fetchAllGamesAndEnrichGame] Erreur lors de la récupération des jeux : ', error)
+    logger.error('[fetchAllGamesAndEnrichGame] Erreur lors de la r�cup�ration des jeux : ', error)
   } finally {
-    // Désactivation de l'indicateur de chargement
+    const elapsedMs: number = Date.now() - loadingStartAtMs
+    if (elapsedMs < MIN_BROWSE_SPINNER_MS) {
+      await new Promise((resolve) => setTimeout(resolve, MIN_BROWSE_SPINNER_MS - elapsedMs))
+    }
+
     isLoadingGames.value = false
   }
+}
+
+const preloadBrowseCardImages: (gamesToPreload: ExtendedGameModel[]) => Promise<void> = async (
+  gamesToPreload: ExtendedGameModel[],
+): Promise<void> => {
+  const imageUrls: string[] = getBrowseCardImageUrls(gamesToPreload)
+  if (imageUrls.length === 0) {
+    return
+  }
+
+  await Promise.race([
+    Promise.all(imageUrls.map((url: string) => preloadImage(url))),
+    new Promise<void>((resolve) => setTimeout(resolve, BROWSE_IMAGES_PRELOAD_TIMEOUT_MS)),
+  ])
+}
+
+const getBrowseCardImageUrls: (gamesToPreload: ExtendedGameModel[]) => string[] = (
+  gamesToPreload: ExtendedGameModel[],
+): string[] => {
+  const urls: Set<string> = new Set<string>()
+
+  for (const game of gamesToPreload) {
+    const pictureUrl: string | undefined = game.pictureFile?.url
+    const logoUrl: string | undefined = game.logoFile?.url
+
+    if (pictureUrl) {
+      urls.add(pictureUrl)
+    }
+    if (logoUrl) {
+      urls.add(logoUrl)
+    }
+  }
+
+  return Array.from(urls)
+}
+
+const preloadImage: (url: string) => Promise<void> = (url: string): Promise<void> => {
+  return new Promise((resolve) => {
+    const image: HTMLImageElement = new Image()
+    let settled: boolean = false
+
+    const done = (): void => {
+      if (settled) {
+        return
+      }
+      settled = true
+      resolve()
+    }
+
+    image.onload = done
+    image.onerror = done
+    image.src = url
+
+    if (image.complete) {
+      done()
+    }
+  })
 }
 
 /**
@@ -1052,3 +1098,5 @@ const scrollToTop: () => Promise<void> = async (): Promise<void> => {
   }
 }
 </script>
+
+
