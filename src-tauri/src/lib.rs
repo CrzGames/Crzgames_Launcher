@@ -26,7 +26,6 @@ use tokio::sync::{mpsc, Semaphore};
 use tokio::task::{JoinSet, spawn_blocking};
 use tokio::fs::OpenOptions as TokioOpenOptions;
 use std::thread;
-use std::fs::remove_dir_all;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -118,17 +117,51 @@ fn remove_duplicates(manifest: &mut GameManifestLocal) {
 
 #[tauri::command]
 async fn check_missing_files(
+    webview: Window,
     file_location_download: String,
     local_manifest: GameManifestLocal
 ) -> Result<Vec<FileDetails>, String> {
-    spawn_blocking(move || {
-        let game_directory = Path::new(&file_location_download);
-        let mut missing_files = Vec::new();
+    let game_id: u64 = local_manifest.gameId;
+    let total_files: u64 = local_manifest.files.len() as u64;
+    let scan_id: String = format!(
+        "verify-g{}-{}",
+        game_id,
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs()
+    );
 
-        for file in &local_manifest.files {
+    let _ = webview.emit(
+        "verify-installation-progress",
+        Some(json!({
+            "scanId": scan_id,
+            "gameId": game_id,
+            "pathInstallLocation": file_location_download,
+            "checkedFiles": 0,
+            "totalFiles": total_files,
+            "missingFiles": 0,
+            "progress": if total_files == 0 { 100.0 } else { 0.0 },
+            "done": false
+        })),
+    );
+
+    let (progress_tx, mut progress_rx) = mpsc::unbounded_channel::<(u64, u64)>();
+    let file_location_download_for_worker: String = file_location_download.clone();
+    let local_manifest_for_worker: GameManifestLocal = local_manifest.clone();
+
+    let worker = spawn_blocking(move || {
+        let game_directory = Path::new(&file_location_download_for_worker);
+        let mut missing_files = Vec::new();
+        let total_files_worker: u64 = local_manifest_for_worker.files.len() as u64;
+        let mut checked_files: u64 = 0;
+
+        for file in &local_manifest_for_worker.files {
             let file_path = game_directory.join(&file.name);
             if !file_path.exists() {
                 missing_files.push(file.clone());
+                checked_files += 1;
+                let _ = progress_tx.send((checked_files, total_files_worker));
                 continue;
             }
 
@@ -137,12 +170,54 @@ async fn check_missing_files(
                 Ok(_) => missing_files.push(file.clone()),
                 Err(_) => missing_files.push(file.clone()),
             }
+
+            checked_files += 1;
+            let _ = progress_tx.send((checked_files, total_files_worker));
         }
 
         Ok::<Vec<FileDetails>, String>(missing_files)
-    })
-    .await
-    .map_err(|error| format!("check_missing_files join error: {}", error))?
+    });
+
+    while let Some((checked_files, total_files_worker)) = progress_rx.recv().await {
+        let progress: f64 = if total_files_worker == 0 {
+            100.0
+        } else {
+            (checked_files as f64 / total_files_worker as f64) * 100.0
+        };
+        let _ = webview.emit(
+            "verify-installation-progress",
+            Some(json!({
+                "scanId": scan_id,
+                "gameId": game_id,
+                "pathInstallLocation": file_location_download,
+                "checkedFiles": checked_files,
+                "totalFiles": total_files_worker,
+                "missingFiles": 0,
+                "progress": progress,
+                "done": false
+            })),
+        );
+    }
+
+    let missing_files: Vec<FileDetails> = worker
+        .await
+        .map_err(|error| format!("check_missing_files join error: {}", error))??;
+    let missing_files_count: u64 = missing_files.len() as u64;
+    let _ = webview.emit(
+        "verify-installation-progress",
+        Some(json!({
+            "scanId": scan_id,
+            "gameId": game_id,
+            "pathInstallLocation": file_location_download,
+            "checkedFiles": total_files,
+            "totalFiles": total_files,
+            "missingFiles": missing_files_count,
+            "progress": 100.0,
+            "done": true
+        })),
+    );
+
+    Ok(missing_files)
 }
 
 fn clean_up_directory(game_directory: &Path, game_manifest: &GameManifestLocal) -> Result<(), String> {
@@ -1458,6 +1533,52 @@ fn are_paths_equal_for_current_os(left: &Path, right: &Path) -> bool {
     }
 }
 
+fn collect_paths_for_recursive_delete(current_path: &Path, paths_to_delete: &mut Vec<PathBuf>) -> Result<(), String> {
+    for entry in fs::read_dir(current_path).map_err(|e| format!("Failed to read directory: {}", e))? {
+        let entry = entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
+        let path = entry.path();
+        let file_type = entry
+            .file_type()
+            .map_err(|e| format!("Failed to read entry file type: {}", e))?;
+
+        if file_type.is_dir() {
+            collect_paths_for_recursive_delete(&path, paths_to_delete)?;
+        } else {
+            paths_to_delete.push(path);
+        }
+    }
+
+    // Delete directories after their children, including root directory.
+    paths_to_delete.push(current_path.to_path_buf());
+    Ok(())
+}
+
+fn delete_paths_with_progress(
+    paths_to_delete: Vec<PathBuf>,
+    progress_tx: mpsc::UnboundedSender<(u64, u64)>
+) -> Result<(), String> {
+    let total_entries: u64 = paths_to_delete.len() as u64;
+    let _ = progress_tx.send((0, total_entries));
+
+    let mut removed_entries: u64 = 0;
+    for path in paths_to_delete {
+        let file_type = fs::symlink_metadata(&path)
+            .map_err(|e| format!("Failed to read metadata for {}: {}", path.display(), e))?
+            .file_type();
+
+        if file_type.is_dir() {
+            fs::remove_dir(&path).map_err(|e| format!("Failed to remove directory {}: {}", path.display(), e))?;
+        } else {
+            fs::remove_file(&path).map_err(|e| format!("Failed to remove file {}: {}", path.display(), e))?;
+        }
+
+        removed_entries += 1;
+        let _ = progress_tx.send((removed_entries, total_entries));
+    }
+
+    Ok(())
+}
+
 #[tauri::command]
 async fn is_game_running(path_install_location: String) -> Result<bool, String> {
     let game_directory = Path::new(&path_install_location);
@@ -1501,19 +1622,85 @@ async fn is_game_running(path_install_location: String) -> Result<bool, String> 
 }
 
 #[tauri::command]
-async fn uninstall_game(path_install_location: String) -> Result<(), String> {
-    spawn_blocking(move || {
-        let game_directory: PathBuf = PathBuf::from(&path_install_location);
+async fn uninstall_game(
+    webview: Window,
+    path_install_location: String,
+    game_id: Option<u64>,
+) -> Result<(), String> {
+    let operation_id: String = format!(
+        "uninstall-g{}-{}",
+        game_id.unwrap_or(0),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs()
+    );
 
-        if game_directory.exists() && game_directory.is_dir() {
-            remove_dir_all(&game_directory).map_err(|e| format!("Failed to remove game directory: {}", e))?;
-            Ok(())
-        } else {
-            Err(format!("Game directory does not exist or is not a directory: {}", path_install_location))
+    let path_install_location_for_worker: String = path_install_location.clone();
+    let (progress_tx, mut progress_rx) = mpsc::unbounded_channel::<(u64, u64)>();
+    let worker = spawn_blocking(move || {
+        let game_directory: PathBuf = PathBuf::from(&path_install_location_for_worker);
+        if !game_directory.exists() || !game_directory.is_dir() {
+            return Err(format!(
+                "Game directory does not exist or is not a directory: {}",
+                path_install_location_for_worker
+            ));
         }
-    })
-    .await
-    .map_err(|error| format!("uninstall_game join error: {}", error))?
+
+        let mut paths_to_delete: Vec<PathBuf> = Vec::new();
+        collect_paths_for_recursive_delete(&game_directory, &mut paths_to_delete)?;
+        delete_paths_with_progress(paths_to_delete, progress_tx)?;
+        Ok::<(), String>(())
+    });
+
+    let mut last_removed_entries: u64 = 0;
+    let mut last_total_entries: u64 = 0;
+    while let Some((removed_entries, total_entries)) = progress_rx.recv().await {
+        last_removed_entries = removed_entries;
+        last_total_entries = total_entries;
+        let progress: f64 = if total_entries == 0 {
+            100.0
+        } else {
+            (removed_entries as f64 / total_entries as f64) * 100.0
+        };
+
+        let _ = webview.emit(
+            "uninstall-game-progress",
+            Some(json!({
+                "operationId": operation_id,
+                "gameId": game_id,
+                "pathInstallLocation": path_install_location,
+                "removedEntries": removed_entries,
+                "totalEntries": total_entries,
+                "progress": progress,
+                "done": false
+            })),
+        );
+    }
+
+    worker
+        .await
+        .map_err(|error| format!("uninstall_game join error: {}", error))??;
+
+    let final_progress: f64 = if last_total_entries == 0 {
+        100.0
+    } else {
+        (last_removed_entries as f64 / last_total_entries as f64) * 100.0
+    };
+    let _ = webview.emit(
+        "uninstall-game-progress",
+        Some(json!({
+            "operationId": operation_id,
+            "gameId": game_id,
+            "pathInstallLocation": path_install_location,
+            "removedEntries": last_removed_entries,
+            "totalEntries": last_total_entries,
+            "progress": final_progress,
+            "done": true
+        })),
+    );
+
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

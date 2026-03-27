@@ -255,6 +255,9 @@
       :showFixInstallationInformationsError2="showFixInstallationInformationsError2"
       :showFixInstallationInformationsSuccess="showFixInstallationInformationsSuccess"
       :buttonLoading="isVerifyingInstallation"
+      :verificationCheckedFiles="verifyProgressCheckedFiles"
+      :verificationTotalFiles="verifyProgressTotalFiles"
+      :verificationProgressPercent="verifyProgressPercent"
       @close="closeFixGameInstalledModal"
       @verifyInstallationGame="verifyInstallationGame(gameToDownload)"
       @changePath="changeDownloadPath(false)"
@@ -356,6 +359,11 @@
           <p class="text-sm text-white">
             Please wait while CrzGames Launcher removes the game files from your computer.
           </p>
+          <p class="text-sm text-white">
+            {{ uninstallProgressRemovedEntries }} / {{ uninstallProgressTotalEntries }} items removed ({{
+              Math.round(uninstallProgressPercent)
+            }}%)
+          </p>
         </div>
       </div>
     </CrzModal>
@@ -415,7 +423,9 @@
 
 <script lang="ts" setup>
 import type { Notyf } from 'notyf'
-import { computed, nextTick, onMounted, ref, watch, watchEffect } from 'vue'
+import { listen } from '@tauri-apps/api/event'
+import type { UnlistenFn } from '@tauri-apps/api/event'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, watchEffect } from 'vue'
 import type { ComputedRef, Ref } from 'vue'
 import CrzBadge from '~~/src-common/components/ui/CrzBadge.vue'
 
@@ -499,6 +509,27 @@ type PreloadedDownloadPayload = {
   totalSizeToDownload: number
 }
 
+type VerifyInstallationProgressEventPayload = {
+  scanId?: string
+  gameId?: number | null
+  pathInstallLocation?: string
+  checkedFiles?: number
+  totalFiles?: number
+  missingFiles?: number
+  progress?: number
+  done?: boolean
+}
+
+type UninstallGameProgressEventPayload = {
+  operationId?: string
+  gameId?: number | null
+  pathInstallLocation?: string
+  removedEntries?: number
+  totalEntries?: number
+  progress?: number
+  done?: boolean
+}
+
 /* REFS */
 const searchTerm: Ref<string> = ref('')
 
@@ -528,6 +559,10 @@ const uninstallBlockedGame: Ref<GameModel | null> = ref(null)
 const showUninstallingGameModal: Ref<boolean> = ref(false)
 const uninstallingGame: Ref<GameModel | null> = ref(null)
 const isUninstallingGame: Ref<boolean> = ref(false)
+const uninstallingGamePathInstallLocation: Ref<string> = ref('')
+const uninstallProgressRemovedEntries: Ref<number> = ref(0)
+const uninstallProgressTotalEntries: Ref<number> = ref(0)
+const uninstallProgressPercent: Ref<number> = ref(0)
 const showInstallPathAccessDeniedModal: Ref<boolean> = ref(false)
 const installPathAccessDeniedPath: Ref<string> = ref('')
 const installPathAccessDeniedGameTitle: Ref<string> = ref('')
@@ -541,6 +576,11 @@ const showFixInstallationInformationsError2: Ref<boolean> = ref(false)
 const fixInstallationErrorMessage: Ref<string> = ref('')
 const isVerifyingInstallation: Ref<boolean> = ref(false)
 const filesRepair: Ref<FileDetails[]> = ref([])
+const verifyProgressCheckedFiles: Ref<number> = ref(0)
+const verifyProgressTotalFiles: Ref<number> = ref(0)
+const verifyProgressPercent: Ref<number> = ref(0)
+const unlistenVerifyInstallationProgress: Ref<UnlistenFn | null> = ref(null)
+const unlistenUninstallGameProgress: Ref<UnlistenFn | null> = ref(null)
 
 // Modal de tÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©chargement
 const gameToDownload: Ref<GameModel | null> = ref(null)
@@ -555,6 +595,153 @@ const isSufficientDiskSpaceAvailable: Ref<boolean> = ref(false)
 const showButtonCreateDesktopShortcut: Ref<boolean> = ref(true)
 const showButtonChangePath: Ref<boolean> = ref(true)
 const MIN_UNINSTALL_MODAL_VISIBLE_MS: number = 2900
+
+const normalizeInstallPathForComparison: (pathValue?: string) => string = (pathValue?: string): string => {
+  return (pathValue || '').replace(/\\/g, '/').trim()
+}
+
+const areInstallPathsEqual: (left?: string, right?: string) => boolean = (
+  left?: string,
+  right?: string,
+): boolean => {
+  const normalizedLeft: string = normalizeInstallPathForComparison(left)
+  const normalizedRight: string = normalizeInstallPathForComparison(right)
+  if (!normalizedLeft || !normalizedRight) {
+    return false
+  }
+
+  const shouldCompareCaseInsensitive: boolean = normalizedLeft.includes(':') || normalizedRight.includes(':')
+  return shouldCompareCaseInsensitive
+    ? normalizedLeft.toLowerCase() === normalizedRight.toLowerCase()
+    : normalizedLeft === normalizedRight
+}
+
+const normalizeProgressNumber: (value: unknown) => number = (value: unknown): number => {
+  const parsedNumber: number = Number(value)
+  if (!Number.isFinite(parsedNumber)) {
+    return 0
+  }
+
+  return parsedNumber
+}
+
+const clampPercentage: (value: number) => number = (value: number): number => {
+  return Math.max(0, Math.min(100, value))
+}
+
+const resetVerifyProgress: () => void = (): void => {
+  verifyProgressCheckedFiles.value = 0
+  verifyProgressTotalFiles.value = 0
+  verifyProgressPercent.value = 0
+}
+
+const resetUninstallProgress: () => void = (): void => {
+  uninstallProgressRemovedEntries.value = 0
+  uninstallProgressTotalEntries.value = 0
+  uninstallProgressPercent.value = 0
+}
+
+const handleVerifyInstallationProgress: (payload: VerifyInstallationProgressEventPayload) => void = (
+  payload: VerifyInstallationProgressEventPayload,
+): void => {
+  if (!showFixGameInstalledModal.value) {
+    return
+  }
+
+  const selectedGameId: number | undefined = gameToDownload.value?.id
+  const payloadGameId: number = normalizeProgressNumber(payload.gameId)
+  if (selectedGameId && payloadGameId && payloadGameId !== selectedGameId) {
+    return
+  }
+
+  const selectedInstallPath: string | undefined = gamePathInstallLocation.value?.pathSystem
+  const payloadInstallPath: string | undefined = payload.pathInstallLocation
+  if (selectedInstallPath && payloadInstallPath && !areInstallPathsEqual(selectedInstallPath, payloadInstallPath)) {
+    return
+  }
+
+  const totalFiles: number = Math.max(0, Math.floor(normalizeProgressNumber(payload.totalFiles)))
+  const checkedFilesRaw: number = Math.max(0, Math.floor(normalizeProgressNumber(payload.checkedFiles)))
+  const checkedFiles: number = totalFiles > 0 ? Math.min(checkedFilesRaw, totalFiles) : checkedFilesRaw
+
+  verifyProgressTotalFiles.value = totalFiles
+  verifyProgressCheckedFiles.value = checkedFiles
+
+  if (totalFiles > 0) {
+    verifyProgressPercent.value = clampPercentage((checkedFiles / totalFiles) * 100)
+  } else if (payload.done) {
+    verifyProgressPercent.value = 100
+  } else {
+    verifyProgressPercent.value = clampPercentage(normalizeProgressNumber(payload.progress))
+  }
+}
+
+const handleUninstallGameProgress: (payload: UninstallGameProgressEventPayload) => void = (
+  payload: UninstallGameProgressEventPayload,
+): void => {
+  if (!showUninstallingGameModal.value) {
+    return
+  }
+
+  const selectedGameId: number | undefined = uninstallingGame.value?.id
+  const payloadGameId: number = normalizeProgressNumber(payload.gameId)
+  if (selectedGameId && payloadGameId && payloadGameId !== selectedGameId) {
+    return
+  }
+
+  const selectedInstallPath: string = uninstallingGamePathInstallLocation.value
+  const payloadInstallPath: string | undefined = payload.pathInstallLocation
+  if (selectedInstallPath && payloadInstallPath && !areInstallPathsEqual(selectedInstallPath, payloadInstallPath)) {
+    return
+  }
+
+  const totalEntries: number = Math.max(0, Math.floor(normalizeProgressNumber(payload.totalEntries)))
+  const removedEntriesRaw: number = Math.max(0, Math.floor(normalizeProgressNumber(payload.removedEntries)))
+  const removedEntries: number = totalEntries > 0 ? Math.min(removedEntriesRaw, totalEntries) : removedEntriesRaw
+
+  uninstallProgressTotalEntries.value = totalEntries
+  uninstallProgressRemovedEntries.value = removedEntries
+
+  if (totalEntries > 0) {
+    uninstallProgressPercent.value = clampPercentage((removedEntries / totalEntries) * 100)
+  } else if (payload.done) {
+    uninstallProgressPercent.value = 100
+  } else {
+    uninstallProgressPercent.value = clampPercentage(normalizeProgressNumber(payload.progress))
+  }
+}
+
+const registerProgressListeners: () => Promise<void> = async (): Promise<void> => {
+  if (!unlistenVerifyInstallationProgress.value) {
+    unlistenVerifyInstallationProgress.value = await listen<VerifyInstallationProgressEventPayload>(
+      'verify-installation-progress',
+      (event): void => {
+        handleVerifyInstallationProgress(event.payload)
+      },
+    )
+  }
+
+  if (!unlistenUninstallGameProgress.value) {
+    unlistenUninstallGameProgress.value = await listen<UninstallGameProgressEventPayload>(
+      'uninstall-game-progress',
+      (event): void => {
+        handleUninstallGameProgress(event.payload)
+      },
+    )
+  }
+}
+
+const unregisterProgressListeners: () => void = (): void => {
+  if (unlistenVerifyInstallationProgress.value) {
+    unlistenVerifyInstallationProgress.value()
+    unlistenVerifyInstallationProgress.value = null
+  }
+
+  if (unlistenUninstallGameProgress.value) {
+    unlistenUninstallGameProgress.value()
+    unlistenUninstallGameProgress.value = null
+  }
+}
 
 /**
  * Normalise un titre de jeu pour les comparaisons.
@@ -765,6 +952,14 @@ const isInstalledEntryForCanonicalGameId: (installedGame: GameInstalled, canonic
 /* CYCLE - HOOKS */
 onMounted(async (): Promise<void> => {
   try {
+    await registerProgressListeners()
+  } catch (error: unknown) {
+    logger.error(
+      `[Library] Failed to register progress listeners: ${error instanceof Error ? error.message : String(error)}`,
+    )
+  }
+
+  try {
     await scrollToTop()
     currentSystemOSInfo.value = await TauriService.getSystemOSCurrent()
     if (user) {
@@ -775,6 +970,10 @@ onMounted(async (): Promise<void> => {
     console.error('Error occurred while loading games: ', error)
     isLoading.value = false
   }
+})
+
+onBeforeUnmount((): void => {
+  unregisterProgressListeners()
 })
 
 /**
@@ -915,8 +1114,13 @@ const closeUninstallBlockedByRunningGameModal: () => void = (): void => {
  * @param {GameModel} game - Jeu concerne.
  * @returns {void}
  */
-const openUninstallingGameModal: (game: GameModel) => void = (game: GameModel): void => {
+const openUninstallingGameModal: (game: GameModel, pathInstallLocation?: string) => void = (
+  game: GameModel,
+  pathInstallLocation?: string,
+): void => {
+  resetUninstallProgress()
   uninstallingGame.value = game
+  uninstallingGamePathInstallLocation.value = pathInstallLocation || ''
   showUninstallingGameModal.value = true
   isUninstallingGame.value = true
 }
@@ -928,7 +1132,9 @@ const openUninstallingGameModal: (game: GameModel) => void = (game: GameModel): 
 const closeUninstallingGameModal: () => void = (): void => {
   showUninstallingGameModal.value = false
   uninstallingGame.value = null
+  uninstallingGamePathInstallLocation.value = ''
   isUninstallingGame.value = false
+  resetUninstallProgress()
 }
 
 /**
@@ -994,9 +1200,9 @@ const UninstallGame: (game: GameModel) => Promise<void> = async (game: GameModel
       return
     }
 
-    openUninstallingGameModal(game)
+    openUninstallingGameModal(game, currentGame.gameManifest.pathInstallLocation)
     uninstallModalOpenedAt = Date.now()
-    await TauriService.uninstallGame(currentGame.gameManifest.pathInstallLocation)
+    await TauriService.uninstallGame(currentGame.gameManifest.pathInstallLocation, currentGame.gameManifest.gameId)
     // Supprimer le jeu installÃƒÆ’Ã‚Â© de la liste des jeux installÃƒÆ’Ã‚Â©s dans le fichier de configuration local
     const currentUserId: number | undefined = authStore.user?.id
     await TauriService.removeGameInstalled(currentGame.gameManifest.gameId, currentUserId)
@@ -1809,6 +2015,7 @@ const addDirectoryGameForPathInstallLocation: () => Promise<void> = async (): Pr
  */
 const closeFixGameInstalledModal: () => void = (): void => {
   isVerifyingInstallation.value = false
+  resetVerifyProgress()
   showDownloadModal.value = false
   gameToDownloadFileSize.value = undefined
   isSufficientDiskSpaceAvailable.value = false
@@ -1838,6 +2045,7 @@ const repairFullInstallationFromFixModal: () => Promise<void> = async (): Promis
  */
 const openFixGameInstalledModal: (game: GameModel) => Promise<void> = async (game: GameModel): Promise<void> => {
   closePlayGameNotFoundExecutableModal()
+  resetVerifyProgress()
 
   gameToDownload.value = game
   preloadedDownloadPayload.value = null
@@ -1874,6 +2082,7 @@ const verifyInstallationGame: (game: GameModel) => Promise<void> = async (game: 
     return
   }
 
+  resetVerifyProgress()
   isVerifyingInstallation.value = true
   try {
 

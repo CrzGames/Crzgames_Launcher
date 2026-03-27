@@ -57,6 +57,11 @@
           </span>
         </p>
         <p class="text-sm text-white">Checking existing files. Please wait.</p>
+        <p v-if="props.verificationTotalFiles > 0" class="text-sm text-white">
+          {{ props.verificationCheckedFiles }} / {{ props.verificationTotalFiles }} files checked ({{
+            Math.round(props.verificationProgressPercent)
+          }}%)
+        </p>
       </div>
 
       <!-- Error Message -->
@@ -181,6 +186,9 @@ type Props = {
   fixInstallationErrorMessage: string
   showFixInstallationInformationsError2: boolean
   showFixInstallationInformationsSuccess: boolean
+  verificationCheckedFiles: number
+  verificationTotalFiles: number
+  verificationProgressPercent: number
 }
 
 /* PROPS */
@@ -226,6 +234,18 @@ const props: Props = defineProps({
   showFixInstallationInformationsError2: {
     type: Boolean,
     default: false,
+  },
+  verificationCheckedFiles: {
+    type: Number,
+    default: 0,
+  },
+  verificationTotalFiles: {
+    type: Number,
+    default: 0,
+  },
+  verificationProgressPercent: {
+    type: Number,
+    default: 0,
   },
 })
 

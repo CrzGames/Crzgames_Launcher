@@ -19,6 +19,9 @@
       :showFixInstallationInformationsSuccess="props.showFixInstallationInformationsSuccess"
       :showFixInstallationInformationsError2="props.showFixInstallationInformationsError2"
       :buttonLoading="props.buttonLoading"
+      :verificationCheckedFiles="props.verificationCheckedFiles"
+      :verificationTotalFiles="props.verificationTotalFiles"
+      :verificationProgressPercent="props.verificationProgressPercent"
       @update:createDesktopShortcut="emit('update:createDesktopShortcut', $event)"
       @submit="emit('verifyInstallationGame')"
       @cancel="emit('close')"
@@ -68,6 +71,9 @@ type Props = {
   showFixInstallationInformationsError2: boolean
   showFixInstallationInformationsSuccess: boolean
   buttonLoading: boolean
+  verificationCheckedFiles: number
+  verificationTotalFiles: number
+  verificationProgressPercent: number
 }
 
 /* PROPS */
@@ -129,6 +135,18 @@ const props: Props = defineProps({
   buttonLoading: {
     type: Boolean,
     default: false,
+  },
+  verificationCheckedFiles: {
+    type: Number,
+    default: 0,
+  },
+  verificationTotalFiles: {
+    type: Number,
+    default: 0,
+  },
+  verificationProgressPercent: {
+    type: Number,
+    default: 0,
   },
 })
 

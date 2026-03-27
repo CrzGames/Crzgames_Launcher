@@ -427,6 +427,7 @@ export class TauriService {
   /**
    * Verifie si le processus du jeu est actuellement en cours d'execution.
    * @param {string} pathInstallLocation - Le chemin d'installation du jeu
+   * @param {number} [gameId] - Identifiant canonique du jeu (optionnel)
    * @returns {Promise<boolean>} - True si le jeu est deja en cours.
    */
   public static async isGameRunning(pathInstallLocation: string): Promise<boolean> {
@@ -1215,9 +1216,9 @@ export class TauriService {
    * @param {string} pathInstallLocation - Le chemin d'installation du jeu
    * @returns {Promise<void>} - Promesse rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©solue
    */
-  public static async uninstallGame(pathInstallLocation: string): Promise<void> {
+  public static async uninstallGame(pathInstallLocation: string, gameId?: number): Promise<void> {
     try {
-      await invoke('uninstall_game', { pathInstallLocation })
+      await invoke('uninstall_game', { pathInstallLocation, gameId })
     } catch (error) {
       console.error('uninstallGame error:', error)
       throw error
