@@ -667,7 +667,7 @@ const preloadedDownloadPayload: Ref<PreloadedDownloadPayload | null> = ref(null)
 const isSufficientDiskSpaceAvailable: Ref<boolean> = ref(false)
 const showButtonCreateDesktopShortcut: Ref<boolean> = ref(true)
 const showButtonChangePath: Ref<boolean> = ref(true)
-const MIN_UNINSTALL_MODAL_VISIBLE_MS: number = 2200
+const MIN_UNINSTALL_MODAL_VISIBLE_MS: number = 2000
 const MIN_PREPARE_DOWNLOAD_DISK_STEP_VISIBLE_MS: number = 550
 const pendingOpenDownloadModalGameIds: Set<number> = new Set()
 
