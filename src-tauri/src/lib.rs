@@ -1054,8 +1054,26 @@ fn create_shortcut(directory_path: String) -> Result<(), String> {
             {
                 // Raccourci LNK for Windows
                 let shortcut_path = Path::new(&desktop_path).join(format!("{}.lnk", exe_name));
-                let sl = mslnk::ShellLink::new(&executable_path).map_err(|e| format!("Failed to create ShellLink: {}", e))?;
-                sl.create_lnk(shortcut_path.to_string_lossy().into_owned()).map_err(|e| format!("Failed to create lnk: {}", e))?;
+                let executable_path_buf: PathBuf = PathBuf::from(&executable_path);
+                let canonical_executable_path: PathBuf =
+                    fs::canonicalize(&executable_path_buf).unwrap_or(executable_path_buf);
+
+                let mut sl = mslnk::ShellLink::new(&canonical_executable_path)
+                    .map_err(|e| format!("Failed to create ShellLink: {}", e))?;
+
+                // Force explicit icon location to avoid generic Windows shortcut icon.
+                sl.set_icon_location(Some(
+                    canonical_executable_path.to_string_lossy().into_owned(),
+                ));
+                sl.header_mut().set_icon_index(0);
+
+                // Keep working directory aligned with executable location.
+                if let Some(parent_directory) = canonical_executable_path.parent() {
+                    sl.set_working_dir(Some(parent_directory.to_string_lossy().into_owned()));
+                }
+
+                sl.create_lnk(shortcut_path.to_string_lossy().into_owned())
+                    .map_err(|e| format!("Failed to create lnk: {}", e))?;
             }
         }
         "macOS" => {
