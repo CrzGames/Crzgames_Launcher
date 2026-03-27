@@ -179,14 +179,14 @@ jobs:
         run: |
           npm run desktop:build:macos:arm64
 
-      - name: Build app and Sign app - Windows (x64)
+      - name: Build app - Windows (x64)
         if: matrix.platform == 'windows-2025'
         env:
           GITHUB_REF: ${{ github.ref }}
         run: |
           npm run desktop:build:windows:x64
 
-      - name: Build app and Sign app - Windows (arm64)
+      - name: Build app - Windows (arm64)
         if: matrix.platform == 'windows-11-arm'
         env:
           GITHUB_REF: ${{ github.ref }}
