@@ -1227,6 +1227,56 @@ async fn launch_game(file_location_download: String) -> Result<(), String> {
     Ok(())
 }
 
+fn are_paths_equal_for_current_os(left: &Path, right: &Path) -> bool {
+    if cfg!(target_os = "windows") {
+        left.to_string_lossy().to_lowercase() == right.to_string_lossy().to_lowercase()
+    } else {
+        left == right
+    }
+}
+
+#[tauri::command]
+async fn is_game_running(path_install_location: String) -> Result<bool, String> {
+    let game_directory = Path::new(&path_install_location);
+
+    if !game_directory.exists() || !game_directory.is_dir() {
+        return Err(format!(
+            "Game directory does not exist or is not a directory: {}",
+            path_install_location
+        ));
+    }
+
+    let executable_path = find_executable_in_directory(game_directory)?;
+    let expected_executable_path = fs::canonicalize(&executable_path)
+        .unwrap_or_else(|_| PathBuf::from(&executable_path));
+    let expected_executable_name = expected_executable_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or_default()
+        .to_lowercase();
+
+    let mut system = System::new_all();
+    system.refresh_all();
+
+    for process in system.processes().values() {
+        if let Some(process_executable_path) = process.exe() {
+            let normalized_process_executable_path = fs::canonicalize(process_executable_path)
+                .unwrap_or_else(|_| process_executable_path.to_path_buf());
+
+            if are_paths_equal_for_current_os(&normalized_process_executable_path, &expected_executable_path) {
+                return Ok(true);
+            }
+        }
+
+        let process_name = process.name().to_string_lossy().to_lowercase();
+        if !expected_executable_name.is_empty() && process_name == expected_executable_name {
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
+}
+
 #[tauri::command]
 async fn uninstall_game(path_install_location: String) -> Result<(), String> {
     let game_directory = Path::new(&path_install_location);
@@ -1331,6 +1381,7 @@ pub fn run() {
             check_disk_space,
             download_and_update_game,
             launch_game,
+            is_game_running,
             create_shortcut,
             check_missing_files,
             uninstall_game,
