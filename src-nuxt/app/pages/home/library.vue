@@ -321,6 +321,46 @@
     </CrzModal>
 
     <CrzModal
+      v-if="showUninstallingGameModal"
+      :show="showUninstallingGameModal"
+      :show-left-button="false"
+      :show-right-button="false"
+      bgClass="bg-blue-800"
+      @update:show="keepUninstallingGameModalOpen"
+    >
+      <div class="grid gap-8">
+        <div class="flex flex-wrap gap-4">
+          <img
+            v-if="uninstallingGame?.pictureFile?.url"
+            class="h-14 w-14 rounded-lg object-cover"
+            :src="uninstallingGame.pictureFile.url"
+            :alt="uninstallingGame?.title || 'Game'"
+          />
+          <div class="flex flex-col">
+            <h2 class="text-base font-medium text-zinc-300">
+              {{ uninstallingGame?.title || 'Game' }}
+            </h2>
+            <h3 class="text-base font-bold text-white">Uninstalling game</h3>
+          </div>
+        </div>
+
+        <div class="grid gap-3 rounded-lg bg-orange-500/80 p-4">
+          <h4 class="flex items-center text-base font-bold text-white">
+            Removing files
+            <span class="library-loading-dots ml-1" aria-hidden="true">
+              <span>.</span>
+              <span>.</span>
+              <span>.</span>
+            </span>
+          </h4>
+          <p class="text-sm text-white">
+            Please wait while CrzGames Launcher removes the game files from your computer.
+          </p>
+        </div>
+      </div>
+    </CrzModal>
+
+    <CrzModal
       v-if="showInstallPathAccessDeniedModal"
       :show="showInstallPathAccessDeniedModal"
       :show-left-button="false"
@@ -485,6 +525,9 @@ const showPlayGameNotFoundExecutableMessageError: Ref<string> = ref('')
 const showUnstallGame: Ref<boolean> = ref(false)
 const showUninstallBlockedByRunningGameModal: Ref<boolean> = ref(false)
 const uninstallBlockedGame: Ref<GameModel | null> = ref(null)
+const showUninstallingGameModal: Ref<boolean> = ref(false)
+const uninstallingGame: Ref<GameModel | null> = ref(null)
+const isUninstallingGame: Ref<boolean> = ref(false)
 const showInstallPathAccessDeniedModal: Ref<boolean> = ref(false)
 const installPathAccessDeniedPath: Ref<string> = ref('')
 const installPathAccessDeniedGameTitle: Ref<string> = ref('')
@@ -511,6 +554,7 @@ const preloadedDownloadPayload: Ref<PreloadedDownloadPayload | null> = ref(null)
 const isSufficientDiskSpaceAvailable: Ref<boolean> = ref(false)
 const showButtonCreateDesktopShortcut: Ref<boolean> = ref(true)
 const showButtonChangePath: Ref<boolean> = ref(true)
+const MIN_UNINSTALL_MODAL_VISIBLE_MS: number = 2900
 
 /**
  * Normalise un titre de jeu pour les comparaisons.
@@ -867,6 +911,33 @@ const closeUninstallBlockedByRunningGameModal: () => void = (): void => {
 }
 
 /**
+ * Ouvre la modal d'information pendant la desinstallation d'un jeu.
+ * @param {GameModel} game - Jeu concerne.
+ * @returns {void}
+ */
+const openUninstallingGameModal: (game: GameModel) => void = (game: GameModel): void => {
+  uninstallingGame.value = game
+  showUninstallingGameModal.value = true
+  isUninstallingGame.value = true
+}
+
+/**
+ * Ferme la modal d'information de desinstallation en cours.
+ * @returns {void}
+ */
+const closeUninstallingGameModal: () => void = (): void => {
+  showUninstallingGameModal.value = false
+  uninstallingGame.value = null
+  isUninstallingGame.value = false
+}
+
+/**
+ * Empeche la fermeture manuelle de la modal pendant la desinstallation.
+ * @returns {void}
+ */
+const keepUninstallingGameModalOpen: () => void = (): void => {}
+
+/**
  * Ouvre la modal d'information quand le chemin d'installation n'est pas accessible en ecriture.
  * @param {string} installPath - Chemin d'installation selectionne.
  * @returns {void}
@@ -895,6 +966,12 @@ const closeInstallPathAccessDeniedModal: () => void = (): void => {
  * @returns {Promise<void>} - The promise
  */
 const UninstallGame: (game: GameModel) => Promise<void> = async (game: GameModel): Promise<void> => {
+  if (isUninstallingGame.value) {
+    return
+  }
+
+  let uninstallModalOpenedAt: number | null = null
+
   try {
     // Chercher le jeu dans les jeux installÃƒÆ’Ã‚Â©s
     let currentGame: GameInstalled | undefined = findInstalledEntryByCanonicalGameId(gamesInstalled.value, game.id)
@@ -917,6 +994,8 @@ const UninstallGame: (game: GameModel) => Promise<void> = async (game: GameModel
       return
     }
 
+    openUninstallingGameModal(game)
+    uninstallModalOpenedAt = Date.now()
     await TauriService.uninstallGame(currentGame.gameManifest.pathInstallLocation)
     // Supprimer le jeu installÃƒÆ’Ã‚Â© de la liste des jeux installÃƒÆ’Ã‚Â©s dans le fichier de configuration local
     const currentUserId: number | undefined = authStore.user?.id
@@ -950,6 +1029,15 @@ const UninstallGame: (game: GameModel) => Promise<void> = async (game: GameModel
     showPlayGameNotFoundExecutableModal.value = true
     showUnstallGame.value = true
     console.error('Error occurred while uninstalling the game: ', error)
+  } finally {
+    if (uninstallModalOpenedAt !== null) {
+      const elapsedMs: number = Date.now() - uninstallModalOpenedAt
+      const remainingMs: number = Math.max(0, MIN_UNINSTALL_MODAL_VISIBLE_MS - elapsedMs)
+      if (remainingMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, remainingMs))
+      }
+    }
+    closeUninstallingGameModal()
   }
 }
 
@@ -2003,6 +2091,36 @@ watchEffect((): void => {
 /* Permet de changer le curseur de la souris en mode progress lorsqu'on clique sur le bouton play d'un jeu */
 .launching-cursor {
   cursor: progress;
+}
+
+.library-loading-dots {
+  display: inline-flex;
+  gap: 1px;
+}
+
+.library-loading-dots span {
+  animation: library-loading-dot 1.2s infinite ease-in-out;
+  opacity: 0.25;
+  line-height: 1;
+}
+
+.library-loading-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.library-loading-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes library-loading-dot {
+  0%,
+  20%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 </style>
 

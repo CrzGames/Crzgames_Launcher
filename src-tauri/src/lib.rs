@@ -1502,16 +1502,18 @@ async fn is_game_running(path_install_location: String) -> Result<bool, String> 
 
 #[tauri::command]
 async fn uninstall_game(path_install_location: String) -> Result<(), String> {
-    let game_directory = Path::new(&path_install_location);
+    spawn_blocking(move || {
+        let game_directory: PathBuf = PathBuf::from(&path_install_location);
 
-    // Vérifier si le répertoire existe
-    if game_directory.exists() && game_directory.is_dir() {
-        // Supprimer le répertoire et son contenu
-        remove_dir_all(game_directory).map_err(|e| format!("Failed to remove game directory: {}", e))?;
-        Ok(())
-    } else {
-        Err(format!("Game directory does not exist or is not a directory: {}", path_install_location))
-    }
+        if game_directory.exists() && game_directory.is_dir() {
+            remove_dir_all(&game_directory).map_err(|e| format!("Failed to remove game directory: {}", e))?;
+            Ok(())
+        } else {
+            Err(format!("Game directory does not exist or is not a directory: {}", path_install_location))
+        }
+    })
+    .await
+    .map_err(|error| format!("uninstall_game join error: {}", error))?
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
