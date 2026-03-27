@@ -23,7 +23,7 @@
       <div class="grid gap-2">
         <div class="flex justify-between">
           <p class="font-serif text-sm font-medium text-zinc-400">Status:</p>
-          <p class="font-medium flex items-center">
+          <p :class="['font-medium flex items-center', props.isPreparingResume ? 'text-amber-400' : '']">
             <span>{{ statusLabel }}</span>
             <span v-if="showAnimatedStatusDots" class="ml-1 status-dots" aria-hidden="true">
               <span>.</span>
@@ -31,6 +31,10 @@
               <span>.</span>
             </span>
           </p>
+        </div>
+        <div v-if="props.isPreparingResume" class="flex justify-between gap-4">
+          <p class="font-serif text-sm font-medium text-zinc-400">Checking:</p>
+          <p class="font-medium text-amber-300 text-right">Local files and version before resume</p>
         </div>
         <div v-if="props.isPlaying && !isPostDownloadPhase" class="flex justify-between">
           <p class="font-serif text-sm font-medium text-zinc-400">Remaining time:</p>
@@ -56,7 +60,7 @@
     </div>
 
     <!-- Boutons d'action -->
-    <div v-if="!isPostDownloadPhase" class="flex flex-col items-center gap-2">
+    <div v-if="!isPostDownloadPhase && !props.isPreparingResume" class="flex flex-col items-center gap-2">
       <PlayPauseButton :isPlaying="props.isPlaying" @play="emit('play')" @pause="emit('pause')" />
       <CrzSquareIconButton tooltip="Cancel download" variant="red" iconName="x" @click="handleCancel" />
     </div>
@@ -100,6 +104,7 @@ type Props = {
   gameVersion: string
   hasError: boolean
   errorMessage: string
+  isPreparingResume: boolean
   gameId: number
   pathInstallLocation: string
 }
@@ -162,6 +167,11 @@ const props: Props = defineProps({
     required: false,
     default: '',
   },
+  isPreparingResume: {
+    type: Boolean,
+    required: false,
+    default: false,
+  },
   gameId: {
     type: Number,
     required: true,
@@ -189,7 +199,9 @@ const isFileLockedError: ComputedRef<boolean> = computed(
 const isPostDownloadPhase: ComputedRef<boolean> = computed(
   (): boolean => Math.round(props.progress) >= 100 && !isErrorState.value,
 )
-const showAnimatedStatusDots: ComputedRef<boolean> = computed((): boolean => isPostDownloadPhase.value)
+const showAnimatedStatusDots: ComputedRef<boolean> = computed(
+  (): boolean => isPostDownloadPhase.value || props.isPreparingResume,
+)
 const errorLabel: ComputedRef<string> = computed((): string => {
   if (isFileLockedError.value) {
     return 'File is locked by another process. Close it, then resume.'
@@ -198,6 +210,10 @@ const errorLabel: ComputedRef<string> = computed((): string => {
   return props.errorMessage || 'Download/installation failed'
 })
 const statusLabel: ComputedRef<string> = computed((): string => {
+  if (props.isPreparingResume) {
+    return 'Checking local files before resume'
+  }
+
   if (isErrorState.value) {
     return 'Blocked'
   }

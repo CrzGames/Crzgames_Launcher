@@ -363,6 +363,7 @@ const handleDownloadProgress: (event: LauncherTauriEvent) => Promise<void> = asy
       ...(gameVersionFromPayload ? { gameVersion: gameVersionFromPayload } : {}),
       gamePictureUrl: gamePictureUrl,
       isPlaying: true,
+      isPreparingResume: false,
       progress: progress,
       totalDownloadedBytesNow: totalDownloaded,
       totalSizeToDownload: totalSizeToDownload,
@@ -376,6 +377,7 @@ const handleDownloadProgress: (event: LauncherTauriEvent) => Promise<void> = asy
     downloadsStore.addActiveDownload(activeDownloadGame)
   } else if (existingActiveDownload?.isPlaying === false) {
     existingActiveDownload.isPlaying = true
+    existingActiveDownload.isPreparingResume = false
     existingActiveDownload.hasError = false
     existingActiveDownload.errorMessage = undefined
   }

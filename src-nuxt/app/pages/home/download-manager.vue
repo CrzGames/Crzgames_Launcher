@@ -45,6 +45,7 @@
           :game-version="activeDownloadGame.gameVersion || ''"
           :has-error="!!activeDownloadGame.hasError"
           :error-message="activeDownloadGame.errorMessage || ''"
+          :is-preparing-resume="!!activeDownloadGame.isPreparingResume"
           :game-id="activeDownloadGame.gameId"
           :path-install-location="activeDownloadGame.pathInstallLocation"
           @play="resumeGameDownload(activeDownloadGame)"
@@ -255,34 +256,109 @@ const isPostDownloadPhase: (game: ActiveDownloadGame) => boolean = (game: Active
  * Resolve game details for resume flow.
  * Uses gameId first, then falls back to title if local ids are stale.
  * @param {number} requestedGameId - Game id from active download state.
- * @param {GameManifestLocal} gameManifestLocal - Local manifest entry.
+ * @param {string} fallbackGameTitle - Fallback game title from active download state.
  * @returns {Promise<GameModel>} - Resolved game model.
  */
-const resolveGameDetailsForResume: (
+const resolveGameDetailsForResume: (requestedGameId: number, fallbackGameTitle: string) => Promise<GameModel> = async (
   requestedGameId: number,
-  gameManifestLocal: GameManifestLocal,
-) => Promise<GameModel> = async (requestedGameId: number, gameManifestLocal: GameManifestLocal): Promise<GameModel> => {
+  fallbackGameTitle: string,
+): Promise<GameModel> => {
   try {
     return await GameService.getGameById(requestedGameId)
   } catch (primaryError) {
-    const gamesResponse: Awaited<ReturnType<typeof GameService.getAllGames>> = await GameService.getAllGames(
-      gameManifestLocal.gameTitle,
-    )
+    const searchTerm: string = fallbackGameTitle || String(requestedGameId)
+    const gamesResponse: Awaited<ReturnType<typeof GameService.getAllGames>> = await GameService.getAllGames(searchTerm)
     const gamesByTitle: GameModel[] = Array.isArray(gamesResponse) ? gamesResponse : gamesResponse.data
+    const normalizedFallbackTitle: string = normalizeGameTitle(fallbackGameTitle || '')
 
-    const fallbackGame: GameModel | undefined = gamesByTitle.find(
-      (game: GameModel): boolean => normalizeGameTitle(game.title) === normalizeGameTitle(gameManifestLocal.gameTitle),
-    )
+    const fallbackGame: GameModel | undefined =
+      gamesByTitle.find((game: GameModel): boolean => normalizeGameTitle(game.title) === normalizedFallbackTitle) ||
+      (gamesByTitle.length === 1 ? gamesByTitle[0] : undefined)
 
     if (!fallbackGame) {
       throw primaryError
     }
 
     logger.warn(
-      `[Download Resume] Resolved stale gameId requested=${requestedGameId} manifest=${gameManifestLocal.gameId} fallback=${fallbackGame.id}`,
+      `[Download Resume] Resolved stale gameId requested=${requestedGameId} title="${fallbackGameTitle}" fallback=${fallbackGame.id}`,
     )
     return fallbackGame
   }
+}
+
+/**
+ * Calcule la taille totale d'un manifeste distant.
+ * @param {GameManifestRemote} gameManifestRemote - Manifeste distant.
+ * @returns {number} - Taille totale en octets.
+ */
+const getRemoteManifestTotalSize: (gameManifestRemote: GameManifestRemote) => number = (
+  gameManifestRemote: GameManifestRemote,
+): number => gameManifestRemote.files.reduce((totalSize: number, file: FileDetails): number => totalSize + file.size, 0)
+
+/**
+ * Construit un manifeste local cible base sur le manifeste distant.
+ * Utilise pour verifier/reparer la reprise meme si manifest_local.json est absent/corrompu.
+ * @param {string} pathInstallLocation - Chemin d'installation cible.
+ * @param {GameModel} gameDataDetails - Donnees du jeu.
+ * @param {string} latestGameVersion - Derniere version disponible.
+ * @param {GameManifestRemote} gameManifestRemote - Manifeste distant.
+ * @returns {GameManifestLocal} - Manifeste local synthetique.
+ */
+const buildExpectedLocalManifestForResume: (
+  pathInstallLocation: string,
+  gameDataDetails: GameModel,
+  latestGameVersion: string,
+  gameManifestRemote: GameManifestRemote,
+) => GameManifestLocal = (
+  pathInstallLocation: string,
+  gameDataDetails: GameModel,
+  latestGameVersion: string,
+  gameManifestRemote: GameManifestRemote,
+): GameManifestLocal => {
+  const remoteManifestTotalSize: number = getRemoteManifestTotalSize(gameManifestRemote)
+
+  return {
+    pathInstallLocation: pathInstallLocation,
+    gameId: gameDataDetails.id,
+    gameTitle: gameDataDetails.title,
+    gameBinarySize: remoteManifestTotalSize,
+    version: latestGameVersion,
+    files: gameManifestRemote.files,
+  }
+}
+
+/**
+ * Lit le manifest_local.json si possible sans interrompre la reprise en cas d'erreur.
+ * @param {string} pathInstallLocation - Chemin d'installation cible.
+ * @returns {Promise<GameManifestLocal | undefined>} - Manifeste local si lisible.
+ */
+const tryGetLocalManifestForResume: (pathInstallLocation: string) => Promise<GameManifestLocal | undefined> = async (
+  pathInstallLocation: string,
+): Promise<GameManifestLocal | undefined> => {
+  try {
+    return await TauriService.getContentLocalManifest(pathInstallLocation)
+  } catch (error: unknown) {
+    logger.warn(
+      `[Download Resume] Local manifest unreadable at path=${pathInstallLocation}. Falling back to remote verification: ${error instanceof Error ? error.message : String(error)}`,
+    )
+    return undefined
+  }
+}
+
+/**
+ * Verifie si un manifeste local est compatible avec le jeu en cours de reprise.
+ * @param {localManifest} localManifest - Manifeste local lu depuis le disque.
+ * @param {gameDataDetails} gameDataDetails - Jeu cible.
+ * @returns {boolean} - True si le manifeste correspond au jeu attendu.
+ */
+const isLocalManifestCompatibleForResume: (localManifest: GameManifestLocal, gameDataDetails: GameModel) => boolean = (
+  localManifest: GameManifestLocal,
+  gameDataDetails: GameModel,
+): boolean => {
+  const isGameIdMatching: boolean = localManifest.gameId === gameDataDetails.id
+  const isTitleMatching: boolean = normalizeGameTitle(localManifest.gameTitle) === normalizeGameTitle(gameDataDetails.title)
+
+  return isGameIdMatching || isTitleMatching
 }
 
 /* HOOKS */
@@ -427,28 +503,33 @@ const resumeGameDownload: (gameToResumeDownload: ActiveDownloadGame) => Promise<
     return
   }
 
-  if (pendingPlayPauseGameIds.has(gameToResumeDownload.gameId)) {
+  const pendingGameId: number = gameToResumeDownload.gameId
+  if (pendingPlayPauseGameIds.has(pendingGameId)) {
     return
   }
-  pendingPlayPauseGameIds.add(gameToResumeDownload.gameId)
+  pendingPlayPauseGameIds.add(pendingGameId)
 
   try {
     // Log l'initiation de la reprise du telechargement
     logger.info(`[Download Resume] Reprise du telechargement pour: ${gameToResumeDownload.gameTitle}`)
+    gameToResumeDownload.isPreparingResume = true
+    gameToResumeDownload.isPlaying = false
+    gameToResumeDownload.hasError = false
+    gameToResumeDownload.errorMessage = undefined
+    gameToResumeDownload.speed = '0 B/s'
+    gameToResumeDownload.remainingTime = 'Checking local files...'
 
-    // Recupere le manifeste local du jeu a partir de son chemin d'installation
-    const gameManifestLocal: GameManifestLocal | undefined = await TauriService.getContentLocalManifest(
-      gameToResumeDownload.pathInstallLocation,
-    )
-    // Verifie si le manifeste local a ete recupere avec succes
-    if (!gameManifestLocal) {
-      // Log une erreur si le manifeste local est introuvable
-      logger.error(`[Download Resume] Manifeste local introuvable pour ${gameToResumeDownload.gameTitle}`)
-      // Lance une exception pour indiquer l'absence du manifeste local
-      throw new Error('Local manifest not found')
+    const resumeInstallPath: string = String(gameToResumeDownload.pathInstallLocation || '').trim()
+    if (!resumeInstallPath) {
+      throw new Error('Installation path is missing')
     }
-    // Log la recuperation reussie du manifeste local
-    logger.debug(`[Download Resume] Manifeste local recupere avec succes pour ${gameToResumeDownload.gameTitle}`)
+
+    const installPathAccessResult = await TauriService.checkInstallPathWriteAccess(resumeInstallPath)
+    if (!installPathAccessResult.isWritable) {
+      throw new Error(
+        `Access denied for install path. Select another folder or relaunch launcher as administrator. (${resumeInstallPath})`,
+      )
+    }
 
     // Recupere les informations du systeme d'exploitation actuel
     const currentSystemOSInfo: SystemOSInfo | undefined = await TauriService.getSystemOSCurrent()
@@ -463,7 +544,10 @@ const resumeGameDownload: (gameToResumeDownload: ActiveDownloadGame) => Promise<
     logger.debug(`[Download Resume] Systeme d'exploitation detecte: ${currentSystemOSInfo.os}`)
 
     // Recupere les donnees detaillees du jeu a partir de son ID
-    const gameDataDetails: GameModel = await resolveGameDetailsForResume(gameToResumeDownload.gameId, gameManifestLocal)
+    const gameDataDetails: GameModel = await resolveGameDetailsForResume(
+      gameToResumeDownload.gameId,
+      gameToResumeDownload.gameTitle,
+    )
     // Log la recuperation reussie des donnees du jeu
     logger.debug(`[Download Resume] Donnees du jeu recuperees pour l'ID: ${gameDataDetails.id}`)
 
@@ -520,16 +604,53 @@ const resumeGameDownload: (gameToResumeDownload: ActiveDownloadGame) => Promise<
     // Log la recuperation reussie du manifeste distant
     logger.debug(`[Download Resume] Manifeste distant telecharge avec succes`)
 
-    // Calcule les fichiers necessaires au telechargement en comparant les manifests local et distant
-    const filesToDownloadForGame: FileDetails[] = await TauriService.getFilesToDownload(
-      gameManifestLocal,
+    const remoteManifestTotalSize: number = getRemoteManifestTotalSize(gameManifestRemote)
+    const expectedLocalManifestForResume: GameManifestLocal = buildExpectedLocalManifestForResume(
+      resumeInstallPath,
+      gameDataDetails,
+      latestGameVersion.version,
       gameManifestRemote,
-      gameManifestLocal.pathInstallLocation,
     )
+
+    const localManifestForResume: GameManifestLocal | undefined = await tryGetLocalManifestForResume(resumeInstallPath)
+    let filesToDownloadForGame: FileDetails[] = []
+    if (localManifestForResume && isLocalManifestCompatibleForResume(localManifestForResume, gameDataDetails)) {
+      filesToDownloadForGame = await TauriService.getFilesToDownload(
+        localManifestForResume,
+        gameManifestRemote,
+        resumeInstallPath,
+      )
+    } else {
+      if (localManifestForResume) {
+        logger.warn(
+          `[Download Resume] Local manifest mismatch at path=${resumeInstallPath}. expectedGameId=${gameDataDetails.id} localGameId=${localManifestForResume.gameId} expectedTitle="${gameDataDetails.title}" localTitle="${localManifestForResume.gameTitle}". Falling back to remote verification.`,
+        )
+      }
+
+      const hasAnyLocalFileInDirectory: boolean = await TauriService.hasAnyFileInDirectory(resumeInstallPath)
+      filesToDownloadForGame = hasAnyLocalFileInDirectory
+        ? await TauriService.getMissingFiles(resumeInstallPath, expectedLocalManifestForResume)
+        : gameManifestRemote.files
+    }
+
     // Log le nombre de fichiers identifies pour le telechargement
     logger.debug(`[Download Resume] Nombre de fichiers a telecharger: ${filesToDownloadForGame.length}`)
+    const totalSizeToDownloadForResume: number = filesToDownloadForGame.reduce(
+      (totalSize: number, file: FileDetails): number => totalSize + file.size,
+      0,
+    )
+
+    gameToResumeDownload.totalSizeToDownload = totalSizeToDownloadForResume
+    gameToResumeDownload.gameBinarySize = remoteManifestTotalSize || gameToResumeDownload.gameBinarySize
+    gameToResumeDownload.totalDownloadedBytesNow = 0
+    gameToResumeDownload.progress = 0
+    gameToResumeDownload.speed = '0 B/s'
+    gameToResumeDownload.remainingTime = totalSizeToDownloadForResume > 0 ? 'Calculating...' : '0 min 0 sec'
+    gameToResumeDownload.hasError = false
+    gameToResumeDownload.errorMessage = undefined
 
     // Marque le telechargement comme actif en modifiant l'etat isPlaying
+    gameToResumeDownload.isPreparingResume = false
     gameToResumeDownload.isPlaying = true
     // Log la mise a jour de l'etat du telechargement
     logger.info(`[Download Resume] Telechargement marque comme actif pour ${gameDataDetails.title}`)
@@ -538,15 +659,19 @@ const resumeGameDownload: (gameToResumeDownload: ActiveDownloadGame) => Promise<
     await TauriService.downloadGame(
       gameBinaryForPlatform.file.bucket.name, // Nom du bucket S3 contenant les fichiers
       gameBinaryForPlatform.file.pathfilename, // Chemin du fichier dans le bucket
-      gameManifestLocal.pathInstallLocation, // Chemin local ou les fichiers seront installes
+      resumeInstallPath, // Chemin local ou les fichiers seront installes
       false, // Indicateur pour la creation d'un raccourci bureau (non implemente pour l'instant)
       gameDataDetails.title, // Titre du jeu pour identification
       latestGameVersion.version, // Version du jeu a telecharger
-      gameManifestLocal.gameBinarySize, // Taille totale du binaire du jeu
+      remoteManifestTotalSize || gameToResumeDownload.gameBinarySize, // Taille totale du binaire du jeu
       gameDataDetails.id, // ID unique du jeu
       currentAuthenticatedUser.id, // ID de l'utilisateur connecte
       filesToDownloadForGame, // Liste des fichiers a telecharger
       gameManifestRemote, // Manifeste distant pour verification
+      {
+        navigateToDownloadManager: false,
+        systemOSInfo: currentSystemOSInfo,
+      },
     )
     // Log la reussite de la reprise du telechargement
     logger.info(`[Download Resume] Telechargement repris avec succes pour ${gameDataDetails.title}`)
@@ -554,11 +679,14 @@ const resumeGameDownload: (gameToResumeDownload: ActiveDownloadGame) => Promise<
     // Log une erreur si une exception survient pendant la reprise
     logger.error(`[Download Resume] Echec de la reprise pour ${gameToResumeDownload.gameTitle}`, error as Error)
     // Remet le telechargement en pause en cas d'echec
+    gameToResumeDownload.isPreparingResume = false
     gameToResumeDownload.isPlaying = false
     // Affiche une notification d'erreur a l'utilisateur
+    const errorMessage: string = error instanceof Error ? error.message : String(error)
     notyf.error(`Failed to resume download for ${gameToResumeDownload.gameTitle}`)
+    logger.error(`[Download Resume] Reason: ${errorMessage}`)
   } finally {
-    pendingPlayPauseGameIds.delete(gameToResumeDownload.gameId)
+    pendingPlayPauseGameIds.delete(pendingGameId)
   }
 }
 

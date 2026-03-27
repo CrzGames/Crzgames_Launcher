@@ -854,7 +854,7 @@ async fn download_and_update_game(
         game_directory.display()
     );
     fs::create_dir_all(&game_directory).map_err(|e| e.to_string())?;
-    let mut game_manifest = load_or_create_manifest(
+    let (mut game_manifest, has_valid_manifest_before_run) = load_or_create_manifest(
         &file_location_download,
         game_id,
         game_title.clone(),
@@ -1120,7 +1120,7 @@ async fn download_and_update_game(
     // If metadata did not exist before this run, keep existing files/directories.
     // In repair mode ("metadata missing"), we only redownload missing/corrupted files
     // and regenerate manifest_local.json without deleting other already present content.
-    if manifest_existed_before_run {
+    if manifest_existed_before_run && has_valid_manifest_before_run {
         clean_up_directory(&game_directory, &game_manifest)?;
     }
     if desktop_shortcut {
@@ -1190,21 +1190,32 @@ fn load_or_create_manifest(
     game_title: String,
     game_binary_size: u64,
     game_version: String,
-) -> Result<GameManifestLocal, String> {
+) -> Result<(GameManifestLocal, bool), String> {
+    let build_default_manifest = || GameManifestLocal {
+        pathInstallLocation: file_location_download.to_string(),
+        gameId: game_id,
+        gameTitle: game_title.clone(),
+        gameBinarySize: game_binary_size,
+        version: game_version.clone(),
+        files: vec![],
+    };
+
     let manifest_path = format!("{}/manifest_local.json", file_location_download);
     if Path::new(&manifest_path).exists() {
         let manifest_content = fs::read_to_string(&manifest_path).map_err(|e| e.to_string())?;
-        let manifest: GameManifestLocal = serde_json::from_str(&manifest_content).map_err(|e| e.to_string())?;
-        Ok(manifest)
+        match serde_json::from_str::<GameManifestLocal>(&manifest_content) {
+            Ok(manifest) => Ok((manifest, true)),
+            Err(parse_error) => {
+                println!(
+                    "Invalid manifest_local.json at {} ({}). Recreating manifest for recovery.",
+                    manifest_path, parse_error
+                );
+                let _ = fs::remove_file(&manifest_path);
+                Ok((build_default_manifest(), false))
+            }
+        }
     } else {
-        Ok(GameManifestLocal {
-            pathInstallLocation: file_location_download.to_string(),
-            gameId: game_id,
-            gameTitle: game_title,
-            gameBinarySize: game_binary_size,
-            version: game_version,
-            files: vec![],
-        })
+        Ok((build_default_manifest(), false))
     }
 }
 

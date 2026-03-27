@@ -103,6 +103,7 @@ export const useDownloadsStore = defineStore('downloads', {
             gameVersion: gameProgressDownload.gameVersion || gameManifestLocal.version,
             gamePictureUrl: game.pictureFile.url,
             isPlaying: false,
+            isPreparingResume: false,
             progress: totalSizeToDownload > 0 ? Math.round((clampedDownloadedBytesNow / totalSizeToDownload) * 100) : 0,
             totalDownloadedBytesNow: clampedDownloadedBytesNow,
             totalSizeToDownload: totalSizeToDownload,
@@ -403,6 +404,7 @@ export type ActiveDownloadGame = {
   gameVersion?: string
   gamePictureUrl: string
   isPlaying: boolean
+  isPreparingResume?: boolean
   progress: number
   totalDownloadedBytesNow: number
   totalSizeToDownload: number
