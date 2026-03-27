@@ -11,7 +11,7 @@
     </div>
 
     <!-- Informations du jeu -->
-    <div class="flex flex-1 flex-col gap-2">
+    <div class="flex min-w-0 flex-1 flex-col gap-2">
       <h2 v-if="props.title" class="text-lg font-bold text-white truncate">
         {{ props.title }}
       </h2>
@@ -44,9 +44,11 @@
           <p class="font-serif text-sm font-medium text-zinc-400">Post-download:</p>
           <p class="font-medium">Finalizing installation</p>
         </div>
-        <div v-if="isErrorState" class="flex justify-between gap-4">
+        <div v-if="isErrorState" class="grid gap-1">
           <p class="font-serif text-sm font-medium text-zinc-400">Issue:</p>
-          <p class="font-medium text-red-400 text-right">{{ errorLabel }}</p>
+          <p class="max-w-full font-medium text-red-400 break-words [overflow-wrap:anywhere]">
+            {{ errorLabel }}
+          </p>
         </div>
         <div v-if="props.gameVersion" class="flex justify-between">
           <p class="font-serif text-sm font-medium text-zinc-400">Version:</p>
