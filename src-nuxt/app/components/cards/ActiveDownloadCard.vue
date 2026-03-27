@@ -215,6 +215,9 @@ const statusLabel: ComputedRef<string> = computed((): string => {
   }
 
   if (isErrorState.value) {
+    if (normalizedErrorMessage.value.includes('installation interrupted after download')) {
+      return 'Installation interrupted'
+    }
     return 'Blocked'
   }
 

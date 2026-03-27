@@ -4,7 +4,7 @@ import type GameModel from '#src-common/core/models/GameModel'
 import type UserModel from '#src-common/core/models/UserModel'
 import { GameService } from '#src-common/core/services/GameService'
 
-import type { GameManifestLocal, GameProgressDownload } from '#src-core/services/TauriService'
+import type { FileDetails, GameManifestLocal, GameProgressDownload } from '#src-core/services/TauriService'
 import { TauriService } from '#src-core/services/TauriService'
 
 /* TYPES */
@@ -81,46 +81,148 @@ export const useDownloadsStore = defineStore('downloads', {
           const gameManifestLocal: GameManifestLocal | undefined = await TauriService.getContentLocalManifest(
             gameProgressDownload.pathInstallLocation,
           )
-          if (!gameManifestLocal) {
-            continue
-          }
+          const resolvedGameId: number = gameManifestLocal?.gameId ?? gameProgressDownload.gameId
+          const resolvedGameTitle: string = gameManifestLocal?.gameTitle || gameProgressDownload.gameTitle || 'Unknown game'
+          const resolvedGameVersion: string = gameProgressDownload.gameVersion || gameManifestLocal?.version || ''
+          const resolvedGameBinarySize: number = gameManifestLocal?.gameBinarySize || 0
 
-          const game: GameModel = await GameService.getGameById(gameManifestLocal.gameId)
+          let gamePictureUrl: string = ''
+          try {
+            const game: GameModel = await GameService.getGameById(resolvedGameId)
+            gamePictureUrl = game.pictureFile.url
+          } catch {
+            // On conserve la card meme si l'API jeu est temporairement indisponible.
+          }
 
           const totalSizeToDownload: number =
             gameProgressDownload.totalSizeToDownload > 0
               ? gameProgressDownload.totalSizeToDownload
-              : gameManifestLocal.gameBinarySize || 0
+              : resolvedGameBinarySize || 0
           const persistedDownloadedBytes: number = Number.isFinite(gameProgressDownload.totalDownloadedBytesNow)
             ? Math.max(gameProgressDownload.totalDownloadedBytesNow || 0, 0)
             : 0
           const clampedDownloadedBytesNow: number = Math.min(persistedDownloadedBytes, totalSizeToDownload)
+          const isPostDownloadRecoveryPending: boolean =
+            totalSizeToDownload > 0 && clampedDownloadedBytesNow >= totalSizeToDownload
+          const shouldRequireManualResumeImmediately: boolean = isPostDownloadRecoveryPending && !gameManifestLocal
+          const interruptedInstallationMessage: string | undefined = shouldRequireManualResumeImmediately
+            ? 'Installation interrupted after download. Click Resume to finish installation.'
+            : undefined
 
           const activeDownload: ActiveDownloadGame = {
             pathInstallLocation: gameProgressDownload.pathInstallLocation,
-            gameId: gameManifestLocal.gameId,
-            gameTitle: gameManifestLocal.gameTitle,
-            gameVersion: gameProgressDownload.gameVersion || gameManifestLocal.version,
-            gamePictureUrl: game.pictureFile.url,
+            gameId: resolvedGameId,
+            gameTitle: resolvedGameTitle,
+            gameVersion: resolvedGameVersion,
+            gamePictureUrl: gamePictureUrl,
             isPlaying: false,
             isPreparingResume: false,
             progress: totalSizeToDownload > 0 ? Math.round((clampedDownloadedBytesNow / totalSizeToDownload) * 100) : 0,
             totalDownloadedBytesNow: clampedDownloadedBytesNow,
             totalSizeToDownload: totalSizeToDownload,
-            gameBinarySize: gameManifestLocal.gameBinarySize,
+            gameBinarySize: resolvedGameBinarySize || totalSizeToDownload,
             speed: '0 B/s',
-            remainingTime: '0 min 0 sec',
-            hasError: false,
-            errorMessage: undefined,
+            remainingTime: isPostDownloadRecoveryPending
+              ? shouldRequireManualResumeImmediately
+                ? 'Resume required'
+                : 'Finalizing installation...'
+              : '0 min 0 sec',
+            hasError: shouldRequireManualResumeImmediately,
+            errorMessage: interruptedInstallationMessage,
           }
 
           this.addActiveDownload(activeDownload)
+
+          if (isPostDownloadRecoveryPending && gameManifestLocal) {
+            void this.reconcilePostDownloadAfterRestart({
+              userId: user.id,
+              gameId: resolvedGameId,
+              totalSizeToDownload: totalSizeToDownload,
+              persistedGameVersion: gameProgressDownload.gameVersion || '',
+              gameManifestLocal,
+              pathInstallLocation: gameProgressDownload.pathInstallLocation,
+            })
+          }
         } catch {
           continue
         }
       }
 
       this.persistedDownloadsLoadedForUserId = user.id
+    },
+    /**
+     * Reconcile les downloads relances apres un restart quand la progression etait a 100% mais la completion incertaine.
+     * - Laisse une courte fenetre pour qu'un event d'installation encore en cours arrive.
+     * - Finalise si aucun fichier ne manque, sinon rebascule en etat resume required avec bytes recalcules.
+     * @param {object} params - Parametres de reconciliation.
+     * @returns {Promise<void>}
+     */
+    async reconcilePostDownloadAfterRestart(params: {
+      userId: number
+      gameId: number
+      totalSizeToDownload: number
+      persistedGameVersion: string
+      gameManifestLocal: GameManifestLocal
+      pathInstallLocation: string
+    }): Promise<void> {
+      try {
+        // Laisse la chance a une installation encore en cours de se terminer naturellement.
+        await new Promise((resolve) => setTimeout(resolve, 12000))
+
+        const activeDownloadBeforeReconcile: ActiveDownloadGame | undefined = this.activeDownloads.find(
+          (game: ActiveDownloadGame): boolean => game.gameId === params.gameId,
+        )
+        if (!activeDownloadBeforeReconcile) {
+          return
+        }
+
+        const persistedVersionNormalized: string = String(params.persistedGameVersion || '').trim().toLowerCase()
+        const localVersionNormalized: string = String(params.gameManifestLocal.version || '').trim().toLowerCase()
+        const canAttemptAutoFinalize: boolean =
+          persistedVersionNormalized.length === 0 || persistedVersionNormalized === localVersionNormalized
+        if (!canAttemptAutoFinalize) {
+          return
+        }
+
+        const missingFilesAfterRestart: FileDetails[] = await TauriService.getMissingFiles(
+          params.pathInstallLocation,
+          params.gameManifestLocal,
+        )
+
+        const activeDownloadAfterCheck: ActiveDownloadGame | undefined = this.activeDownloads.find(
+          (game: ActiveDownloadGame): boolean => game.gameId === params.gameId,
+        )
+        if (!activeDownloadAfterCheck) {
+          return
+        }
+
+        if (missingFilesAfterRestart.length === 0) {
+          await TauriService.finalizeDownload(params.userId, params.gameManifestLocal)
+          await this.addCompleteDownload(params.gameId)
+          return
+        }
+
+        const missingBytesAfterRestart: number = missingFilesAfterRestart.reduce(
+          (totalMissingBytes: number, file: FileDetails): number =>
+            totalMissingBytes + (Number.isFinite(file.size) ? file.size : 0),
+          0,
+        )
+        const recalculatedDownloadedBytes: number = Math.max(params.totalSizeToDownload - missingBytesAfterRestart, 0)
+
+        activeDownloadAfterCheck.totalSizeToDownload = params.totalSizeToDownload
+        activeDownloadAfterCheck.totalDownloadedBytesNow = recalculatedDownloadedBytes
+        activeDownloadAfterCheck.progress =
+          params.totalSizeToDownload > 0 ? Math.round((recalculatedDownloadedBytes / params.totalSizeToDownload) * 100) : 0
+        activeDownloadAfterCheck.isPlaying = false
+        activeDownloadAfterCheck.isPreparingResume = false
+        activeDownloadAfterCheck.speed = '0 B/s'
+        activeDownloadAfterCheck.remainingTime = 'Resume required'
+        activeDownloadAfterCheck.hasError = true
+        activeDownloadAfterCheck.errorMessage =
+          'Installation interrupted after download. Click Resume to finish installation.'
+      } catch {
+        // En cas d'erreur, on laisse la card visible pour que l'utilisateur puisse reprendre manuellement.
+      }
     },
     /**
      * Add active download
