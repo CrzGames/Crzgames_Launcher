@@ -35,6 +35,7 @@
     "prepare": "husky && nuxi prepare"
   },
   "dependencies": {
+    "@adonisjs/transmit-client": "^1.1.0",
     "@pinia/nuxt": "^0.11.3",
     "@tauri-apps/api": "^2.10.1",
     "@tauri-apps/plugin-autostart": "^2.5.1",
@@ -73,8 +74,8 @@
     "@types/node": "^25.5.0",
     "@typescript-eslint/eslint-plugin": "^8.57.2",
     "@typescript-eslint/parser": "^8.57.2",
-    "@vitest/ui": "4.1.1",
     "@vitest/coverage-v8": "4.1.1",
+    "@vitest/ui": "4.1.1",
     "@vue/test-utils": "^2.4.6",
     "autoprefixer": "^10.4.27",
     "cross-env": "^10.1.0",
