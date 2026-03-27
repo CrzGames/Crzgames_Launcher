@@ -594,7 +594,7 @@ const preloadedDownloadPayload: Ref<PreloadedDownloadPayload | null> = ref(null)
 const isSufficientDiskSpaceAvailable: Ref<boolean> = ref(false)
 const showButtonCreateDesktopShortcut: Ref<boolean> = ref(true)
 const showButtonChangePath: Ref<boolean> = ref(true)
-const MIN_UNINSTALL_MODAL_VISIBLE_MS: number = 2900
+const MIN_UNINSTALL_MODAL_VISIBLE_MS: number = 2500
 
 const normalizeInstallPathForComparison: (pathValue?: string) => string = (pathValue?: string): string => {
   return (pathValue || '').replace(/\\/g, '/').trim()
@@ -1996,9 +1996,19 @@ const addDirectoryGameForPathInstallLocation: () => Promise<void> = async (): Pr
     const systemInfo: SystemOSInfo | undefined = await TauriService.getSystemOSCurrent()
 
     if (systemInfo && gamePathInstallLocation.value) {
-      // Utiliser un sÃƒÆ’Ã‚Â©parateur de chemin basÃƒÆ’Ã‚Â© sur le systÃƒÆ’Ã‚Â¨me d'exploitation
-      const separator: string = systemInfo.os.toLowerCase() === 'windows' ? '\\' : '/'
-      const fullPath: string = `${gamePathInstallLocation.value.pathSystem}${separator}${game.title}`
+      const currentPathRaw: string = gamePathInstallLocation.value.pathSystem || ''
+      const currentPathNormalized: string = currentPathRaw.replace(/[\\/]+$/, '')
+      const gameTitleNormalized: string = game.title.trim().toLowerCase()
+      const currentPathParts: string[] = currentPathNormalized.split(/[\\/]+/).filter((part: string): boolean => part.length > 0)
+      const currentPathLastSegment: string = currentPathParts[currentPathParts.length - 1]?.trim().toLowerCase() || ''
+
+      // Utiliser un separateur de chemin base sur le systeme d'exploitation.
+      const separator: string =
+        currentPathRaw.includes('\\') || systemInfo.os.toLowerCase() === 'windows' ? '\\' : '/'
+      const fullPath: string =
+        currentPathLastSegment === gameTitleNormalized
+          ? currentPathNormalized
+          : `${currentPathNormalized}${separator}${game.title}`
       const diskFreeSpaceCurrentPath: number | undefined = gamePathInstallLocation.value.diskFreeSpace
 
       gamePathInstallLocation.value = {
@@ -2033,6 +2043,7 @@ const closeFixGameInstalledModal: () => void = (): void => {
  * @returns {Promise<void>}
  */
 const repairFullInstallationFromFixModal: () => Promise<void> = async (): Promise<void> => {
+  await addDirectoryGameForPathInstallLocation()
   const filesForRepairOrReinstall: FileDetails[] = [...filesRepair.value]
   closeFixGameInstalledModal()
   await downloadGame(filesForRepairOrReinstall)
@@ -2067,7 +2078,7 @@ const openFixGameInstalledModal: (game: GameModel) => Promise<void> = async (gam
     launcherGetPath = false
   }
 
-  await setInstallLocationDefault(false, launcherGetPath, 0, pathInstallLocationGame)
+  await setInstallLocationDefault(launcherGetPath, launcherGetPath, 0, pathInstallLocationGame)
 
   showFixGameInstalledModal.value = true
 }
@@ -2332,4 +2343,5 @@ watchEffect((): void => {
   }
 }
 </style>
+
 
