@@ -83,7 +83,7 @@ const checkAndEnableAutostart: () => Promise<void> = async (): Promise<void> => 
  * @returns {void}
  */
 const disabledContextMeuRightClick: () => void = (): void => {
-  if (import.meta.env.VITE_NODE_ENV === 'development') {
+  if (import.meta.env.VITE_NODE_ENV === 'development' || import.meta.env.VITE_NODE_ENV === 'staging') {
     return
   }
 

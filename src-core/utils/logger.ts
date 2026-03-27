@@ -38,11 +38,12 @@ export class Logger {
    */
   constructor(options: Partial<LoggerOptions> = {}) {
     const env: string = import.meta.env.VITE_NODE_ENV
+    const isVerboseEnvironment: boolean = env === 'development' || env === 'staging'
 
     // Configuration par défaut selon l'environnement
     this.options = {
-      enabled: env === 'development', // Active uniquement en developpement
-      level: env === 'development' ? 'debug' : 'error',
+      enabled: isVerboseEnvironment, // Active en developpement et staging
+      level: isVerboseEnvironment ? 'debug' : 'error',
       ...options, // Override avec les options passées
     }
   }
@@ -133,3 +134,4 @@ export const createLogger: (context: string) => Logger = (context: string): Logg
   // Retourne une nouvelle instance avec le contexte spécifié
   return new Logger({ context })
 }
+
