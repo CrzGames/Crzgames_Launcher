@@ -80,7 +80,7 @@ const autoUpdateLauncher: () => Promise<void> = async (): Promise<void> => {
    * On ajuste la taille de la fenêtre de l'application pour la page de connexion et
    * on va sur la page de connexion.
    */
-  if (import.meta.env.VITE_NODE_ENV === 'staging') {
+  if (import.meta.env.VITE_NODE_ENV === 'development') {
     try {
       await TauriService.adjustWindowToLogin(400, 585)
     } catch (error) {
