@@ -134,4 +134,3 @@ export const createLogger: (context: string) => Logger = (context: string): Logg
   // Retourne une nouvelle instance avec le contexte spécifié
   return new Logger({ context })
 }
-
