@@ -60,6 +60,16 @@ export type PathInstallLocation = {
 }
 
 /**
+ * Resultat de verification d'ecriture sur un chemin d'installation.
+ * @property {boolean} isWritable - Le chemin est accessible en ecriture
+ * @property {string} [error] - Message d'erreur detaille en cas d'echec
+ */
+export type InstallPathAccessResult = {
+  isWritable: boolean
+  error?: string
+}
+
+/**
  * Sauvegarde d'un jeu entiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨rement installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©
  * @property {number} user_id - Identifiant de l'utilisateur
  * @property {GameManifestLocal} gameManifest - Fichier manifest.json stringifiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© du jeu, pour le pc local de l'utilisateur
@@ -246,29 +256,14 @@ export class TauriService {
    */
   public static async getLauncherExecutablePathDirectory(): Promise<PathInstallLocation | undefined> {
     try {
-      const defaultPath: string = await invoke('get_launcher_path_directory')
-      if (!defaultPath) throw new Error('Failed to get the launcher default path')
+      const appConfigPath: string = await appConfigDir()
+      if (!appConfigPath) throw new Error('Failed to resolve app config directory')
 
-      const systemOSInfo: SystemOSInfo | undefined = await this.getSystemOSCurrent()
-      if (!systemOSInfo) throw new Error('Failed to get system OS info')
+      const normalizedBasePath: string = appConfigPath.replace(/[\\/]+$/, '')
+      const defaultInstallPath: string = `${normalizedBasePath}${sep()}games`
+      await mkdir(defaultInstallPath, { recursive: true })
 
-      let mountPoint: string | undefined
-
-      if (systemOSInfo.os.toLowerCase().includes('windows')) {
-        const match: RegExpMatchArray | null = defaultPath.match(/^[a-zA-Z]:\\/)
-        if (match) mountPoint = match[0] // For Windows, get the drive letter
-      } else {
-        mountPoint = '/' // For macOS/Linux, use root as the mount point
-      }
-
-      if (!mountPoint) throw new Error(`Could not determine mount point for default path: ${defaultPath}`)
-
-      const freeSpace: unknown = await invoke('check_disk_space', { path: mountPoint })
-
-      return {
-        pathSystem: defaultPath,
-        diskFreeSpace: freeSpace,
-      } as PathInstallLocation
+      return await this.getDiskSpaceForInstallPath(defaultInstallPath)
     } catch (error) {
       console.error('getLauncherExecutablePathDirectory Error:', error)
     }
@@ -278,6 +273,38 @@ export class TauriService {
    * RÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cupÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨re les informations sur le systÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨me d'exploitation
    * @returns {Promise<SystemOSInfo | undefined>} - Informations sur le systÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨me d'exploitation
    */
+  /**
+   * Verifie que le chemin d'installation est accessible en ecriture.
+   * @param {string} pathInstallLocation - Chemin d'installation cible
+   * @returns {Promise<InstallPathAccessResult>} - Etat d'acces en ecriture
+   */
+  public static async checkInstallPathWriteAccess(pathInstallLocation: string): Promise<InstallPathAccessResult> {
+    try {
+      if (!pathInstallLocation) {
+        return {
+          isWritable: false,
+          error: 'Installation path not provided',
+        }
+      }
+
+      const normalizedPath: string = this.normalizePath(pathInstallLocation)
+      await mkdir(normalizedPath, { recursive: true })
+
+      const probeFilename: string = `.__crzgames_write_probe_${Date.now()}_${Math.random().toString(36).slice(2)}.tmp`
+      const probeFilePath: string = this.normalizePath(`${normalizedPath}${sep()}${probeFilename}`)
+
+      await writeTextFile(probeFilePath, 'crzgames-write-probe')
+      await remove(probeFilePath, { recursive: false } as RemoveOptions)
+
+      return { isWritable: true }
+    } catch (error: unknown) {
+      return {
+        isWritable: false,
+        error: String(error),
+      }
+    }
+  }
+
   public static async getSystemOSCurrent(): Promise<SystemOSInfo | undefined> {
     try {
       const currentPlatform: Platform = await platform()
