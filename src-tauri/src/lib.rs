@@ -47,6 +47,7 @@ const EXECUTABLE_EXTENSIONS: [&str; 1] = ["app"];
 const EXECUTABLE_EXTENSIONS: [&str; 1] = ["AppImage"];
 
 const MAX_CONCURRENT_DOWNLOADS: usize = 6;
+const PRESIGN_BATCH_CHUNK_SIZE: usize = 200;
 
 // getSystemOSInfoCurrent
 #[derive(Debug, serde::Serialize)]
@@ -287,6 +288,121 @@ struct LauncherPresignedDownloadResponse {
     url: String,
 }
 
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LauncherBatchPresignRequest {
+    bucket_name: String,
+    path_filenames: Vec<String>,
+    expires_in: u64,
+}
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct LauncherBatchPresignedDownloadEntryResponse {
+    path_filename: String,
+    url: String,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct LauncherBatchPresignedDownloadResponse {
+    urls: Vec<LauncherBatchPresignedDownloadEntryResponse>,
+}
+
+fn build_presign_batch_api_url(presign_api_url: &str) -> String {
+    let trimmed_url = presign_api_url.trim_end_matches('/');
+    if trimmed_url.ends_with("/batch") {
+        return trimmed_url.to_string();
+    }
+
+    format!("{}/batch", trimmed_url)
+}
+
+async fn fetch_presigned_download_urls_batch(
+    client: &reqwest::Client,
+    presign_api_url: &str,
+    bucket_name: &str,
+    path_filenames: &[String],
+    auth_token: Option<&str>,
+) -> Result<HashMap<String, String>, String> {
+    if path_filenames.is_empty() {
+        return Ok(HashMap::new());
+    }
+
+    let request_payload = LauncherBatchPresignRequest {
+        bucket_name: bucket_name.to_string(),
+        path_filenames: path_filenames.to_vec(),
+        expires_in: 900,
+    };
+
+    let mut request_builder = client
+        .post(build_presign_batch_api_url(presign_api_url))
+        .json(&request_payload);
+
+    if let Some(token) = auth_token {
+        if !token.trim().is_empty() {
+            request_builder = request_builder.bearer_auth(token);
+        }
+    }
+
+    let response = request_builder
+        .send()
+        .await
+        .map_err(|e| format!("Failed to fetch batch presigned URLs: {}", e))?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let body = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unable to read error body".to_string());
+        return Err(format!("Batch presign API returned {}: {}", status, body));
+    }
+
+    let body = response
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read batch presign response body: {}", e))?;
+
+    let payload: LauncherBatchPresignedDownloadResponse = serde_json::from_str(&body)
+        .map_err(|e| format!("Invalid batch presign response JSON: {}", e))?;
+
+    let mut urls_by_path: HashMap<String, String> = HashMap::new();
+    for entry in payload.urls {
+        if entry.path_filename.trim().is_empty() || entry.url.trim().is_empty() {
+            continue;
+        }
+
+        urls_by_path.insert(entry.path_filename, entry.url);
+    }
+
+    Ok(urls_by_path)
+}
+
+async fn fetch_presigned_download_urls_for_files(
+    client: &reqwest::Client,
+    presign_api_url: &str,
+    bucket_name: &str,
+    full_paths: &[String],
+    auth_token: Option<&str>,
+) -> Result<HashMap<String, String>, String> {
+    let mut urls_by_path: HashMap<String, String> = HashMap::new();
+
+    for path_chunk in full_paths.chunks(PRESIGN_BATCH_CHUNK_SIZE) {
+        let chunk_urls = fetch_presigned_download_urls_batch(
+            client,
+            presign_api_url,
+            bucket_name,
+            path_chunk,
+            auth_token,
+        )
+        .await?;
+
+        urls_by_path.extend(chunk_urls);
+    }
+
+    Ok(urls_by_path)
+}
+
 fn get_part_file_path(target_path: &Path) -> PathBuf {
     PathBuf::from(format!("{}.part", target_path.to_string_lossy()))
 }
@@ -380,6 +496,7 @@ async fn download_single_file_with_resume(
     bucket_name: String,
     full_path: String,
     auth_token: Option<String>,
+    initial_presigned_url: Option<String>,
     file: FileDetails,
     game_directory: PathBuf,
     cancel_flag: Arc<AtomicBool>,
@@ -387,6 +504,8 @@ async fn download_single_file_with_resume(
     total_downloaded_atomic: Arc<AtomicU64>,
     session_downloaded_atomic: Arc<AtomicU64>,
 ) -> Result<FileDetails, String> {
+    let mut cached_presigned_url: Option<String> = initial_presigned_url;
+
     for attempt in 0..=1 {
         if cancel_flag.load(Ordering::Relaxed) {
             return Err("Download canceled".to_string());
@@ -447,14 +566,18 @@ async fn download_single_file_with_resume(
             counted_resume_bytes = 0;
         }
 
-        let presigned_url = fetch_presigned_download_url(
-            &client,
-            &presign_api_url,
-            &bucket_name,
-            &full_path,
-            auth_token.as_deref(),
-        )
-        .await?;
+        let presigned_url = if let Some(url) = cached_presigned_url.clone() {
+            url
+        } else {
+            fetch_presigned_download_url(
+                &client,
+                &presign_api_url,
+                &bucket_name,
+                &full_path,
+                auth_token.as_deref(),
+            )
+            .await?
+        };
 
         let mut request_builder = client.get(&presigned_url);
         if resume_offset > 0 {
@@ -468,6 +591,16 @@ async fn download_single_file_with_resume(
             .map_err(|e| format!("Failed to send download request for {}: {}", file.name, e))?;
 
         if !response.status().is_success() {
+            if attempt == 0 {
+                cached_presigned_url = None;
+                println!(
+                    "Retrying {} after HTTP {} from object storage",
+                    file.name,
+                    response.status()
+                );
+                continue;
+            }
+
             return Err(format!(
                 "Failed to download {}: HTTP {}",
                 file.name,
@@ -766,6 +899,52 @@ async fn download_and_update_game(
             .tcp_keepalive(Some(Duration::from_secs(30)))
             .build()
             .map_err(|e| format!("Failed to build client: {}", e))?;
+
+        let full_paths_to_presign: Vec<String> = download_targets
+            .iter()
+            .map(|file| {
+                format!(
+                    "{}{}/{}/{}",
+                    path_filename,
+                    game_version,
+                    os_architecture,
+                    file.name
+                )
+            })
+            .collect();
+
+        let presigned_urls_by_path: HashMap<String, String> = if full_paths_to_presign.is_empty() {
+            HashMap::new()
+        } else {
+            match fetch_presigned_download_urls_for_files(
+                &client,
+                &api_url,
+                &bucket_name,
+                &full_paths_to_presign,
+                Some(auth_token.as_str()),
+            )
+            .await
+            {
+                Ok(urls) => {
+                    println!(
+                        "[download_and_update_game] session={} batch presign success: {} URLs for {} files",
+                        session_id,
+                        urls.len(),
+                        full_paths_to_presign.len()
+                    );
+                    urls
+                }
+                Err(error) => {
+                    println!(
+                        "[download_and_update_game] session={} batch presign failed, fallback to per-file presign: {}",
+                        session_id,
+                        error
+                    );
+                    HashMap::new()
+                }
+            }
+        };
+
         let semaphore = Arc::new(Semaphore::new(MAX_CONCURRENT_DOWNLOADS));
         let mut join_set: JoinSet<Result<FileDetails, String>> = JoinSet::new();
         for file in download_targets.clone() {
@@ -787,6 +966,7 @@ async fn download_and_update_game(
                 os_architecture,
                 file.name.clone()
             );
+            let presigned_url_for_file = presigned_urls_by_path.get(&full_path).cloned();
             let client_clone = client.clone();
             let presign_api_url = api_url.clone();
             let bucket_name_clone = bucket_name.clone();
@@ -804,6 +984,7 @@ async fn download_and_update_game(
                     bucket_name_clone,
                     full_path,
                     Some(auth_token_clone),
+                    presigned_url_for_file,
                     file,
                     game_directory_clone,
                     cancel_flag_clone,
