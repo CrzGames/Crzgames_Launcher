@@ -42,6 +42,8 @@
           :total="bytesToSize(activeDownloadGame.totalSizeToDownload || activeDownloadGame.gameBinarySize)"
           :speed="activeDownloadGame.speed"
           :remaining-time="activeDownloadGame.remainingTime"
+          :has-error="!!activeDownloadGame.hasError"
+          :error-message="activeDownloadGame.errorMessage || ''"
           :game-id="activeDownloadGame.gameId"
           :path-install-location="activeDownloadGame.pathInstallLocation"
           @play="resumeGameDownload(activeDownloadGame)"
@@ -246,7 +248,7 @@ const normalizeGameTitle: (value: string) => string = (value: string): string =>
  * @returns {boolean} - True si les fichiers sont entierement telecharges.
  */
 const isPostDownloadPhase: (game: ActiveDownloadGame) => boolean = (game: ActiveDownloadGame): boolean =>
-  Math.round(game.progress) >= 100
+  Math.round(game.progress) >= 100 && !game.hasError
 
 /**
  * Resolve game details for resume flow.

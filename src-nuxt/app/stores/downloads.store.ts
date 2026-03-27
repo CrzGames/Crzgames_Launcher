@@ -108,6 +108,8 @@ export const useDownloadsStore = defineStore('downloads', {
             gameBinarySize: gameManifestLocal.gameBinarySize,
             speed: '0 B/s',
             remainingTime: '0 min 0 sec',
+            hasError: false,
+            errorMessage: undefined,
           }
 
           this.addActiveDownload(activeDownload)
@@ -143,6 +145,8 @@ export const useDownloadsStore = defineStore('downloads', {
         this.activeDownloads[indexActiveDownload] = {
           ...currentActiveDownload,
           ...newGame,
+          hasError: newGame.hasError ?? (hasSessionChanged ? false : currentActiveDownload.hasError),
+          errorMessage: newGame.errorMessage ?? (hasSessionChanged ? undefined : currentActiveDownload.errorMessage),
           smoothedSpeedBytesPerSecond: hasSessionChanged ? 0 : currentActiveDownload.smoothedSpeedBytesPerSecond,
           sessionStartedAtMs: hasSessionChanged ? undefined : currentActiveDownload.sessionStartedAtMs,
           sessionStartedDownloadedBytes: hasSessionChanged
@@ -186,6 +190,11 @@ export const useDownloadsStore = defineStore('downloads', {
 
       if (game) {
         const now: number = Date.now()
+
+        if (game.hasError) {
+          game.hasError = false
+          game.errorMessage = undefined
+        }
 
         if (sessionId && game.sessionId !== sessionId) {
           game.sessionId = sessionId
@@ -405,6 +414,8 @@ export type ActiveDownloadGame = {
   etaSecondsSmoothed?: number
   lastTotalDownloadedBytes?: number
   lastProgressAtMs?: number
+  hasError?: boolean
+  errorMessage?: string
 }
 
 /**

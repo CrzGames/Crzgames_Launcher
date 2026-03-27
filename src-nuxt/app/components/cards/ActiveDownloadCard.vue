@@ -40,6 +40,10 @@
           <p class="font-serif text-sm font-medium text-zinc-400">Post-download:</p>
           <p class="font-medium">Finalizing installation</p>
         </div>
+        <div v-if="isErrorState" class="flex justify-between gap-4">
+          <p class="font-serif text-sm font-medium text-zinc-400">Issue:</p>
+          <p class="font-medium text-red-400 text-right">{{ errorLabel }}</p>
+        </div>
         <div class="flex justify-between">
           <p class="font-serif text-sm font-medium text-zinc-400">Downloaded:</p>
           <p class="font-medium">{{ props.downloaded }} / {{ props.total }}</p>
@@ -89,6 +93,8 @@ type Props = {
   total: string
   speed: string
   remainingTime: string
+  hasError: boolean
+  errorMessage: string
   gameId: number
   pathInstallLocation: string
 }
@@ -136,6 +142,16 @@ const props: Props = defineProps({
     type: String,
     required: true,
   },
+  hasError: {
+    type: Boolean,
+    required: false,
+    default: false,
+  },
+  errorMessage: {
+    type: String,
+    required: false,
+    default: '',
+  },
   gameId: {
     type: Number,
     required: true,
@@ -150,9 +166,32 @@ const props: Props = defineProps({
 const emit: (event: 'play' | 'pause' | 'cancel', ...args: any[]) => void = defineEmits(['play', 'pause', 'cancel'])
 
 /* COMPUTED */
-const isPostDownloadPhase: ComputedRef<boolean> = computed((): boolean => Math.round(props.progress) >= 100)
+const normalizedErrorMessage: ComputedRef<string> = computed((): string => props.errorMessage.toLowerCase())
+const isErrorState: ComputedRef<boolean> = computed((): boolean => props.hasError)
+const isFileLockedError: ComputedRef<boolean> = computed(
+  (): boolean =>
+    normalizedErrorMessage.value.includes('os error 32') ||
+    normalizedErrorMessage.value.includes('used by another process') ||
+    normalizedErrorMessage.value.includes('being used by another process') ||
+    normalizedErrorMessage.value.includes('utilise par un autre processus') ||
+    normalizedErrorMessage.value.includes('utilisé par un autre processus'),
+)
+const isPostDownloadPhase: ComputedRef<boolean> = computed(
+  (): boolean => Math.round(props.progress) >= 100 && !isErrorState.value,
+)
 const showAnimatedStatusDots: ComputedRef<boolean> = computed((): boolean => isPostDownloadPhase.value)
+const errorLabel: ComputedRef<string> = computed((): string => {
+  if (isFileLockedError.value) {
+    return 'File is locked by another process. Close it, then resume.'
+  }
+
+  return props.errorMessage || 'Download/installation failed'
+})
 const statusLabel: ComputedRef<string> = computed((): string => {
+  if (isErrorState.value) {
+    return 'Blocked'
+  }
+
   if (isPostDownloadPhase.value) {
     return 'Downloaded files, installing'
   }

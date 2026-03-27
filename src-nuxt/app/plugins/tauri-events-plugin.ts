@@ -368,10 +368,14 @@ const handleDownloadProgress: (event: LauncherTauriEvent) => Promise<void> = asy
       speed: `${speed}`,
       remainingTime: '',
       sessionId: sessionId,
+      hasError: false,
+      errorMessage: undefined,
     }
     downloadsStore.addActiveDownload(activeDownloadGame)
   } else if (existingActiveDownload?.isPlaying === false) {
     existingActiveDownload.isPlaying = true
+    existingActiveDownload.hasError = false
+    existingActiveDownload.errorMessage = undefined
   }
 
   if (totalSizeToDownload === 0) {
@@ -513,6 +517,7 @@ const handleDownloadError: (event: LauncherTauriEvent) => void = (event: Launche
   if (activeDownload) {
     activeDownload.isPlaying = false
     activeDownload.speed = '0 B/s'
+    activeDownload.remainingTime = '0 min 0 sec'
   }
 
   const rawError: string = String(payload.error || 'unknown')
@@ -521,8 +526,17 @@ const handleDownloadError: (event: LauncherTauriEvent) => void = (event: Launche
     normalizedError.includes('download paused') || normalizedError.includes('download canceled')
 
   if (isExpectedInterruption) {
+    if (activeDownload) {
+      activeDownload.hasError = false
+      activeDownload.errorMessage = undefined
+    }
     logger.info(`[Download Event] session=${sessionId} gameId=${gameId} interruption=${rawError}`)
     return
+  }
+
+  if (activeDownload) {
+    activeDownload.hasError = true
+    activeDownload.errorMessage = rawError
   }
 
   logger.error(`[Download Error Event] session=${sessionId} gameId=${gameId} error=${rawError}`)
