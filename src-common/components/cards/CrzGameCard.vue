@@ -171,8 +171,8 @@
 
     <!-- Effet de barre de chargement au-dessus du bouton -->
     <div v-if="props.showButtonDownloadProgress" class="relative w-full">
-      <div class="download-progress-bar">
-        <div class="progress"></div>
+      <div class="download-progress-bar" :class="{ 'is-paused': props.isDownloadPaused }">
+        <div class="progress" :class="{ 'is-paused': props.isDownloadPaused }"></div>
       </div>
     </div>
 
@@ -182,7 +182,7 @@
       @click="goToPageDownloadManager"
       class="w-full px-4 py-2 bg-yellow-500 text-black text-sm font-medium rounded-md shadow-md hover:bg-yellow-600 transition duration-300"
     >
-      View Download
+      {{ props.isDownloadPaused ? 'Resume Download' : 'View Download' }}
     </button>
   </component>
 </template>
@@ -253,6 +253,7 @@ type Props = {
   showFavoritesGameButton: boolean
   enableHoverEffect: boolean
   showButtonDownloadProgress: boolean
+  isDownloadPaused: boolean
 }
 
 /* REFS */
@@ -366,6 +367,10 @@ const props: Props = defineProps({
     type: Boolean,
     default: false,
   },
+  isDownloadPaused: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 /* DATA */
@@ -475,6 +480,17 @@ const goToPageDownloadManager: () => Promise<void> = async (): Promise<void> => 
     glowAnimation 1.5s infinite alternate;
 }
 
+.download-progress-bar.is-paused {
+  background: rgba(249, 115, 22, 0.25);
+  box-shadow: 0 0 6px rgba(249, 115, 22, 0.45);
+}
+
+.download-progress-bar .progress.is-paused {
+  width: 100%;
+  background: linear-gradient(90deg, #fb923c, #f97316, #ea580c);
+  animation: pausedGlowAnimation 1.6s infinite ease-in-out;
+}
+
 /* Animation de déplacement fluide avec disparition complète */
 @keyframes progressAnimation {
   0% {
@@ -495,6 +511,18 @@ const goToPageDownloadManager: () => Promise<void> = async (): Promise<void> => 
     transform: translateX(200%);
     opacity: 0;
   } /* Disparition complète */
+}
+
+@keyframes pausedGlowAnimation {
+  0% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0.45;
+  }
 }
 
 /* Effet de lueur subtil */

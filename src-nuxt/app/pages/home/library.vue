@@ -63,8 +63,15 @@
               :upcomingGame="game.upcoming_game"
               :newGame="game.new_game"
               :showButtonDownloadProgress="true"
+              :isDownloadPaused="isActiveDownloadPaused(game.id)"
             />
-            <p v-if="getLibraryVersionLabel(game.id, 'active-download')" class="text-xs font-medium text-zinc-400">
+            <p
+              v-if="getLibraryVersionLabel(game.id, 'active-download')"
+              :class="[
+                'text-xs font-medium',
+                isActiveDownloadPaused(game.id) ? 'text-amber-400' : 'text-zinc-400',
+              ]"
+            >
               {{ getLibraryVersionLabel(game.id, 'active-download') }}
             </p>
           </div>
@@ -826,6 +833,20 @@ const getLatestAvailableVersionByGameId: (gameId: number) => string | undefined 
   gameId: number,
 ): string | undefined => normalizeGameVersion(latestAvailableVersionByGameId.value[gameId])
 
+/**
+ * Indique si le telechargement actif d'un jeu est actuellement en pause.
+ * @param {number} gameId - Id du jeu.
+ * @returns {boolean} - True si pause detectee.
+ */
+const isActiveDownloadPaused: (gameId: number) => boolean = (gameId: number): boolean => {
+  const activeDownload: ActiveDownloadGame | undefined = findActiveDownloadByGameId(gameId)
+  if (!activeDownload) {
+    return false
+  }
+
+  return !activeDownload.isPlaying && !activeDownload.hasError && Math.round(activeDownload.progress) < 100
+}
+
 type LibraryVersionContext = 'active-download' | 'needs-update' | 'installed' | 'not-installed'
 
 /**
@@ -843,16 +864,18 @@ const getLibraryVersionLabel: (gameId: number, context: LibraryVersionContext) =
   const latestVersion: string | undefined = getLatestAvailableVersionByGameId(gameId)
 
   if (context === 'active-download') {
+    const labelPrefix: string = isActiveDownloadPaused(gameId) ? 'Paused' : 'Downloading'
+
     if (downloadingVersion) {
-      return `Downloading: ${downloadingVersion}`
+      return `${labelPrefix}: ${downloadingVersion}`
     }
 
     if (latestVersion) {
-      return `Downloading: ${latestVersion}`
+      return `${labelPrefix}: ${latestVersion}`
     }
 
     if (installedVersion) {
-      return `Downloading: ${installedVersion}`
+      return `${labelPrefix}: ${installedVersion}`
     }
 
     return undefined
