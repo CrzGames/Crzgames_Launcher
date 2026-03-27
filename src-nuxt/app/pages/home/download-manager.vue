@@ -95,8 +95,7 @@
       :show="isCancelDownloadModalVisible"
       title="Cancel Download"
       :message="cancelDownloadModalMessage"
-      @update:show="isCancelDownloadModalVisible = $event"
-      @cancel="isCancelDownloadModalVisible = false"
+      @update:show="onCancelDownloadModalVisibilityChange"
       @ok="confirmGameDownloadCancellation"
     />
   </section>
@@ -193,6 +192,8 @@ const selectedGameForDownloadCancellation: Ref<ActiveDownloadGame | null> = ref<
  */
 const isCancelDownloadModalVisible: Ref<boolean> = ref<boolean>(false)
 const pendingPlayPauseGameIds: Set<number> = new Set<number>()
+const shouldResumeDownloadAfterCancelModalClose: Ref<boolean> = ref<boolean>(false)
+const isConfirmingDownloadCancellation: Ref<boolean> = ref<boolean>(false)
 
 /* COMPUTED */
 /**
@@ -251,6 +252,29 @@ const normalizeGameTitle: (value: string) => string = (value: string): string =>
  */
 const isPostDownloadPhase: (game: ActiveDownloadGame) => boolean = (game: ActiveDownloadGame): boolean =>
   Math.round(game.progress) >= 100 && !game.hasError
+
+/**
+ * Attend la fin d'une operation play/pause en cours pour un jeu.
+ * @param {number} gameId - Identifiant du jeu.
+ * @param {number} timeoutMs - Duree maximale d'attente.
+ * @returns {Promise<boolean>} - True si aucune operation concurrente n'est active.
+ */
+const waitForPlayPauseIdle: (gameId: number, timeoutMs?: number) => Promise<boolean> = async (
+  gameId: number,
+  timeoutMs: number = 3000,
+): Promise<boolean> => {
+  const startedAt: number = Date.now()
+
+  while (pendingPlayPauseGameIds.has(gameId)) {
+    if (Date.now() - startedAt >= timeoutMs) {
+      logger.warn(`[Play/Pause Lock] Timeout while waiting lock release for gameId=${gameId}`)
+      return false
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50))
+  }
+
+  return true
+}
 
 /**
  * Resolve game details for resume flow.
@@ -398,6 +422,60 @@ const goToPage: (route: string) => Promise<void> = async (route: string): Promis
 }
 
 /**
+ * Gere les changements de visibilite de la modal d'annulation.
+ * - En cas de fermeture via croix/ESC/Cancel, reprend automatiquement le telechargement si besoin.
+ * @param {boolean} show - Etat de visibilite de la modal.
+ * @returns {void}
+ */
+const onCancelDownloadModalVisibilityChange: (show: boolean) => void = (show: boolean): void => {
+  isCancelDownloadModalVisible.value = show
+
+  if (show) return
+
+  // L'evenement @ok est emis juste apres update:show=false.
+  // On decale d'un microtick pour laisser confirmGameDownloadCancellation
+  // marquer l'etat de confirmation et eviter une reprise parasite.
+  queueMicrotask((): void => {
+    if (isConfirmingDownloadCancellation.value) {
+      return
+    }
+    void closeCancelDownloadModalAndMaybeResume()
+  })
+}
+
+/**
+ * Ferme la modal d'annulation et reprend le telechargement si la fermeture est annulee.
+ * @returns {Promise<void>}
+ */
+const closeCancelDownloadModalAndMaybeResume: () => Promise<void> = async (): Promise<void> => {
+  const selectedGame: ActiveDownloadGame | null = selectedGameForDownloadCancellation.value
+  const shouldResumeDownload: boolean = shouldResumeDownloadAfterCancelModalClose.value
+
+  isCancelDownloadModalVisible.value = false
+  selectedGameForDownloadCancellation.value = null
+  shouldResumeDownloadAfterCancelModalClose.value = false
+
+  if (!selectedGame || !shouldResumeDownload) {
+    return
+  }
+
+  const stillActiveGame: ActiveDownloadGame | undefined = activeDownloadGameList.value.find(
+    (activeGame: ActiveDownloadGame): boolean => activeGame.gameId === selectedGame.gameId,
+  )
+
+  if (!stillActiveGame || isPostDownloadPhase(stillActiveGame) || stillActiveGame.isPlaying) {
+    return
+  }
+
+  const isPlayPauseIdle: boolean = await waitForPlayPauseIdle(stillActiveGame.gameId)
+  if (!isPlayPauseIdle || isConfirmingDownloadCancellation.value) {
+    return
+  }
+
+  await resumeGameDownload(stillActiveGame)
+}
+
+/**
  * Ouvre la modal de confirmation pour annuler le telechargement d'un jeu specifique
  * - Met a jour la reference du jeu selectionne et affiche la modal
  * @param {ActiveDownloadGame} gameToCancel - Jeu dont le telechargement doit etre annule
@@ -417,11 +495,33 @@ const openCancelDownloadModal: (gameToCancel: ActiveDownloadGame) => void = (
     // Log l'action d'ouverture de la modal avec le titre du jeu
     logger.debug(`[Cancel Modal] Ouverture de la modal pour le jeu: ${gameToCancel.gameTitle}`)
 
+    const wasPlayingBeforeModalOpen: boolean = !!gameToCancel.isPlaying
+
     // Met a jour la reference reactive avec le jeu selectionne pour l'annulation
     selectedGameForDownloadCancellation.value = gameToCancel
+    shouldResumeDownloadAfterCancelModalClose.value = wasPlayingBeforeModalOpen
 
     // Definit l'indicateur de visibilite de la modal a true pour l'afficher
     isCancelDownloadModalVisible.value = true
+
+    // Met le telechargement en pause en arriere-plan pour laisser le temps
+    // de confirmer l'annulation sans que l'installation se termine entre-temps.
+    if (wasPlayingBeforeModalOpen) {
+      void (async (): Promise<void> => {
+        const isPlayPauseIdle: boolean = await waitForPlayPauseIdle(gameToCancel.gameId)
+        if (!isPlayPauseIdle) return
+
+        const currentGameState: ActiveDownloadGame | undefined = activeDownloadGameList.value.find(
+          (activeGame: ActiveDownloadGame): boolean => activeGame.gameId === gameToCancel.gameId,
+        )
+        if (!currentGameState) return
+        if (!isCancelDownloadModalVisible.value) return
+        if (selectedGameForDownloadCancellation.value?.gameId !== gameToCancel.gameId) return
+        if (!currentGameState.isPlaying || isPostDownloadPhase(currentGameState)) return
+
+        await pauseGameDownload(currentGameState)
+      })()
+    }
   } catch (error: unknown) {
     // Log une erreur si une exception survient lors de l'ouverture de la modal
     logger.error(`[Cancel Modal] Erreur lors de l'ouverture de la modal pour ${gameToCancel.gameTitle}`, error as Error)
@@ -437,6 +537,9 @@ const openCancelDownloadModal: (gameToCancel: ActiveDownloadGame) => void = (
  * @returns {Promise<void>} Promesse resolue une fois l'annulation completee
  */
 const confirmGameDownloadCancellation: () => Promise<void> = async (): Promise<void> => {
+  isConfirmingDownloadCancellation.value = true
+  shouldResumeDownloadAfterCancelModalClose.value = false
+
   try {
     // Verifie si un jeu est selectionne pour l'annulation
     if (!selectedGameForDownloadCancellation.value) {
@@ -484,6 +587,8 @@ const confirmGameDownloadCancellation: () => Promise<void> = async (): Promise<v
     isCancelDownloadModalVisible.value = false
     // Reinitialise la reference du jeu selectionne a null
     selectedGameForDownloadCancellation.value = null
+    shouldResumeDownloadAfterCancelModalClose.value = false
+    isConfirmingDownloadCancellation.value = false
   }
 }
 
