@@ -36,7 +36,7 @@
     <!-- Spinner de chargement : s'affiche seulement pendant le chargement des jeux -->
     <CrzSpinner v-if="isLoading" />
 
-    <!-- Liste des jeux en cours de tÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©chargement -->
+    <!-- Liste des jeux en cours de tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chargement -->
     <div v-if="!isLoading && gameActiveDownload && gameActiveDownload.length > 0" class="mb-8 grid gap-4">
       <h4 class="font-serif text-lg font-medium flex items-center">
         Games being downloaded
@@ -79,11 +79,11 @@
       </div>
     </div>
 
-    <!-- Jeux dÃƒÆ’Ã‚Â©jÃƒÆ’Ã‚Â  installÃƒÆ’Ã‚Â©, mais nÃƒÆ’Ã‚Â©cessitant une mise ÃƒÆ’Ã‚Â  jour -->
+    <!-- Jeux dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©jÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©, mais nÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cessitant une mise ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  jour -->
     <div v-if="!isLoading && gameNeedsUpdate && gameNeedsUpdate.length > 0" class="mb-8 grid gap-4">
       <h4 class="font-serif text-lg font-medium flex items-center">
         Games needing updates
-        <!-- Badge avec le nombre de jeux trouvÃƒÆ’Ã‚Â©s -->
+        <!-- Badge avec le nombre de jeux trouvÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s -->
         <CrzBadge variant="yellow" size="sm" class="ml-2">
           {{ gameNeedsUpdate.length }}
         </CrzBadge>
@@ -121,11 +121,11 @@
       </div>
     </div>
 
-    <!-- Jeux acheter / gratuit dÃƒÆ’Ã‚Â©jÃƒÆ’Ã‚Â  installÃƒÆ’Ã‚Â©s -->
+    <!-- Jeux acheter / gratuit dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©jÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s -->
     <div v-if="!isLoading && gameInstalled && gameInstalled.length > 0" class="mb-8 grid gap-4">
       <h4 class="font-serif text-lg font-medium flex items-center">
         My games installed
-        <!-- Badge avec le nombre de jeux trouvÃƒÆ’Ã‚Â©s -->
+        <!-- Badge avec le nombre de jeux trouvÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s -->
         <CrzBadge variant="yellow" size="sm" class="ml-2">
           {{ gameInstalled.length }}
         </CrzBadge>
@@ -162,11 +162,11 @@
       </div>
     </div>
 
-    <!-- Jeux acheter / gratuit non installÃƒÆ’Ã‚Â©s -->
+    <!-- Jeux acheter / gratuit non installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s -->
     <div v-if="!isLoading && gameNotInstalledVisible.length > 0" class="mb-8 grid gap-4">
       <h4 class="font-serif text-lg font-medium flex items-center">
         My games not installed
-        <!-- Badge avec le nombre de jeux trouvÃƒÆ’Ã‚Â©s -->
+        <!-- Badge avec le nombre de jeux trouvÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s -->
         <CrzBadge variant="yellow" size="sm" class="ml-2">
           {{ gameNotInstalledVisible.length }}
         </CrzBadge>
@@ -214,7 +214,7 @@
       <p class="text-sm text-gray-400 mt-2">No games or extensions match your search.</p>
       <p class="text-sm text-gray-400 mt-2">Try searching with different keywords.</p>
     </div>
-    <!-- Messages pour l'absence de jeux, si aucun jeux est dans la bibliothÃƒÆ’Ã‚Â¨que de l'utilisateur -->
+    <!-- Messages pour l'absence de jeux, si aucun jeux est dans la bibliothÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨que de l'utilisateur -->
     <div
       v-if="
         gameInstalled.length === 0 &&
@@ -232,7 +232,7 @@
       </p>
     </div>
 
-    <!-- Modal de tÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©chargement -->
+    <!-- Modal de tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chargement -->
     <DownloadModal
       v-if="gameToDownload && gamePathInstallLocation"
       :show="showDownloadModal"
@@ -250,7 +250,7 @@
       @update:createDesktopShortcut="onCheckCreateDesktopShortcut($event)"
     />
 
-    <!-- Modal pour rÃƒÆ’Ã‚Â©parer le chemin d'installation du jeu et vÃƒÆ’Ã‚Â©rifier les fichiers -->
+    <!-- Modal pour rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©parer le chemin d'installation du jeu et vÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier les fichiers -->
     <FixGameInstalledInLibraryModal
       v-if="gameToDownload && gamePathInstallLocation"
       :show="showFixGameInstalledModal"
@@ -273,7 +273,7 @@
       @saveQuit="closeFixGameInstalledModal"
     />
 
-    <!-- Modal pour lancer le jeu mais qui n'a pas d'executable ou de dossier du jeu trouvÃƒÆ’Ã‚Â© -->
+    <!-- Modal pour lancer le jeu mais qui n'a pas d'executable ou de dossier du jeu trouvÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© -->
     <PlayGameNotFoundExecutableModal
       v-if="showPlayGameNotFoundExecutableModal && gameToPlayNotFoundExecutable"
       :show="showPlayGameNotFoundExecutableModal"
@@ -371,6 +371,64 @@
               Math.round(uninstallProgressPercent)
             }}%)
           </p>
+        </div>
+      </div>
+    </CrzModal>
+
+    <CrzModal
+      v-if="showPreparingDownloadModal"
+      :show="showPreparingDownloadModal"
+      :show-left-button="false"
+      :show-right-button="false"
+      bgClass="bg-blue-800"
+      @update:show="keepPreparingDownloadModalOpen"
+    >
+      <div class="grid gap-8">
+        <div class="flex flex-wrap gap-4">
+          <img
+            v-if="preparingDownloadGame?.pictureFile?.url"
+            class="h-14 w-14 rounded-lg object-cover"
+            :src="preparingDownloadGame.pictureFile.url"
+            :alt="preparingDownloadGame?.title || 'Game'"
+          />
+          <div class="flex flex-col">
+            <h2 class="text-base font-medium text-zinc-300">
+              {{ preparingDownloadGame?.title || 'Game' }}
+            </h2>
+            <h3 class="text-base font-bold text-white">Preparing download</h3>
+          </div>
+        </div>
+
+        <div class="grid gap-3 rounded-lg bg-orange-500/80 p-4">
+          <template v-if="preparingDownloadStep === 'verifying-files'">
+            <h4 class="flex items-center text-base font-bold text-white">
+              Verifying installed files
+              <span class="library-loading-dots ml-1" aria-hidden="true">
+                <span>.</span>
+                <span>.</span>
+                <span>.</span>
+              </span>
+            </h4>
+            <p class="text-sm text-white">Checking local files before opening download settings.</p>
+            <p class="text-sm text-white">
+              {{ preparingDownloadCheckedFiles }} / {{ preparingDownloadTotalFiles }} files checked ({{
+                Math.round(preparingDownloadProgressPercent)
+              }}%)
+            </p>
+          </template>
+
+          <template v-else>
+            <h4 class="flex items-center text-base font-bold text-white">
+              Checking disk space
+              <span class="library-loading-dots ml-1" aria-hidden="true">
+                <span>.</span>
+                <span>.</span>
+                <span>.</span>
+              </span>
+            </h4>
+            <p class="text-sm text-white">Verifying free disk space before opening download settings.</p>
+            <p class="text-sm text-white">File verification complete: 100%</p>
+          </template>
         </div>
       </div>
     </CrzModal>
@@ -499,9 +557,9 @@ const downloadsStore: ReturnType<typeof useDownloadsStore> = useDownloadsStore()
 const notyf: Notyf = useNuxtApp().$notyf
 const logger: Logger = createLogger('LibraryPage')
 
-const gamesInstalled: Ref<GameInstalled[] | undefined> = ref(undefined) // Jeux dÃƒÆ’Ã‚Â©jÃƒÆ’Ã‚Â  installÃƒÆ’Ã‚Â©
-const gamesNeedsUpdate: Ref<GameInstalled[]> = ref([]) // Jeux deja installÃƒÆ’Ã‚Â© qui ont besoin d'une mise ÃƒÆ’Ã‚Â  jour
-const filesDownloadUpdateGame: Ref<FileDetails[] | undefined> = ref(undefined) // Fichiers ÃƒÆ’Ã‚Â  tÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©charger pour mettre ÃƒÆ’Ã‚Â  jour le jeu
+const gamesInstalled: Ref<GameInstalled[] | undefined> = ref(undefined) // Jeux dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©jÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©
+const gamesNeedsUpdate: Ref<GameInstalled[]> = ref([]) // Jeux deja installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© qui ont besoin d'une mise ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  jour
+const filesDownloadUpdateGame: Ref<FileDetails[] | undefined> = ref(undefined) // Fichiers ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©charger pour mettre ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  jour le jeu
 const user: UserModel | undefined = authStore.user
 /**
  * Donnees prechargees a l'ouverture de la modal pour accelerer le clic Download.
@@ -556,7 +614,7 @@ const gameNotInstalledVisible: ComputedRef<GameModel[]> = computed((): GameModel
   return gameNotInstalled.value.filter((game: GameModel): boolean => !activeDownloadGameIds.has(game.id))
 })
 
-// Modal pour lancer le jeu mais qui n'a pas d'executable ou de dossier du jeu trouvÃƒÆ’Ã‚Â©
+// Modal pour lancer le jeu mais qui n'a pas d'executable ou de dossier du jeu trouvÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©
 const showPlayGameNotFoundExecutableModal: Ref<boolean> = ref(false)
 const gameToPlayNotFoundExecutable: Ref<GameModel | null> = ref(null)
 const showPlayGameNotFoundExecutableMessageError: Ref<string> = ref('')
@@ -574,8 +632,16 @@ const showInstallPathAccessDeniedModal: Ref<boolean> = ref(false)
 const installPathAccessDeniedPath: Ref<string> = ref('')
 const installPathAccessDeniedGameTitle: Ref<string> = ref('')
 const installPathAccessDeniedGamePictureUrl: Ref<string> = ref('')
+const showPreparingDownloadModal: Ref<boolean> = ref(false)
+const preparingDownloadGame: Ref<GameModel | null> = ref(null)
+const preparingDownloadGameId: Ref<number | undefined> = ref(undefined)
+const preparingDownloadInstallPath: Ref<string> = ref('')
+const preparingDownloadCheckedFiles: Ref<number> = ref(0)
+const preparingDownloadTotalFiles: Ref<number> = ref(0)
+const preparingDownloadProgressPercent: Ref<number> = ref(0)
+const preparingDownloadStep: Ref<'verifying-files' | 'checking-disk'> = ref('verifying-files')
 
-// Modal pour rÃƒÆ’Ã‚Â©parer le jeu installÃƒÆ’Ã‚Â©
+// Modal pour rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©parer le jeu installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©
 const showFixGameInstalledModal: Ref<boolean> = ref(false)
 const showFixInstallationInformationsError: Ref<boolean> = ref(false)
 const showFixInstallationInformationsSuccess: Ref<boolean> = ref(false)
@@ -589,7 +655,7 @@ const verifyProgressPercent: Ref<number> = ref(0)
 const unlistenVerifyInstallationProgress: Ref<UnlistenFn | null> = ref(null)
 const unlistenUninstallGameProgress: Ref<UnlistenFn | null> = ref(null)
 
-// Modal de tÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©chargement
+// Modal de tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chargement
 const gameToDownload: Ref<GameModel | null> = ref(null)
 const gameToDownloadFileSize: Ref<number | undefined> = ref(undefined)
 const showDownloadModal: Ref<boolean> = ref(false)
@@ -597,11 +663,13 @@ const gamePathInstallLocation: Ref<PathInstallLocation | undefined> = ref(undefi
 const createDesktopShortcut: Ref<boolean> = ref(false)
 const currentSystemOSInfo: Ref<SystemOSInfo | undefined> = ref(undefined)
 const preloadedDownloadPayload: Ref<PreloadedDownloadPayload | null> = ref(null)
-// Boolean qui permet de dÃƒÆ’Ã‚Â©terminer si l'espace du disk dur du user a assez en fonction de la taille du jeu
+// Boolean qui permet de dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©terminer si l'espace du disk dur du user a assez en fonction de la taille du jeu
 const isSufficientDiskSpaceAvailable: Ref<boolean> = ref(false)
 const showButtonCreateDesktopShortcut: Ref<boolean> = ref(true)
 const showButtonChangePath: Ref<boolean> = ref(true)
-const MIN_UNINSTALL_MODAL_VISIBLE_MS: number = 2500
+const MIN_UNINSTALL_MODAL_VISIBLE_MS: number = 2200
+const MIN_PREPARE_DOWNLOAD_DISK_STEP_VISIBLE_MS: number = 550
+const pendingOpenDownloadModalGameIds: Set<number> = new Set()
 
 const normalizeInstallPathForComparison: (pathValue?: string) => string = (pathValue?: string): string => {
   return (pathValue || '').replace(/\\/g, '/').trim()
@@ -648,38 +716,64 @@ const resetUninstallProgress: () => void = (): void => {
   uninstallProgressPercent.value = 0
 }
 
+const resetPreparingDownloadProgress: () => void = (): void => {
+  preparingDownloadCheckedFiles.value = 0
+  preparingDownloadTotalFiles.value = 0
+  preparingDownloadProgressPercent.value = 0
+}
+
+const isVerifyInstallationPayloadMatchingSelection: (
+  payload: VerifyInstallationProgressEventPayload,
+  selectedGameId?: number,
+  selectedInstallPath?: string,
+) => boolean = (
+  payload: VerifyInstallationProgressEventPayload,
+  selectedGameId?: number,
+  selectedInstallPath?: string,
+): boolean => {
+  const payloadGameId: number = normalizeProgressNumber(payload.gameId)
+  if (selectedGameId && payloadGameId && payloadGameId !== selectedGameId) {
+    return false
+  }
+
+  const payloadInstallPath: string | undefined = payload.pathInstallLocation
+  if (selectedInstallPath && payloadInstallPath && !areInstallPathsEqual(selectedInstallPath, payloadInstallPath)) {
+    return false
+  }
+
+  return true
+}
+
 const handleVerifyInstallationProgress: (payload: VerifyInstallationProgressEventPayload) => void = (
   payload: VerifyInstallationProgressEventPayload,
 ): void => {
-  if (!showFixGameInstalledModal.value) {
-    return
-  }
-
-  const selectedGameId: number | undefined = gameToDownload.value?.id
-  const payloadGameId: number = normalizeProgressNumber(payload.gameId)
-  if (selectedGameId && payloadGameId && payloadGameId !== selectedGameId) {
-    return
-  }
-
-  const selectedInstallPath: string | undefined = gamePathInstallLocation.value?.pathSystem
-  const payloadInstallPath: string | undefined = payload.pathInstallLocation
-  if (selectedInstallPath && payloadInstallPath && !areInstallPathsEqual(selectedInstallPath, payloadInstallPath)) {
-    return
-  }
-
   const totalFiles: number = Math.max(0, Math.floor(normalizeProgressNumber(payload.totalFiles)))
   const checkedFilesRaw: number = Math.max(0, Math.floor(normalizeProgressNumber(payload.checkedFiles)))
   const checkedFiles: number = totalFiles > 0 ? Math.min(checkedFilesRaw, totalFiles) : checkedFilesRaw
+  const progressPercent: number =
+    totalFiles > 0
+      ? clampPercentage((checkedFiles / totalFiles) * 100)
+      : payload.done
+        ? 100
+        : clampPercentage(normalizeProgressNumber(payload.progress))
 
-  verifyProgressTotalFiles.value = totalFiles
-  verifyProgressCheckedFiles.value = checkedFiles
+  if (
+    showFixGameInstalledModal.value &&
+    isVerifyInstallationPayloadMatchingSelection(payload, gameToDownload.value?.id, gamePathInstallLocation.value?.pathSystem)
+  ) {
+    verifyProgressTotalFiles.value = totalFiles
+    verifyProgressCheckedFiles.value = checkedFiles
+    verifyProgressPercent.value = progressPercent
+  }
 
-  if (totalFiles > 0) {
-    verifyProgressPercent.value = clampPercentage((checkedFiles / totalFiles) * 100)
-  } else if (payload.done) {
-    verifyProgressPercent.value = 100
-  } else {
-    verifyProgressPercent.value = clampPercentage(normalizeProgressNumber(payload.progress))
+  if (
+    showPreparingDownloadModal.value &&
+    preparingDownloadStep.value === 'verifying-files' &&
+    isVerifyInstallationPayloadMatchingSelection(payload, preparingDownloadGameId.value, preparingDownloadInstallPath.value)
+  ) {
+    preparingDownloadTotalFiles.value = totalFiles
+    preparingDownloadCheckedFiles.value = checkedFiles
+    preparingDownloadProgressPercent.value = progressPercent
   }
 }
 
@@ -1000,7 +1094,7 @@ onBeforeUnmount((): void => {
 })
 
 /**
- * On recoit l'ÃƒÆ’Ã‚Â©vÃƒÆ’Ã‚Â©nement quand un jeu est tÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©chargÃƒÆ’Ã‚Â©
+ * On recoit l'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©vÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©nement quand un jeu est tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chargÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©
  */
 watch(
   () => downloadsStore.completedDownloads,
@@ -1011,35 +1105,35 @@ watch(
     }
 
     for (const completedGame of completedDownloads) {
-      // VÃƒÆ’Ã‚Â©rifier si le jeu tÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©chargÃƒÆ’Ã‚Â© n'est pas dÃƒÆ’Ã‚Â©jÃƒÆ’Ã‚Â  dans gamesInstalled pour ÃƒÆ’Ã‚Â©viter les doublons
+      // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier si le jeu tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chargÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© n'est pas dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©jÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  dans gamesInstalled pour ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©viter les doublons
       if (
         !gamesInstalled.value?.some((game: GameInstalled): boolean =>
           isInstalledEntryForCanonicalGameId(game, completedGame.gameId),
         )
       ) {
         try {
-          // RÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©rer tous les jeux installÃƒÆ’Ã‚Â©s via un fichier installÃƒÆ’Ã‚Â© sur le disque de l'utilisateur
+          // RÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cupÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rer tous les jeux installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s via un fichier installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© sur le disque de l'utilisateur
           const gamesInstalledAll: GameInstalled[] | undefined = await TauriService.getGamesInstalled(currentUserId)
           if (!gamesInstalledAll) {
             console.warn('Get games installed failed')
             return
           }
 
-          // Ajouter le jeu aux jeux installÃƒÆ’Ã‚Â©s
+          // Ajouter le jeu aux jeux installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s
           gamesInstalled.value = gamesInstalledAll
           gameInstalled.value.push(await GameService.getGameById(completedGame.gameId))
 
-          // Retirer ce jeu des jeux non installÃƒÆ’Ã‚Â©s
+          // Retirer ce jeu des jeux non installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s
           gameNotInstalled.value = gameNotInstalled.value.filter(
             (game: GameModel): boolean => game.id !== completedGame.gameId,
           )
 
-          // Supprimer le jeu de la liste des jeux en cours de tÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©chargement
+          // Supprimer le jeu de la liste des jeux en cours de tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chargement
           gameActiveDownload.value = gameActiveDownload.value.filter(
             (game: GameModel): boolean => game.id !== completedGame.gameId,
           )
         } catch (error: any) {
-          console.error("Erreur lors de l'ajout du jeu installÃƒÆ’Ã‚Â© :", error)
+          console.error("Erreur lors de l'ajout du jeu installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© :", error)
         }
       }
     }
@@ -1053,8 +1147,8 @@ watch(
     for (const activeDownload of activeDownloads) {
       const activeDownloadGameId: number = activeDownload.gameId
 
-      // VÃƒÆ’Ã‚Â©rifier si le jeu tÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©chargÃƒÆ’Ã‚Â© n'est pas dÃƒÆ’Ã‚Â©jÃƒÆ’Ã‚Â  dans gameActiveDownload pour ÃƒÆ’Ã‚Â©viter les doublons
-      // et s'il n'est pas dÃƒÆ’Ã‚Â©jÃƒÆ’Ã‚Â  dans gameNeedsUpdate pour ÃƒÆ’Ã‚Â©viter les doublons
+      // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier si le jeu tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chargÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© n'est pas dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©jÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  dans gameActiveDownload pour ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©viter les doublons
+      // et s'il n'est pas dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©jÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  dans gameNeedsUpdate pour ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©viter les doublons
       if (
         !pendingActiveDownloadGameIds.has(activeDownloadGameId) &&
         !gameActiveDownload.value.some((game: GameModel): boolean => game.id === activeDownloadGameId) &&
@@ -1063,10 +1157,10 @@ watch(
         pendingActiveDownloadGameIds.add(activeDownloadGameId)
 
         try {
-          // Retirer ce jeu des jeux non installÃƒÆ’Ã‚Â©s
+          // Retirer ce jeu des jeux non installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s
           gameNotInstalled.value = gameNotInstalled.value.filter((game: GameModel): boolean => game.id !== activeDownloadGameId)
 
-          // RÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©rer le jeu ÃƒÆ’Ã‚Â  tÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©charger
+          // RÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cupÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rer le jeu ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©charger
           const game: GameModel = await GameService.getGameById(activeDownloadGameId)
 
           // Double-check apres await pour eviter les doublons en cas de callbacks concurrents.
@@ -1081,7 +1175,7 @@ watch(
             gameActiveDownload.value.push(game)
           }
         } catch (error: any) {
-          console.error("Erreur lors de l'ajout du jeu ÃƒÆ’Ã‚Â  tÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©charger :", error)
+          console.error("Erreur lors de l'ajout du jeu ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©charger :", error)
         } finally {
           pendingActiveDownloadGameIds.delete(activeDownloadGameId)
         }
@@ -1106,7 +1200,7 @@ const isUninstallBlockedByRunningGameError: (error: unknown) => boolean = (error
     normalizedMessage.includes('used by another process') ||
     normalizedMessage.includes('being used by another process') ||
     normalizedMessage.includes('utilise par un autre processus') ||
-    normalizedMessage.includes('utilisé par un autre processus') ||
+    normalizedMessage.includes('utilisÃ© par un autre processus') ||
     normalizedMessage.includes('resource busy') ||
     normalizedMessage.includes('device or resource busy') ||
     normalizedMessage.includes('text file busy')
@@ -1167,6 +1261,52 @@ const closeUninstallingGameModal: () => void = (): void => {
 const keepUninstallingGameModalOpen: () => void = (): void => {}
 
 /**
+ * Ouvre la modal d'information de preparation de telechargement.
+ * @param {GameModel} game - Jeu cible.
+ * @param {string} installPath - Chemin d'installation local.
+ * @returns {void}
+ */
+const openPreparingDownloadModal: (game: GameModel, installPath: string) => void = (
+  game: GameModel,
+  installPath: string,
+): void => {
+  preparingDownloadGame.value = game
+  preparingDownloadGameId.value = game.id
+  preparingDownloadInstallPath.value = installPath
+  preparingDownloadStep.value = 'verifying-files'
+  resetPreparingDownloadProgress()
+  showPreparingDownloadModal.value = true
+}
+
+/**
+ * Passe la modal de preparation en etape verification espace disque.
+ * @returns {void}
+ */
+const setPreparingDownloadDiskStep: () => void = (): void => {
+  preparingDownloadStep.value = 'checking-disk'
+  preparingDownloadProgressPercent.value = 100
+}
+
+/**
+ * Ferme et reinitialise la modal d'information de preparation.
+ * @returns {void}
+ */
+const closePreparingDownloadModal: () => void = (): void => {
+  showPreparingDownloadModal.value = false
+  preparingDownloadGame.value = null
+  preparingDownloadGameId.value = undefined
+  preparingDownloadInstallPath.value = ''
+  preparingDownloadStep.value = 'verifying-files'
+  resetPreparingDownloadProgress()
+}
+
+/**
+ * Empeche la fermeture manuelle de la modal pendant la preparation.
+ * @returns {void}
+ */
+const keepPreparingDownloadModalOpen: () => void = (): void => {}
+
+/**
  * Ouvre la modal d'information quand le chemin d'installation n'est pas accessible en ecriture.
  * @param {string} installPath - Chemin d'installation selectionne.
  * @returns {void}
@@ -1202,20 +1342,20 @@ const UninstallGame: (game: GameModel) => Promise<void> = async (game: GameModel
   let uninstallModalOpenedAt: number | null = null
 
   try {
-    // Chercher le jeu dans les jeux installÃƒÆ’Ã‚Â©s
+    // Chercher le jeu dans les jeux installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s
     let currentGame: GameInstalled | undefined = findInstalledEntryByCanonicalGameId(gamesInstalled.value, game.id)
 
-    // Si le jeu n'est pas trouvÃƒÆ’Ã‚Â© dans les jeux installÃƒÆ’Ã‚Â©s, le chercher dans les jeux nÃƒÆ’Ã‚Â©cessitant une mise ÃƒÆ’Ã‚Â  jour
+    // Si le jeu n'est pas trouvÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© dans les jeux installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s, le chercher dans les jeux nÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cessitant une mise ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  jour
     if (!currentGame) {
       currentGame = findInstalledEntryByCanonicalGameId(gamesNeedsUpdate.value, game.id)
     }
 
-    // Si le jeu n'est trouvÃƒÆ’Ã‚Â© ni dans les jeux installÃƒÆ’Ã‚Â©s ni dans les jeux nÃƒÆ’Ã‚Â©cessitant une mise ÃƒÆ’Ã‚Â  jour, sortir
+    // Si le jeu n'est trouvÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© ni dans les jeux installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s ni dans les jeux nÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cessitant une mise ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  jour, sortir
     if (!currentGame) {
       return
     }
 
-    // DÃƒÆ’Ã‚Â©sinstaller le jeu
+    // DÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©sinstaller le jeu
     const isGameRunning: boolean = await TauriService.isGameRunning(currentGame.gameManifest.pathInstallLocation)
     if (isGameRunning) {
       logger.warn(`[Library] Uninstall blocked because game is running gameId=${game.id} title=${game.title}`)
@@ -1226,11 +1366,11 @@ const UninstallGame: (game: GameModel) => Promise<void> = async (game: GameModel
     openUninstallingGameModal(game, currentGame.gameManifest.pathInstallLocation)
     uninstallModalOpenedAt = Date.now()
     await TauriService.uninstallGame(currentGame.gameManifest.pathInstallLocation, currentGame.gameManifest.gameId)
-    // Supprimer le jeu installÃƒÆ’Ã‚Â© de la liste des jeux installÃƒÆ’Ã‚Â©s dans le fichier de configuration local
+    // Supprimer le jeu installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© de la liste des jeux installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s dans le fichier de configuration local
     const currentUserId: number | undefined = authStore.user?.id
     await TauriService.removeGameInstalled(currentGame.gameManifest.gameId, currentUserId)
 
-    // Supprimer le jeu de la liste des jeux installÃƒÆ’Ã‚Â©s ou de la liste des jeux nÃƒÆ’Ã‚Â©cessitant une mise ÃƒÆ’Ã‚Â  jour
+    // Supprimer le jeu de la liste des jeux installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s ou de la liste des jeux nÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cessitant une mise ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  jour
     gamesInstalled.value = gamesInstalled.value?.filter((gameInstalled: GameInstalled) => {
       return !isInstalledEntryForCanonicalGameId(gameInstalled, game.id)
     })
@@ -1238,7 +1378,7 @@ const UninstallGame: (game: GameModel) => Promise<void> = async (game: GameModel
       return !isInstalledEntryForCanonicalGameId(gameNeedsUpdate, game.id)
     })
 
-    // Mettre ÃƒÆ’Ã‚Â  jour les listes de jeux ÃƒÆ’Ã‚Â  afficher
+    // Mettre ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  jour les listes de jeux ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  afficher
     gameInstalled.value = gameInstalled.value.filter((gameModel: GameModel) => gameModel.id !== game.id)
     gameNeedsUpdate.value = gameNeedsUpdate.value.filter((gameModel: GameModel) => gameModel.id !== game.id)
     gameNotInstalled.value = [...gameNotInstalled.value, game]
@@ -1271,20 +1411,20 @@ const UninstallGame: (game: GameModel) => Promise<void> = async (game: GameModel
 }
 
 /**
- * CrÃƒÆ’Ã‚Â©er un raccourci sur le bureau
+ * CrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©er un raccourci sur le bureau
  * @param {GameModel} game - The game
  * @returns {Promise<void>} - The promise
  */
 const createShortcutOnDesktop: (game: GameModel) => Promise<void> = async (game: GameModel): Promise<void> => {
-  // Chercher le jeu dans les jeux installÃƒÆ’Ã‚Â©s
+  // Chercher le jeu dans les jeux installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s
   let currentGame: GameInstalled | undefined = findInstalledEntryByCanonicalGameId(gamesInstalled.value, game.id)
 
-  // Si le jeu n'est pas trouvÃƒÆ’Ã‚Â© dans les jeux installÃƒÆ’Ã‚Â©s, le chercher dans les jeux nÃƒÆ’Ã‚Â©cessitant une mise ÃƒÆ’Ã‚Â  jour
+  // Si le jeu n'est pas trouvÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© dans les jeux installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s, le chercher dans les jeux nÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cessitant une mise ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  jour
   if (!currentGame) {
     currentGame = findInstalledEntryByCanonicalGameId(gamesNeedsUpdate.value, game.id)
   }
 
-  // Si le jeu n'est trouvÃƒÆ’Ã‚Â© ni dans les jeux installÃƒÆ’Ã‚Â©s ni dans les jeux nÃƒÆ’Ã‚Â©cessitant une mise ÃƒÆ’Ã‚Â  jour, sortir
+  // Si le jeu n'est trouvÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© ni dans les jeux installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s ni dans les jeux nÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cessitant une mise ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  jour, sortir
   if (!currentGame) {
     return
   }
@@ -1301,7 +1441,7 @@ const createShortcutOnDesktop: (game: GameModel) => Promise<void> = async (game:
 }
 
 /**
- * Fermer la modal decrivant que le jeu n'a pas d'executable ou de dossier du jeu trouvÃƒÆ’Ã‚Â©
+ * Fermer la modal decrivant que le jeu n'a pas d'executable ou de dossier du jeu trouvÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©
  * @returns {void}
  */
 const closePlayGameNotFoundExecutableModal: () => void = (): void => {
@@ -1310,9 +1450,9 @@ const closePlayGameNotFoundExecutableModal: () => void = (): void => {
 }
 
 /**
- * VÃƒÆ’Ã‚Â©rifie les mises ÃƒÆ’Ã‚Â  jour pour un jeu spÃƒÆ’Ã‚Â©cifique
- * @param {GameModel} game - Le jeu ÃƒÆ’Ã‚Â  vÃƒÆ’Ã‚Â©rifier
- * @returns {Promise<boolean>} - Retourne true si une mise ÃƒÆ’Ã‚Â  jour est disponible, false sinon
+ * VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifie les mises ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  jour pour un jeu spÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cifique
+ * @param {GameModel} game - Le jeu ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  vÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier
+ * @returns {Promise<boolean>} - Retourne true si une mise ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  jour est disponible, false sinon
  */
 const checkForGameUpdate: (game: GameModel) => Promise<boolean> = async (game: GameModel): Promise<boolean> => {
   const canonicalGameId: number = game.id
@@ -1341,7 +1481,7 @@ const checkForGameUpdate: (game: GameModel) => Promise<boolean> = async (game: G
 }
 
 /**
- * Fait un check pour voir si les jeux dÃƒÆ’Ã‚Â©jÃƒÆ’Ã‚Â  installÃƒÆ’Ã‚Â©es ont besoin d'une mise ÃƒÆ’Ã‚Â  jour
+ * Fait un check pour voir si les jeux dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©jÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es ont besoin d'une mise ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  jour
  * @returns {Promise<void>} - The promise
  */
 const checkForUpdatesGames: () => Promise<void> = async (): Promise<void> => {
@@ -1429,25 +1569,25 @@ const onPlayGame: (game: GameModel) => Promise<Promise<void> | string> = async (
   game: GameModel,
 ): Promise<Promise<void> | string> => {
   /**
-   * Check si si il y a au moins un jeu installÃƒÆ’Ã‚Â©
+   * Check si si il y a au moins un jeu installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©
    */
   if (gamesInstalled.value) {
     /**
-     * Chercher le jeu dans les jeux installÃƒÆ’Ã‚Â©s par rapport ÃƒÆ’Ã‚Â  l'id du jeu passÃƒÆ’Ã‚Â© en paramÃƒÆ’Ã‚Â¨tre
+     * Chercher le jeu dans les jeux installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s par rapport ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  l'id du jeu passÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© en paramÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨tre
      * lors de l'appel de la fonction onPlayGame, c'est quand on clique sur le bouton play du jeu
      */
     const currentGame: GameInstalled | undefined = findInstalledEntryByCanonicalGameId(gamesInstalled.value, game.id)
 
     /**
-     * Si le jeu est trouvÃƒÆ’Ã‚Â© dans les jeux installÃƒÆ’Ã‚Â©s, on continue
+     * Si le jeu est trouvÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© dans les jeux installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s, on continue
      */
     if (currentGame) {
-      // VÃƒÆ’Ã‚Â©rifier si une mise ÃƒÆ’Ã‚Â  jour est disponible
+      // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier si une mise ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  jour est disponible
       const hasUpdate: boolean = await checkForGameUpdate(game)
 
-      // Si une mise ÃƒÆ’Ã‚Â  jour est disponible, afficher un message et sortir
+      // Si une mise ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  jour est disponible, afficher un message et sortir
       if (hasUpdate) {
-        // Supprimer le jeu de la liste des jeux installÃƒÆ’Ã‚Â©s
+        // Supprimer le jeu de la liste des jeux installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s
         gamesInstalled.value = gamesInstalled.value.filter(
           (gameInstalled: GameInstalled): boolean => !isInstalledEntryForCanonicalGameId(gameInstalled, game.id),
         )
@@ -1459,14 +1599,14 @@ const onPlayGame: (game: GameModel) => Promise<Promise<void> | string> = async (
       // Lancer le jeu
       try {
         isLaunchingGame.value = true
-        // Attendez un dÃƒÆ’Ã‚Â©lai arbitraire pour simuler le lancement du jeu
+        // Attendez un dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lai arbitraire pour simuler le lancement du jeu
         setTimeout(() => {
           isLaunchingGame.value = false
         }, 2000)
         await TauriService.launchGame(currentGame.gameManifest.pathInstallLocation)
       } catch (error) {
         // Affiche un message disant que le dossier du jeu n'existe pas ou que l'executable n'existe pas
-        // une popup avec un boutton disant rÃƒÆ’Ã‚Â©parer le jeu installÃƒÆ’Ã‚Â©
+        // une popup avec un boutton disant rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©parer le jeu installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©
         showPlayGameNotFoundExecutableMessageError.value = 'play game'
         gameToPlayNotFoundExecutable.value = game
         showPlayGameNotFoundExecutableModal.value = true
@@ -1485,19 +1625,19 @@ const refreshLibrary: () => void = (): void => {
     userGameLibrariesStore.userGameLibrariesSortedByPlatform &&
     userGameLibrariesStore.userGameLibrariesSortedByPlatform.length > 0
   ) {
-    // Jeux installÃƒÆ’Ã‚Â©s
+    // Jeux installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s
     gameInstalled.value = userGameLibrariesStore.userGameLibrariesSortedByPlatform.filter((game: GameModel) => {
       return gamesInstalled.value?.some((installedGame: GameInstalled) =>
         isInstalledEntryForCanonicalGameId(installedGame, game.id),
       )
     })
 
-    // Jeux nÃƒÆ’Ã‚Â©cessitant une mise ÃƒÆ’Ã‚Â  jour
+    // Jeux nÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cessitant une mise ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  jour
     gameNeedsUpdate.value = userGameLibrariesStore.userGameLibrariesSortedByPlatform.filter((game: GameModel) => {
       return gameNeedsUpdate.value.some((gameUpdate: GameModel) => gameUpdate.id === game.id)
     })
 
-    // Jeux non installÃƒÆ’Ã‚Â©s
+    // Jeux non installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s
     gameNotInstalled.value = userGameLibrariesStore.userGameLibrariesSortedByPlatform.filter((game: GameModel) => {
       return (
         !gamesInstalled.value?.some((installedGame: GameInstalled) =>
@@ -1507,7 +1647,7 @@ const refreshLibrary: () => void = (): void => {
       )
     })
 
-    // Jeux en cours de tÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©chargement
+    // Jeux en cours de tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chargement
     gameActiveDownload.value = userGameLibrariesStore.userGameLibrariesSortedByPlatform.filter((game: GameModel) => {
       return downloadsStore.activeDownloads.some(
         (activeDownload: ActiveDownloadGame) => activeDownload.gameId === game.id,
@@ -1522,7 +1662,7 @@ const refreshLibrary: () => void = (): void => {
 }
 
 /**
- * Ouvrir la modal de tÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©chargement
+ * Ouvrir la modal de tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chargement
  * @param {GameModel} game - The game
  * @param {boolean} addDirectoryGame - The add directory game
  * @param {boolean} launcherGetPath - The launcher get path
@@ -1533,148 +1673,211 @@ const openDownloadModal: (
   addDirectoryGame: boolean,
   launcherGetPath: boolean,
 ) => Promise<void> = async (game: GameModel, addDirectoryGame: boolean, launcherGetPath: boolean): Promise<void> => {
-  closeFixGameInstalledModal()
+  if (pendingOpenDownloadModalGameIds.has(game.id)) {
+    return
+  }
+  pendingOpenDownloadModalGameIds.add(game.id)
 
-  gameToDownload.value = game
-  preloadedDownloadPayload.value = null
+  try {
+    closeFixGameInstalledModal()
 
-  let pathInstallLocationGame: string | undefined = undefined
+    gameToDownload.value = game
+    preloadedDownloadPayload.value = null
+    showButtonCreateDesktopShortcut.value = true
+    showButtonChangePath.value = true
 
-  // VÃƒÆ’Ã‚Â©rifier si le jeu est installÃƒÆ’Ã‚Â© ou nÃƒÆ’Ã‚Â©cessite une mise ÃƒÆ’Ã‚Â  jour
-  const installedGame: GameInstalled | undefined = findInstalledEntryByCanonicalGameId(gamesInstalled.value, game.id)
-  const gameNeedUpdate: GameInstalled | undefined = findInstalledEntryByCanonicalGameId(gamesNeedsUpdate.value, game.id)
+    let pathInstallLocationGame: string | undefined = undefined
+    let diskStepStartedAtMs: number | undefined = undefined
 
-  const gameManifest: GameManifestLocal | undefined = installedGame
-    ? installedGame.gameManifest
-    : gameNeedUpdate?.gameManifest
+    // Vérifier si le jeu est installé ou nécessite une mise à jour
+    const installedGame: GameInstalled | undefined = findInstalledEntryByCanonicalGameId(gamesInstalled.value, game.id)
+    const gameNeedUpdate: GameInstalled | undefined = findInstalledEntryByCanonicalGameId(gamesNeedsUpdate.value, game.id)
 
-  if (gameManifest) {
-    // RÃƒÆ’Ã‚Â©paration d'un jeu installÃƒÆ’Ã‚Â© ou mise ÃƒÆ’Ã‚Â  jour d'un jeu
-    pathInstallLocationGame = gameManifest.pathInstallLocation
-    showButtonCreateDesktopShortcut.value = false
-    showButtonChangePath.value = false
-  } else {
-    // Jeux non installÃƒÆ’Ã‚Â©s
-    const gamePlatform: GamePlatformModel | undefined = game.gamePlatform.find(
-      (gamePlatform: GamePlatformModel) =>
-        gamePlatform.name.toLowerCase() === currentSystemOSInfo.value?.os.toLowerCase(),
-    )
+    const gameManifest: GameManifestLocal | undefined = installedGame
+      ? installedGame.gameManifest
+      : gameNeedUpdate?.gameManifest
 
-    // Si une plateforme correspondante est trouvÃƒÆ’Ã‚Â©e, je rÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©re le fichier binaire du jeu pour rÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©rer sa taille
-    if (gamePlatform) {
-      const gameBinary: GameBinaryModel | undefined = game.gameBinary.find(
-        (gameBinary: GameBinaryModel): boolean => gameBinary.gamePlatform.id === gamePlatform.id,
+    if (gameManifest) {
+      // Préparation d'un jeu installé ou mise à jour d'un jeu
+      pathInstallLocationGame = gameManifest.pathInstallLocation
+      showButtonCreateDesktopShortcut.value = false
+      showButtonChangePath.value = false
+      openPreparingDownloadModal(game, pathInstallLocationGame)
+    } else {
+      // Jeux non installés
+      const gamePlatform: GamePlatformModel | undefined = game.gamePlatform.find(
+        (gamePlatform: GamePlatformModel) =>
+          gamePlatform.name.toLowerCase() === currentSystemOSInfo.value?.os.toLowerCase(),
       )
 
-      if (gameBinary) {
-        if (!currentSystemOSInfo.value) {
-          return
-        }
-
-        const latestGameVersionAvailable: GameVersionModel =
-          await GameVersionService.getLatestAvailableGameVersionByGameId(game.id)
-        cacheLatestAvailableVersion(game.id, latestGameVersionAvailable.version)
-
-        const fullPathFilename: string = `${gameBinary.file.pathfilename}${latestGameVersionAvailable.version}/${currentSystemOSInfo.value.architecture}/`
-        const gameManifestRemote: GameManifestRemote | undefined = await TauriService.downloadGameManifestRemote(
-          gameBinary.file.bucket.name,
-          fullPathFilename,
+      // Si une plateforme correspondante est trouvée, je récupère le fichier binaire du jeu pour récupérer sa taille
+      if (gamePlatform) {
+        const gameBinary: GameBinaryModel | undefined = game.gameBinary.find(
+          (gameBinary: GameBinaryModel): boolean => gameBinary.gamePlatform.id === gamePlatform.id,
         )
-        if (!gameManifestRemote) {
-          return
-        }
 
-        const totalSizeToDownload: number = gameManifestRemote.files.reduce(
-          (totalSize: number, file: FileDetails): number => totalSize + file.size,
-          0,
-        )
-        preloadedDownloadPayload.value = {
-          gameId: game.id,
-          bucketName: gameBinary.file.bucket.name,
-          basePathFilename: gameBinary.file.pathfilename,
-          latestVersion: latestGameVersionAvailable.version,
-          fullPathFilename: fullPathFilename,
-          gameManifestRemote: gameManifestRemote,
-          totalSizeToDownload: totalSizeToDownload,
-        }
+        if (gameBinary) {
+          if (!currentSystemOSInfo.value) {
+            return
+          }
 
-        await setInstallLocationDefault(addDirectoryGame, launcherGetPath, totalSizeToDownload, pathInstallLocationGame)
+          const latestGameVersionAvailable: GameVersionModel =
+            await GameVersionService.getLatestAvailableGameVersionByGameId(game.id)
+          cacheLatestAvailableVersion(game.id, latestGameVersionAvailable.version)
+
+          const fullPathFilename: string = `${gameBinary.file.pathfilename}${latestGameVersionAvailable.version}/${currentSystemOSInfo.value.architecture}/`
+          const gameManifestRemote: GameManifestRemote | undefined = await TauriService.downloadGameManifestRemote(
+            gameBinary.file.bucket.name,
+            fullPathFilename,
+          )
+          if (!gameManifestRemote) {
+            return
+          }
+
+          const totalSizeToDownload: number = gameManifestRemote.files.reduce(
+            (totalSize: number, file: FileDetails): number => totalSize + file.size,
+            0,
+          )
+          preloadedDownloadPayload.value = {
+            gameId: game.id,
+            bucketName: gameBinary.file.bucket.name,
+            basePathFilename: gameBinary.file.pathfilename,
+            latestVersion: latestGameVersionAvailable.version,
+            fullPathFilename: fullPathFilename,
+            gameManifestRemote: gameManifestRemote,
+            totalSizeToDownload: totalSizeToDownload,
+          }
+
+          await setInstallLocationDefault(addDirectoryGame, launcherGetPath, totalSizeToDownload, pathInstallLocationGame)
+        }
       }
     }
-  }
 
-  if (gameManifest) {
-    // RÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©rer le manifeste local du jeu
-    const gameManifestLocal: GameManifestLocal | undefined = await TauriService.getContentLocalManifest(
-      gameManifest.pathInstallLocation,
-    )
-    if (!gameManifestLocal || !currentSystemOSInfo.value) {
-      return
-    }
+    if (gameManifest) {
+      // Récupérer le manifeste local du jeu
+      let gameManifestLocal: GameManifestLocal | undefined = undefined
+      let isManifestLocalMissingForUpdate: boolean = false
+      try {
+        gameManifestLocal = await TauriService.getContentLocalManifest(gameManifest.pathInstallLocation)
+        if (!gameManifestLocal) {
+          isManifestLocalMissingForUpdate = true
+        }
+      } catch (error: unknown) {
+        isManifestLocalMissingForUpdate = true
+        logger.warn(
+          `[Download Modal] Local manifest missing/unreadable for update at path=${gameManifest.pathInstallLocation}. Falling back to remote verification: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        )
+      }
+      if (!currentSystemOSInfo.value) {
+        return
+      }
 
-    const currentOSInfo: SystemOSInfo = currentSystemOSInfo.value
+      const currentOSInfo: SystemOSInfo = currentSystemOSInfo.value
 
-    // RÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©rer le jeu
-    const gameDetails: GameModel = await GameService.getGameById(game.id)
+      // Récupérer le jeu
+      const gameDetails: GameModel = await GameService.getGameById(game.id)
 
-    // RÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©rer la plateforme du jeu qui correspond ÃƒÆ’Ã‚Â  l'OS du systÃƒÆ’Ã‚Â¨me actuel en rendant la comparaison insensible ÃƒÆ’Ã‚Â  la casse
-    const gamePlatform: GamePlatformModel | undefined = gameDetails.gamePlatform.find(
-      (gamePlatform: GamePlatformModel) => gamePlatform.name.toLowerCase() === currentOSInfo.os.toLowerCase(),
-    )
-
-    // Si une plateforme correspondante est trouvÃƒÆ’Ã‚Â©e, procÃƒÆ’Ã‚Â©dez au tÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©chargement
-    if (gamePlatform) {
-      const gameBinaryPlatform: GameBinaryModel | undefined = gameDetails.gameBinary.find(
-        (gameBinary: GameBinaryModel): boolean => gameBinary.gamePlatform.id === gamePlatform.id,
+      // Récupérer la plateforme du jeu qui correspond à l'OS du système actuel en rendant la comparaison insensible à la casse
+      const gamePlatform: GamePlatformModel | undefined = gameDetails.gamePlatform.find(
+        (gamePlatform: GamePlatformModel) => gamePlatform.name.toLowerCase() === currentOSInfo.os.toLowerCase(),
       )
 
-      if (gameBinaryPlatform) {
-        // RÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©rer la derniÃƒÆ’Ã‚Â¨re version du jeu disponible
-        const latestGameVersionAvailable: GameVersionModel | undefined =
-          await GameVersionService.getLatestAvailableGameVersionByGameId(gameDetails.id)
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        if (!latestGameVersionAvailable) {
-          return
-        }
-
-        // RÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©rer le manifeste du jeu ÃƒÆ’Ã‚Â  partir du serveur
-        const fullPathFilename: string = `${gameBinaryPlatform.file.pathfilename}${latestGameVersionAvailable.version}/${currentOSInfo.architecture}/`
-        const gameManifestRemote: GameManifestRemote | undefined = await TauriService.downloadGameManifestRemote(
-          gameBinaryPlatform.file.bucket.name,
-          fullPathFilename,
-        )
-        if (!gameManifestRemote) {
-          return
-        }
-
-        // RÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©rer la liste des fichiers ÃƒÆ’Ã‚Â  tÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©charger pour le jeu en comparant les manifestes locaux et distant
-        filesDownloadUpdateGame.value = await TauriService.getFilesToDownload(
-          gameManifestLocal,
-          gameManifestRemote,
-          gameManifestLocal.pathInstallLocation,
+      // Si une plateforme correspondante est trouvée, procédez au téléchargement
+      if (gamePlatform) {
+        const gameBinaryPlatform: GameBinaryModel | undefined = gameDetails.gameBinary.find(
+          (gameBinary: GameBinaryModel): boolean => gameBinary.gamePlatform.id === gamePlatform.id,
         )
 
-        // VÃƒÆ’Ã‚Â©rifier si l'espace disque est suffisant pour installer le jeu
-        // en faisant le total de la taille des fichiers ÃƒÆ’Ã‚Â  tÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©charger
-        const totalSizeToDownload: number = filesDownloadUpdateGame.value.reduce(
-          (totalSize: number, file: FileDetails): number => totalSize + file.size,
-          0,
-        )
-        preloadedDownloadPayload.value = {
-          gameId: gameDetails.id,
-          bucketName: gameBinaryPlatform.file.bucket.name,
-          basePathFilename: gameBinaryPlatform.file.pathfilename,
-          latestVersion: latestGameVersionAvailable.version,
-          fullPathFilename: fullPathFilename,
-          gameManifestRemote: gameManifestRemote,
-          totalSizeToDownload: totalSizeToDownload,
+        if (gameBinaryPlatform) {
+          // Récupérer la dernière version du jeu disponible
+          const latestGameVersionAvailable: GameVersionModel | undefined =
+            await GameVersionService.getLatestAvailableGameVersionByGameId(gameDetails.id)
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          if (!latestGameVersionAvailable) {
+            return
+          }
+
+          // Récupérer le manifeste du jeu à partir du serveur
+          const fullPathFilename: string = `${gameBinaryPlatform.file.pathfilename}${latestGameVersionAvailable.version}/${currentOSInfo.architecture}/`
+          const gameManifestRemote: GameManifestRemote | undefined = await TauriService.downloadGameManifestRemote(
+            gameBinaryPlatform.file.bucket.name,
+            fullPathFilename,
+          )
+          if (!gameManifestRemote) {
+            return
+          }
+
+          // Récupérer la liste des fichiers à télécharger pour le jeu en comparant les manifestes locaux et distant
+          const totalRemoteManifestSize: number = resolveTotalSizeToDownload(gameManifestRemote.files, 0)
+          let filesToDownloadForUpdate: FileDetails[] = []
+
+          if (isManifestLocalMissingForUpdate || !gameManifestLocal) {
+            const hasAnyFileInDirectory: boolean = await TauriService.hasAnyFileInDirectory(gameManifest.pathInstallLocation)
+            const syntheticManifestFromRemote: GameManifestLocal = {
+              pathInstallLocation: gameManifest.pathInstallLocation,
+              gameId: game.id,
+              gameTitle: game.title,
+              gameBinarySize: totalRemoteManifestSize,
+              version: latestGameVersionAvailable.version,
+              files: gameManifestRemote.files,
+            }
+
+            filesToDownloadForUpdate = hasAnyFileInDirectory
+              ? await TauriService.getMissingFiles(gameManifest.pathInstallLocation, syntheticManifestFromRemote)
+              : gameManifestRemote.files
+          } else {
+            filesToDownloadForUpdate = await TauriService.getFilesToDownload(
+              gameManifestLocal,
+              gameManifestRemote,
+              gameManifest.pathInstallLocation,
+            )
+          }
+          filesDownloadUpdateGame.value = filesToDownloadForUpdate
+
+          // Vérifier si l'espace disque est suffisant pour installer le jeu
+          // en faisant le total de la taille des fichiers à télécharger
+          const totalSizeToDownload: number = filesDownloadUpdateGame.value.reduce(
+            (totalSize: number, file: FileDetails): number => totalSize + file.size,
+            0,
+          )
+          preloadedDownloadPayload.value = {
+            gameId: gameDetails.id,
+            bucketName: gameBinaryPlatform.file.bucket.name,
+            basePathFilename: gameBinaryPlatform.file.pathfilename,
+            latestVersion: latestGameVersionAvailable.version,
+            fullPathFilename: fullPathFilename,
+            gameManifestRemote: gameManifestRemote,
+            totalSizeToDownload: totalSizeToDownload,
+          }
+
+          setPreparingDownloadDiskStep()
+          diskStepStartedAtMs = Date.now()
+          await setInstallLocationDefault(addDirectoryGame, launcherGetPath, totalSizeToDownload, pathInstallLocationGame)
         }
-        await setInstallLocationDefault(addDirectoryGame, launcherGetPath, totalSizeToDownload, pathInstallLocationGame)
       }
     }
-  }
 
-  showDownloadModal.value = true
+    if (diskStepStartedAtMs) {
+      const elapsedMs: number = Date.now() - diskStepStartedAtMs
+      if (elapsedMs < MIN_PREPARE_DOWNLOAD_DISK_STEP_VISIBLE_MS) {
+        await new Promise((resolve) => setTimeout(resolve, MIN_PREPARE_DOWNLOAD_DISK_STEP_VISIBLE_MS - elapsedMs))
+      }
+    }
+
+    showDownloadModal.value = true
+  } catch (error: unknown) {
+    logger.error(
+      `[Download Modal] Failed to prepare download for gameId=${game.id} title="${game.title}": ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    )
+    notyf.error(`Failed to prepare download for ${game.title}`)
+  } finally {
+    pendingOpenDownloadModalGameIds.delete(game.id)
+    closePreparingDownloadModal()
+  }
 }
 
 /**
@@ -1751,7 +1954,7 @@ const setInstallLocationDefault: (
     }
   }
 
-  // Set la valeur par dÃƒÆ’Ã‚Â©faut
+  // Set la valeur par dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©faut
   if (pathInstallLocationDefault) {
     gamePathInstallLocation.value = {
       pathSystem: pathInstallLocationDefault.pathSystem,
@@ -1767,7 +1970,7 @@ const setInstallLocationDefault: (
 }
 
 /**
- * VÃƒÆ’Ã‚Â©rifier si l'espace disque est suffisant pour installer le jeu
+ * VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier si l'espace disque est suffisant pour installer le jeu
  * @param {number} totalSizeToDownload - The total size to download
  * @returns {boolean} - The promise
  */
@@ -1789,7 +1992,7 @@ const checkIfEnoughDiskSpace: (totalSizeToDownload: number) => boolean = (totalS
 }
 
 /**
- * Fermer la modal de tÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©chargement
+ * Fermer la modal de tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chargement
  * @returns {void}
  */
 const closeDownloadModal: () => void = (): void => {
@@ -1823,7 +2026,7 @@ const resolveTotalSizeToDownload: (files?: FileDetails[], fallbackTotalSize?: nu
 }
 
 /**
- * TÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©charger le jeu
+ * TÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©charger le jeu
  * @param {FileDetails[]} files - The files
  * @returns {void} - The promise
  */
@@ -1901,13 +2104,13 @@ const downloadGame: (files?: FileDetails[]) => Promise<void> = async (files?: Fi
         currentSystemOSInfoCurrent || (await TauriService.getSystemOSCurrent())
 
       if (resolvedSystemOSInfo) {
-        // Récupérer la plateforme du jeu qui correspond à l'OS du système actuel en rendant la comparaison insensible à la casse
+        // RÃ©cupÃ©rer la plateforme du jeu qui correspond Ã  l'OS du systÃ¨me actuel en rendant la comparaison insensible Ã  la casse
         const gamePlatform: GamePlatformModel | undefined = game.gamePlatform.find(
           (gamePlatform: GamePlatformModel) =>
             gamePlatform.name.toLowerCase() === resolvedSystemOSInfo.os.toLowerCase(),
         )
 
-        // Si une plateforme correspondante est trouvée, procédez au téléchargement
+        // Si une plateforme correspondante est trouvÃ©e, procÃ©dez au tÃ©lÃ©chargement
         if (gamePlatform) {
           const gameBinaryPlatform: GameBinaryModel | undefined = game.gameBinary.find(
             (gameBinary: GameBinaryModel): boolean => gameBinary.gamePlatform.id === gamePlatform.id,
@@ -1968,7 +2171,7 @@ const downloadGame: (files?: FileDetails[]) => Promise<void> = async (files?: Fi
 }
 
 /**
- * Changer le chemin de tÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©chargement
+ * Changer le chemin de tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chargement
  * @param {boolean} addDirectoryGame - The add directory game
  * @returns {Promise<void>}
  */
@@ -2008,7 +2211,7 @@ const changeDownloadPath: (addDirectoryGame: boolean) => Promise<void> = async (
 }
 
 /**
- * Ajouter un rÃƒÆ’Ã‚Â©pertoire de jeu pour le chemin d'installation en ce basant sur le nom du jeu
+ * Ajouter un rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©pertoire de jeu pour le chemin d'installation en ce basant sur le nom du jeu
  * Exemple : C:\Users\user\Documents\seatyrants (on rajoute le nom du jeu)
  * @returns {Promise<void>}
  */
@@ -2043,7 +2246,7 @@ const addDirectoryGameForPathInstallLocation: () => Promise<void> = async (): Pr
 }
 
 /**
- * Fermer la modal de rÃƒÆ’Ã‚Â©paration du jeu installÃƒÆ’Ã‚Â©
+ * Fermer la modal de rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©paration du jeu installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©
  * @returns {void}
  */
 const closeFixGameInstalledModal: () => void = (): void => {
@@ -2073,7 +2276,7 @@ const repairFullInstallationFromFixModal: () => Promise<void> = async (): Promis
 }
 
 /**
- * Ouvrir la modal pour rÃƒÆ’Ã‚Â©parer le jeu installÃƒÆ’Ã‚Â©
+ * Ouvrir la modal pour rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©parer le jeu installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©
  * @param {GameModel} game - The game
  * @returns {Promise<void>} - The promise
  */
@@ -2089,7 +2292,7 @@ const openFixGameInstalledModal: (game: GameModel) => Promise<void> = async (gam
   let pathInstallLocationGame: string | undefined = undefined
   let launcherGetPath: boolean = true
 
-  // VÃƒÆ’Ã‚Â©rifier si le jeu est installÃƒÆ’Ã‚Â© ou nÃƒÆ’Ã‚Â©cessite une mise ÃƒÆ’Ã‚Â  jour
+  // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier si le jeu est installÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© ou nÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cessite une mise ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  jour
   const installedGame: GameInstalled | undefined = findInstalledEntryByCanonicalGameId(gamesInstalled.value, game.id)
   const gameNeedUpdate: GameInstalled | undefined = findInstalledEntryByCanonicalGameId(gamesNeedsUpdate.value, game.id)
 
@@ -2107,7 +2310,7 @@ const openFixGameInstalledModal: (game: GameModel) => Promise<void> = async (gam
 }
 
 /**
- * VÃƒÆ’Ã‚Â©rifier l'installation du jeu pour rÃƒÆ’Ã‚Â©parer les fichiers
+ * VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier l'installation du jeu pour rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©parer les fichiers
  * @param {GameModel} game - The game
  * @returns {void}
  */
@@ -2120,7 +2323,7 @@ const verifyInstallationGame: (game: GameModel) => Promise<void> = async (game: 
   isVerifyingInstallation.value = true
   try {
 
-  // RÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©rer le manifeste local du jeu par rapport au chemin d'installation du jeu
+  // RÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cupÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rer le manifeste local du jeu par rapport au chemin d'installation du jeu
   fixInstallationErrorMessage.value = ''
   let gameManifestLocal: GameManifestLocal | undefined = undefined
   let isManifestLocalMissing: boolean = false
@@ -2134,25 +2337,25 @@ const verifyInstallationGame: (game: GameModel) => Promise<void> = async (game: 
     console.error('Error occurred while getting the local manifest: ', error)
   }
 
-  // RÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©rer les informations sur le systÃƒÆ’Ã‚Â¨me d'exploitation actuel
+  // RÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cupÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rer les informations sur le systÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨me d'exploitation actuel
   const currentSystemOSInfo: SystemOSInfo | undefined = await TauriService.getSystemOSCurrent()
   if (!currentSystemOSInfo) {
     return
   }
 
-  // RÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©rer la plateforme du jeu qui correspond ÃƒÆ’Ã‚Â  l'OS du systÃƒÆ’Ã‚Â¨me actuel en rendant la comparaison insensible ÃƒÆ’Ã‚Â  la casse
+  // RÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cupÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rer la plateforme du jeu qui correspond ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  l'OS du systÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨me actuel en rendant la comparaison insensible ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  la casse
   const gamePlatform: GamePlatformModel | undefined = game.gamePlatform.find(
     (gamePlatform: GamePlatformModel) => gamePlatform.name.toLowerCase() === currentSystemOSInfo.os.toLowerCase(),
   )
 
-  // Si une plateforme correspondante est trouvÃƒÆ’Ã‚Â©e, procÃƒÆ’Ã‚Â©dez au tÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©chargement
+  // Si une plateforme correspondante est trouvÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©e, procÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©dez au tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©chargement
   if (gamePlatform) {
     const gameBinaryPlatform: GameBinaryModel | undefined = game.gameBinary.find(
       (gameBinary: GameBinaryModel): boolean => gameBinary.gamePlatform.id === gamePlatform.id,
     )
 
     if (gameBinaryPlatform) {
-      // RÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©rer la derniÃƒÆ’Ã‚Â¨re version du jeu disponible
+      // RÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cupÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rer la derniÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨re version du jeu disponible
       const latestGameVersionAvailable: GameVersionModel | undefined =
         await GameVersionService.getLatestAvailableGameVersionByGameId(game.id)
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -2160,7 +2363,7 @@ const verifyInstallationGame: (game: GameModel) => Promise<void> = async (game: 
         return
       }
 
-      // RÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©rer le manifeste du jeu ÃƒÆ’Ã‚Â  partir du serveur
+      // RÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cupÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rer le manifeste du jeu ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  partir du serveur
       const fullPathFilename: string =
         gameBinaryPlatform.file.pathfilename +
         latestGameVersionAvailable.version +
@@ -2175,7 +2378,7 @@ const verifyInstallationGame: (game: GameModel) => Promise<void> = async (game: 
         return
       }
 
-      // RÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©rer la liste des fichiers ÃƒÆ’Ã‚Â  tÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©charger pour le jeu en comparant les manifestes locaux et distant
+      // RÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cupÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rer la liste des fichiers ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©charger pour le jeu en comparant les manifestes locaux et distant
       const totalRemoteManifestSize: number = resolveTotalSizeToDownload(gameManifestRemote.files, 0)
 
       if (isManifestLocalMissing || !gameManifestLocal) {
@@ -2226,8 +2429,8 @@ const verifyInstallationGame: (game: GameModel) => Promise<void> = async (game: 
       )
       if (files.length === 0) {
         if (user) {
-          // Tout les fichiers ÃƒÆ’Ã‚Â©tait OK mais le path d'installation du jeu ne correspond pas ÃƒÆ’Ã‚Â  celui enregistrÃƒÆ’Ã‚Â© donc on le met ÃƒÆ’Ã‚Â  jour
-          // et on recrÃƒÆ’Ã‚Â©e un GameInstalled avec le nouveau path d'installation du jeu
+          // Tout les fichiers ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©tait OK mais le path d'installation du jeu ne correspond pas ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  celui enregistrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© donc on le met ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  jour
+          // et on recrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©e un GameInstalled avec le nouveau path d'installation du jeu
           showFixInstallationInformationsSuccess.value = true
           showFixInstallationInformationsError2.value = false
           showFixInstallationInformationsError.value = false
@@ -2245,8 +2448,8 @@ const verifyInstallationGame: (game: GameModel) => Promise<void> = async (game: 
           return
         }
       } else {
-        // Dire avec succÃƒÆ’Ã‚Â¨s qu'ont n'as bien rÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©rer le manifest_local.json par rapport au path d'installation du jeu
-        // MAIS il y a des fichiers manquants ou des fichiers diffÃƒÆ’Ã‚Â©rents
+        // Dire avec succÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨s qu'ont n'as bien rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cupÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rer le manifest_local.json par rapport au path d'installation du jeu
+        // MAIS il y a des fichiers manquants ou des fichiers diffÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rents
         showFixInstallationInformationsError2.value = true
         showFixInstallationInformationsSuccess.value = false
         showFixInstallationInformationsError.value = false
@@ -2272,13 +2475,13 @@ const verifyInstallationGame: (game: GameModel) => Promise<void> = async (game: 
 }
 
 /**
- * DÃƒÆ’Ã‚Â©filement vers le haut de la page avec un effet de dÃƒÆ’Ã‚Â©filement doux.
+ * DÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©filement vers le haut de la page avec un effet de dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©filement doux.
  * @returns {Promise<void>}
  */
 const scrollToTop: () => Promise<void> = async (): Promise<void> => {
   await nextTick()
 
-  // Trouver le conteneur scrollable dÃƒÆ’Ã‚Â©fini dans layout-home.vue
+  // Trouver le conteneur scrollable dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©fini dans layout-home.vue
   const scrollableContainer: HTMLElement | null = document.querySelector(
     '.main-content-scrollable',
   ) as HTMLElement | null
@@ -2303,7 +2506,7 @@ watch(searchTerm, async (newValue: string): Promise<void> => {
 
   await userGameLibrariesStore.getUserGameLibraries(newValue)
 
-  // VÃƒÆ’Ã‚Â©rification aprÃƒÆ’Ã‚Â¨s la recherche
+  // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rification aprÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨s la recherche
   if (
     newValue &&
     (userGameLibrariesStore.userGameLibrariesSortedByPlatform.length === 0 ||

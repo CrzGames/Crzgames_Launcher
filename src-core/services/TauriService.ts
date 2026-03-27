@@ -1129,6 +1129,11 @@ export class TauriService {
 
       logger.debug(`Trying to read manifest from path: ${manifestPath}`)
 
+      const manifestExists: boolean = await exists(manifestPath)
+      if (!manifestExists) {
+        return undefined
+      }
+
       // Lire le fichier manifest_local.json
       const manifestContent: string | undefined = await readTextFile(manifestPath)
 
