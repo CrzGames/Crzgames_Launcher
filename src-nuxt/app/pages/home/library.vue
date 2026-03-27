@@ -257,7 +257,7 @@
       @verifyInstallationGame="verifyInstallationGame(gameToDownload)"
       @changePath="changeDownloadPath(false)"
       @repair="downloadGame(filesRepair)"
-      @repair-full-installation="openDownloadModal(gameToDownload, true, false)"
+      @repair-full-installation="repairFullInstallationFromFixModal"
       @saveQuit="closeFixGameInstalledModal"
     />
 
@@ -1676,6 +1676,16 @@ const closeFixGameInstalledModal: () => void = (): void => {
   showFixInstallationInformationsError2.value = false
   showFixInstallationInformationsSuccess.value = false
   showFixInstallationInformationsError.value = false
+}
+
+/**
+ * Reinstalle completement le jeu depuis la modal de reparation.
+ * Ce flux ne depend pas d'un manifest_local.json existant et utilise le path choisi dans la popup.
+ * @returns {Promise<void>}
+ */
+const repairFullInstallationFromFixModal: () => Promise<void> = async (): Promise<void> => {
+  closeFixGameInstalledModal()
+  await downloadGame()
 }
 
 /**
