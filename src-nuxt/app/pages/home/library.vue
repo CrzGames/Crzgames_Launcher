@@ -251,8 +251,10 @@
       :gameTitle="gameToDownload.title"
       :gamePathInstallLocation="gamePathInstallLocation"
       :showFixInstallationInformationsError="showFixInstallationInformationsError"
+      :fixInstallationErrorMessage="fixInstallationErrorMessage"
       :showFixInstallationInformationsError2="showFixInstallationInformationsError2"
       :showFixInstallationInformationsSuccess="showFixInstallationInformationsSuccess"
+      :buttonLoading="isVerifyingInstallation"
       @close="closeFixGameInstalledModal"
       @verifyInstallationGame="verifyInstallationGame(gameToDownload)"
       @changePath="changeDownloadPath(false)"
@@ -493,6 +495,8 @@ const showFixGameInstalledModal: Ref<boolean> = ref(false)
 const showFixInstallationInformationsError: Ref<boolean> = ref(false)
 const showFixInstallationInformationsSuccess: Ref<boolean> = ref(false)
 const showFixInstallationInformationsError2: Ref<boolean> = ref(false)
+const fixInstallationErrorMessage: Ref<string> = ref('')
+const isVerifyingInstallation: Ref<boolean> = ref(false)
 const filesRepair: Ref<FileDetails[]> = ref([])
 
 // Modal de tÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©chargement
@@ -1374,6 +1378,14 @@ const getInstallPathAccessDeniedMessage: () => string = (): string => {
 }
 
 /**
+ * Message affiche quand le fichier manifest_local.json est absent.
+ * @returns {string}
+ */
+const getManifestMissingRepairMessage: () => string = (): string => {
+  return 'The file manifest_local.json is missing in this folder. Click "Repair Installation": existing valid files will be kept, missing/corrupted files will be redownloaded, and manifest_local.json will be regenerated.'
+}
+
+/**
  * Verifie l'acces en ecriture sur le chemin d'installation.
  * @param {string} installPath - Chemin a verifier
  * @returns {Promise<boolean>} - True si le chemin est accessible en ecriture
@@ -1507,7 +1519,7 @@ const downloadGame: (files?: FileDetails[]) => Promise<void> = async (files?: Fi
   const gameToDownloadFileSizeCurrent: number | undefined = gameToDownloadFileSize.value
   const estimatedTotalSizeToDownload: number = resolveTotalSizeToDownload(
     files,
-    gameToDownloadFileSizeCurrent || preloadedPayload?.totalSizeToDownload,
+    gameToDownloadFileSizeCurrent ?? preloadedPayload?.totalSizeToDownload,
   )
 
   if (gamePathInstallLocationPathSystem) {
@@ -1708,6 +1720,7 @@ const addDirectoryGameForPathInstallLocation: () => Promise<void> = async (): Pr
  * @returns {void}
  */
 const closeFixGameInstalledModal: () => void = (): void => {
+  isVerifyingInstallation.value = false
   showDownloadModal.value = false
   gameToDownloadFileSize.value = undefined
   isSufficientDiskSpaceAvailable.value = false
@@ -1716,6 +1729,7 @@ const closeFixGameInstalledModal: () => void = (): void => {
   showFixInstallationInformationsError2.value = false
   showFixInstallationInformationsSuccess.value = false
   showFixInstallationInformationsError.value = false
+  fixInstallationErrorMessage.value = ''
 }
 
 /**
@@ -1724,8 +1738,9 @@ const closeFixGameInstalledModal: () => void = (): void => {
  * @returns {Promise<void>}
  */
 const repairFullInstallationFromFixModal: () => Promise<void> = async (): Promise<void> => {
+  const filesForRepairOrReinstall: FileDetails[] = [...filesRepair.value]
   closeFixGameInstalledModal()
-  await downloadGame()
+  await downloadGame(filesForRepairOrReinstall)
 }
 
 /**
@@ -1737,6 +1752,9 @@ const openFixGameInstalledModal: (game: GameModel) => Promise<void> = async (gam
   closePlayGameNotFoundExecutableModal()
 
   gameToDownload.value = game
+  preloadedDownloadPayload.value = null
+  filesRepair.value = []
+  fixInstallationErrorMessage.value = ''
 
   let pathInstallLocationGame: string | undefined = undefined
   let launcherGetPath: boolean = true
@@ -1768,22 +1786,21 @@ const verifyInstallationGame: (game: GameModel) => Promise<void> = async (game: 
     return
   }
 
+  isVerifyingInstallation.value = true
+  try {
+
   // RÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©rer le manifeste local du jeu par rapport au chemin d'installation du jeu
+  fixInstallationErrorMessage.value = ''
   let gameManifestLocal: GameManifestLocal | undefined = undefined
+  let isManifestLocalMissing: boolean = false
   try {
     gameManifestLocal = await TauriService.getContentLocalManifest(gamePathInstallLocation.value.pathSystem)
     if (!gameManifestLocal) {
-      showFixInstallationInformationsError2.value = false
-      showFixInstallationInformationsSuccess.value = false
-      showFixInstallationInformationsError.value = true
-      return
+      isManifestLocalMissing = true
     }
   } catch (error) {
-    showFixInstallationInformationsError2.value = false
-    showFixInstallationInformationsSuccess.value = false
-    showFixInstallationInformationsError.value = true
+    isManifestLocalMissing = true
     console.error('Error occurred while getting the local manifest: ', error)
-    return
   }
 
   // RÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©rer les informations sur le systÃƒÆ’Ã‚Â¨me d'exploitation actuel
@@ -1828,6 +1845,49 @@ const verifyInstallationGame: (game: GameModel) => Promise<void> = async (game: 
       }
 
       // RÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©rer la liste des fichiers ÃƒÆ’Ã‚Â  tÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©charger pour le jeu en comparant les manifestes locaux et distant
+      const totalRemoteManifestSize: number = resolveTotalSizeToDownload(gameManifestRemote.files, 0)
+
+      if (isManifestLocalMissing || !gameManifestLocal) {
+        const hasAnyFileInDirectory: boolean = await TauriService.hasAnyFileInDirectory(
+          gamePathInstallLocation.value.pathSystem,
+        )
+        const syntheticManifestFromRemote: GameManifestLocal = {
+          pathInstallLocation: gamePathInstallLocation.value.pathSystem,
+          gameId: game.id,
+          gameTitle: game.title,
+          gameBinarySize: totalRemoteManifestSize,
+          version: latestGameVersionAvailable.version,
+          files: gameManifestRemote.files,
+        }
+        const filesDetectedAsMissing: FileDetails[] = await TauriService.getMissingFiles(
+          gamePathInstallLocation.value.pathSystem,
+          syntheticManifestFromRemote,
+        )
+        const filesToRepairWhenManifestMissing: FileDetails[] = hasAnyFileInDirectory
+          ? filesDetectedAsMissing
+          : gameManifestRemote.files
+        const totalSizeToRepairWhenManifestMissing: number = resolveTotalSizeToDownload(filesToRepairWhenManifestMissing, 0)
+
+        preloadedDownloadPayload.value = {
+          gameId: game.id,
+          bucketName: gameBinaryPlatform.file.bucket.name,
+          basePathFilename: gameBinaryPlatform.file.pathfilename,
+          latestVersion: latestGameVersionAvailable.version,
+          fullPathFilename: fullPathFilename,
+          gameManifestRemote: gameManifestRemote,
+          totalSizeToDownload: totalSizeToRepairWhenManifestMissing,
+        }
+
+        filesRepair.value = filesToRepairWhenManifestMissing
+        gameToDownloadFileSize.value = totalSizeToRepairWhenManifestMissing
+        checkIfEnoughDiskSpace(totalSizeToRepairWhenManifestMissing)
+        fixInstallationErrorMessage.value = hasAnyFileInDirectory ? getManifestMissingRepairMessage() : ''
+        showFixInstallationInformationsError2.value = false
+        showFixInstallationInformationsSuccess.value = false
+        showFixInstallationInformationsError.value = true
+        return
+      }
+
       const files: FileDetails[] = await TauriService.getFilesToDownload(
         gameManifestLocal,
         gameManifestRemote,
@@ -1840,6 +1900,7 @@ const verifyInstallationGame: (game: GameModel) => Promise<void> = async (game: 
           showFixInstallationInformationsSuccess.value = true
           showFixInstallationInformationsError2.value = false
           showFixInstallationInformationsError.value = false
+          fixInstallationErrorMessage.value = ''
 
           gameManifestLocal.pathInstallLocation = gamePathInstallLocation.value.pathSystem
           const gameInstalled: GameInstalled = {
@@ -1858,6 +1919,7 @@ const verifyInstallationGame: (game: GameModel) => Promise<void> = async (game: 
         showFixInstallationInformationsError2.value = true
         showFixInstallationInformationsSuccess.value = false
         showFixInstallationInformationsError.value = false
+        fixInstallationErrorMessage.value = ''
 
         filesRepair.value = files
         const repairMissingFilesSize: number = resolveTotalSizeToDownload(files, 0)
@@ -1872,6 +1934,10 @@ const verifyInstallationGame: (game: GameModel) => Promise<void> = async (game: 
   showFixInstallationInformationsError.value = false
   showFixInstallationInformationsSuccess.value = false
   showFixInstallationInformationsError2.value = false
+  fixInstallationErrorMessage.value = ''
+  } finally {
+    isVerifyingInstallation.value = false
+  }
 }
 
 /**

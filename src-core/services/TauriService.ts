@@ -1,10 +1,10 @@
 import { invoke } from '@tauri-apps/api/core'
 import { LogicalSize } from '@tauri-apps/api/dpi'
-import { appConfigDir, sep } from '@tauri-apps/api/path'
+import { appConfigDir, join, sep } from '@tauri-apps/api/path'
 import { Window } from '@tauri-apps/api/window'
 import { open } from '@tauri-apps/plugin-dialog'
 import type { RemoveOptions } from '@tauri-apps/plugin-fs'
-import { BaseDirectory, exists, mkdir, readTextFile, remove, writeTextFile } from '@tauri-apps/plugin-fs'
+import { BaseDirectory, exists, mkdir, readDir, readTextFile, remove, writeTextFile } from '@tauri-apps/plugin-fs'
 import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification'
 import type { Arch, OsType, Platform } from '@tauri-apps/plugin-os'
 import { arch, hostname, platform, type } from '@tauri-apps/plugin-os'
@@ -1006,6 +1006,39 @@ export class TauriService {
     } catch (error) {
       console.error('Failed to check missing files:', error)
       return []
+    }
+  }
+
+  /**
+   * Verifie si un dossier contient au moins un fichier (recursif).
+   * @param {string} directoryPath - Chemin du dossier a analyser
+   * @returns {Promise<boolean>} - True si au moins un fichier est present
+   */
+  public static async hasAnyFileInDirectory(directoryPath: string): Promise<boolean> {
+    try {
+      const scanDirectory: (currentPath: string) => Promise<boolean> = async (currentPath: string): Promise<boolean> => {
+        const entries = await readDir(currentPath)
+        for (const entry of entries) {
+          const entryPath: string = await join(currentPath, entry.name)
+          if (entry.isFile) {
+            return true
+          }
+
+          if (entry.isDirectory) {
+            const hasAnyFileInSubDirectory: boolean = await scanDirectory(entryPath)
+            if (hasAnyFileInSubDirectory) {
+              return true
+            }
+          }
+        }
+
+        return false
+      }
+
+      return await scanDirectory(directoryPath)
+    } catch (error) {
+      console.error('hasAnyFileInDirectory error:', error)
+      return false
     }
   }
 

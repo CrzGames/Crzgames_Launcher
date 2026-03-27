@@ -23,7 +23,7 @@ use futures::StreamExt;
 use sha2::{Digest, Sha256};
 use tokio::io::AsyncWriteExt;
 use tokio::sync::{mpsc, Semaphore};
-use tokio::task::JoinSet;
+use tokio::task::{JoinSet, spawn_blocking};
 use tokio::fs::OpenOptions as TokioOpenOptions;
 use std::thread;
 use std::fs::remove_dir_all;
@@ -117,18 +117,32 @@ fn remove_duplicates(manifest: &mut GameManifestLocal) {
 }
 
 #[tauri::command]
-fn check_missing_files(file_location_download: String, local_manifest: GameManifestLocal) -> Result<Vec<FileDetails>, String> {
-    let game_directory = Path::new(&file_location_download);
-    let mut missing_files = Vec::new();
+async fn check_missing_files(
+    file_location_download: String,
+    local_manifest: GameManifestLocal
+) -> Result<Vec<FileDetails>, String> {
+    spawn_blocking(move || {
+        let game_directory = Path::new(&file_location_download);
+        let mut missing_files = Vec::new();
 
-    for file in &local_manifest.files {
-        let file_path = game_directory.join(&file.name);
-        if !file_path.exists() {
-            missing_files.push(file.clone());
+        for file in &local_manifest.files {
+            let file_path = game_directory.join(&file.name);
+            if !file_path.exists() {
+                missing_files.push(file.clone());
+                continue;
+            }
+
+            match calculate_file_hash(&file_path) {
+                Ok(existing_hash) if existing_hash == file.hash => {}
+                Ok(_) => missing_files.push(file.clone()),
+                Err(_) => missing_files.push(file.clone()),
+            }
         }
-    }
 
-    Ok(missing_files)
+        Ok::<Vec<FileDetails>, String>(missing_files)
+    })
+    .await
+    .map_err(|error| format!("check_missing_files join error: {}", error))?
 }
 
 fn clean_up_directory(game_directory: &Path, game_manifest: &GameManifestLocal) -> Result<(), String> {
@@ -757,6 +771,8 @@ async fn download_and_update_game(
             .as_secs()
     );
     let game_directory = PathBuf::from(&file_location_download);
+    let manifest_path = game_directory.join("manifest_local.json");
+    let manifest_existed_before_run = manifest_path.exists();
     println!(
         "[download_and_update_game] session={} game_directory={}",
         session_id,
@@ -1021,9 +1037,17 @@ async fn download_and_update_game(
         })));
         return Err(error);
     }
+    // Rebuild full local manifest from remote manifest after a successful run.
+    // This prevents accidental deletion of already valid files when we repaired only a subset.
+    game_manifest.files = game_manifest_remote.files.clone();
     remove_duplicates(&mut game_manifest);
     save_manifest(&file_location_download, &game_manifest)?;
-    clean_up_directory(&game_directory, &game_manifest)?;
+    // If metadata did not exist before this run, keep existing files/directories.
+    // In repair mode ("metadata missing"), we only redownload missing/corrupted files
+    // and regenerate manifest_local.json without deleting other already present content.
+    if manifest_existed_before_run {
+        clean_up_directory(&game_directory, &game_manifest)?;
+    }
     if desktop_shortcut {
         create_shortcut(file_location_download.clone())
             .map_err(|e| format!("Failed to create shortcut: {}", e))?;

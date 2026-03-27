@@ -15,8 +15,10 @@
       :gamePathInstallLocation="props.gamePathInstallLocation"
       :isSufficientDiskSpaceAvailable="props.isSufficientDiskSpaceAvailable"
       :showFixInstallationInformationsError="props.showFixInstallationInformationsError"
+      :fixInstallationErrorMessage="props.fixInstallationErrorMessage"
       :showFixInstallationInformationsSuccess="props.showFixInstallationInformationsSuccess"
       :showFixInstallationInformationsError2="props.showFixInstallationInformationsError2"
+      :buttonLoading="props.buttonLoading"
       @update:createDesktopShortcut="emit('update:createDesktopShortcut', $event)"
       @submit="emit('verifyInstallationGame')"
       @cancel="emit('close')"
@@ -62,8 +64,10 @@ type Props = {
   createDesktopShortcut: boolean
   isSufficientDiskSpaceAvailable: boolean
   showFixInstallationInformationsError: boolean
+  fixInstallationErrorMessage: string
   showFixInstallationInformationsError2: boolean
   showFixInstallationInformationsSuccess: boolean
+  buttonLoading: boolean
 }
 
 /* PROPS */
@@ -110,11 +114,19 @@ const props: Props = defineProps({
     type: Boolean,
     default: false,
   },
+  fixInstallationErrorMessage: {
+    type: String,
+    default: '',
+  },
   showFixInstallationInformationsError2: {
     type: Boolean,
     default: false,
   },
   showFixInstallationInformationsSuccess: {
+    type: Boolean,
+    default: false,
+  },
+  buttonLoading: {
     type: Boolean,
     default: false,
   },

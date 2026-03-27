@@ -38,7 +38,7 @@
           <p>
             {{ truncatedPath }}
           </p>
-          <CrzButton @click.prevent="emit('changePath')" size="sm">
+          <CrzButton @click.prevent="emit('changePath')" size="sm" :disabled="props.buttonLoading">
             <span class="flex items-center gap-2">
               <span>Change</span>
               <CrzIcon name="edit" mode="stroke" :width="18" :height="18" />
@@ -47,17 +47,39 @@
         </div>
       </div>
 
+      <div v-if="props.buttonLoading" class="mt-4 rounded-lg bg-orange-500/80 p-4">
+        <p class="mb-1 flex items-center gap-1 font-semibold text-white">
+          <span>Verifying installation</span>
+          <span class="loading-dots" aria-hidden="true">
+            <span>.</span>
+            <span>.</span>
+            <span>.</span>
+          </span>
+        </p>
+        <p class="text-sm text-white">Checking existing files. Please wait.</p>
+      </div>
+
       <!-- Error Message -->
       <div v-if="props.showFixInstallationInformationsError" class="mt-4 rounded-lg bg-red-500 p-4">
-        <p class="mb-2 font-semibold text-white">Game not detected !</p>
-        <p class="text-sm text-white">
+        <p class="mb-2 font-semibold text-white">
+          {{ props.fixInstallationErrorMessage ? 'Installation metadata missing!' : 'Game not detected !' }}
+        </p>
+        <p v-if="props.fixInstallationErrorMessage" class="text-sm text-white">
+          {{ props.fixInstallationErrorMessage }}
+        </p>
+        <p v-else class="text-sm text-white">
           Please make sure the game is installed in the correct path or change the installation path to the correct
           location. <br /><br />
           Otherwise reinstall the full game via the button below
         </p>
-        <CrzButton class="mt-2" @click.prevent="emit('repair-full-installation')" type="button">
+        <CrzButton
+          class="mt-2"
+          @click.prevent="props.fixInstallationErrorMessage ? emit('repair') : emit('repair-full-installation')"
+          type="button"
+          :disabled="props.buttonLoading"
+        >
           <span class="flex items-center gap-2">
-            <span>Reinstall the full game</span>
+            <span>{{ props.fixInstallationErrorMessage ? 'Repair Installation' : 'Reinstall the full game' }}</span>
           </span>
         </CrzButton>
       </div>
@@ -73,6 +95,7 @@
           class="mt-2 bg-white text-yellow-500 hover:bg-gray-100"
           @click.prevent="emit('repair')"
           type="button"
+          :disabled="props.buttonLoading"
         >
           <span class="flex items-center gap-2">
             <span>Repair Installation</span>
@@ -93,9 +116,10 @@
               class="mt-2 bg-white text-yellow-500 hover:bg-gray-100"
               @click.prevent="emit('saveQuit')"
               type="button"
+              :disabled="props.buttonLoading"
             >
-              <span class="flex items-center gap-2">
-                <span>Save and Quit</span>
+                <span class="flex items-center gap-2">
+                <span>Close</span>
               </span>
             </CrzButton>
           </div>
@@ -103,12 +127,13 @@
       </div>
     </div>
 
-    <div class="flex items-center justify-between">
+    <div v-if="shouldShowVerificationActions" class="flex items-center justify-between">
       <div></div>
       <div class="flex items-center justify-end space-x-2">
         <button
           @click="emit('cancel')"
           type="button"
+          :disabled="props.buttonLoading"
           class="translate-y-0 transform rounded-lg border border-gray-500 bg-gray-700 px-5 py-2.5 text-sm font-medium text-gray-300 duration-100 hover:bg-gray-600 hover:text-white focus:z-10 focus:outline-none active:translate-y-1"
         >
           Cancel
@@ -153,6 +178,7 @@ type Props = {
   gamePathInstallLocation: PathInstallLocation
   isSufficientDiskSpaceAvailable: boolean
   showFixInstallationInformationsError: boolean
+  fixInstallationErrorMessage: string
   showFixInstallationInformationsError2: boolean
   showFixInstallationInformationsSuccess: boolean
 }
@@ -189,6 +215,10 @@ const props: Props = defineProps({
     type: Boolean,
     default: false,
   },
+  fixInstallationErrorMessage: {
+    type: String,
+    default: '',
+  },
   showFixInstallationInformationsSuccess: {
     type: Boolean,
     default: false,
@@ -219,6 +249,15 @@ const truncatedPath: ComputedRef<string> = computed(() => {
   return path.length > maxLength ? `...${path.slice(-maxLength)}` : path
 })
 
+const shouldShowVerificationActions: ComputedRef<boolean> = computed((): boolean => {
+  return (
+    !props.buttonLoading &&
+    !props.showFixInstallationInformationsError &&
+    !props.showFixInstallationInformationsError2 &&
+    !props.showFixInstallationInformationsSuccess
+  )
+})
+
 /* METHODS */
 /**
  * Submit the form
@@ -228,3 +267,36 @@ const submit: () => void = (): void => {
   emit('submit')
 }
 </script>
+
+<style scoped>
+.loading-dots {
+  display: inline-flex;
+  margin-left: 2px;
+  gap: 1px;
+}
+
+.loading-dots span {
+  animation: loading-dot 1.2s infinite ease-in-out;
+  opacity: 0.25;
+  line-height: 1;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.loading-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes loading-dot {
+  0%,
+  20%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+</style>
