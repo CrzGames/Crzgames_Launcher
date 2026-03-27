@@ -398,6 +398,20 @@ export class TauriService {
   }
 
   /**
+   * Verifie si le processus du jeu est actuellement en cours d'execution.
+   * @param {string} pathInstallLocation - Le chemin d'installation du jeu
+   * @returns {Promise<boolean>} - True si le jeu est deja en cours.
+   */
+  public static async isGameRunning(pathInstallLocation: string): Promise<boolean> {
+    try {
+      return await invoke<boolean>('is_game_running', { pathInstallLocation })
+    } catch (error) {
+      console.error('isGameRunning error : ', error)
+      return false
+    }
+  }
+
+  /**
    * Ecriture de fichier
    * @param {string} nameFile - Nom du fichier
    * @param {string} contents - Contenu du fichier

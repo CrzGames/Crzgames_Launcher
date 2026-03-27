@@ -255,6 +255,34 @@
       @ok="closePlayGameNotFoundExecutableModal"
       @open-modal-repair="openFixGameInstalledModal(gameToPlayNotFoundExecutable)"
     />
+
+    <CrzModal
+      v-if="showUninstallBlockedByRunningGameModal"
+      :show="showUninstallBlockedByRunningGameModal"
+      :show-left-button="false"
+      :show-right-button="false"
+      title="Unable to uninstall game"
+      bgClass="bg-blue-800"
+      @update:show="closeUninstallBlockedByRunningGameModal"
+    >
+      <div class="grid gap-4 text-white">
+        <p>
+          You cannot uninstall
+          <span class="font-semibold">{{ uninstallBlockedGameTitle || 'this game' }}</span>
+          while it is running.
+        </p>
+        <p>Please close the game first, then try uninstalling again.</p>
+        <div class="flex justify-end">
+          <button
+            @click="closeUninstallBlockedByRunningGameModal"
+            type="button"
+            class="translate-y-0 transform rounded-lg border border-gray-500 bg-gray-700 px-5 py-2.5 text-sm font-medium text-gray-300 duration-100 hover:bg-gray-600 hover:text-white focus:z-10 focus:outline-none active:translate-y-1"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </CrzModal>
   </div>
 </template>
 
@@ -267,6 +295,7 @@ import CrzBadge from '~~/src-common/components/ui/CrzBadge.vue'
 import CrzGameCard from '#src-common/components/cards/CrzGameCard.vue'
 import CrzSearchBar from '#src-common/components/inputs/CrzSearchBar.vue'
 import CrzSpinner from '#src-common/components/loaders/CrzSpinner.vue'
+import CrzModal from '#src-common/components/modals/CrzModal.vue'
 import CrzIcon from '#src-common/components/ui/CrzIcon.vue'
 import type GameBinaryModel from '#src-common/core/models/GameBinaryModel'
 import type GameModel from '#src-common/core/models/GameModel'
@@ -366,6 +395,8 @@ const showPlayGameNotFoundExecutableModal: Ref<boolean> = ref(false)
 const gameToPlayNotFoundExecutable: Ref<GameModel | null> = ref(null)
 const showPlayGameNotFoundExecutableMessageError: Ref<string> = ref('')
 const showUnstallGame: Ref<boolean> = ref(false)
+const showUninstallBlockedByRunningGameModal: Ref<boolean> = ref(false)
+const uninstallBlockedGameTitle: Ref<string> = ref('')
 
 // Modal pour rÃƒÆ’Ã‚Â©parer le jeu installÃƒÆ’Ã‚Â©
 const showFixGameInstalledModal: Ref<boolean> = ref(false)
@@ -564,6 +595,46 @@ watch(
 
 /* METHODS */
 /**
+ * Indique si l'erreur de desinstallation vient d'un jeu encore en cours d'execution.
+ * @param {unknown} error - Erreur brute.
+ * @returns {boolean} - True si le jeu est verrouille par un processus actif.
+ */
+const isUninstallBlockedByRunningGameError: (error: unknown) => boolean = (error: unknown): boolean => {
+  const errorMessage: string = error instanceof Error ? error.message : String(error || '')
+  const normalizedMessage: string = errorMessage.toLowerCase()
+
+  return (
+    normalizedMessage.includes('os error 32') ||
+    normalizedMessage.includes('used by another process') ||
+    normalizedMessage.includes('being used by another process') ||
+    normalizedMessage.includes('utilise par un autre processus') ||
+    normalizedMessage.includes('utilisé par un autre processus') ||
+    normalizedMessage.includes('resource busy') ||
+    normalizedMessage.includes('device or resource busy') ||
+    normalizedMessage.includes('text file busy')
+  )
+}
+
+/**
+ * Ouvre la modal d'information quand une desinstallation est bloquee par un jeu en cours.
+ * @param {GameModel} game - Jeu concerne.
+ * @returns {void}
+ */
+const openUninstallBlockedByRunningGameModal: (game: GameModel) => void = (game: GameModel): void => {
+  uninstallBlockedGameTitle.value = game.title
+  showUninstallBlockedByRunningGameModal.value = true
+}
+
+/**
+ * Ferme la modal d'information de desinstallation bloquee.
+ * @returns {void}
+ */
+const closeUninstallBlockedByRunningGameModal: () => void = (): void => {
+  showUninstallBlockedByRunningGameModal.value = false
+  uninstallBlockedGameTitle.value = ''
+}
+
+/**
  * Uninstall the game
  * @param {GameModel} game - The game
  * @returns {Promise<void>} - The promise
@@ -584,6 +655,13 @@ const UninstallGame: (game: GameModel) => Promise<void> = async (game: GameModel
     }
 
     // DÃƒÆ’Ã‚Â©sinstaller le jeu
+    const isGameRunning: boolean = await TauriService.isGameRunning(currentGame.gameManifest.pathInstallLocation)
+    if (isGameRunning) {
+      logger.warn(`[Library] Uninstall blocked because game is running gameId=${game.id} title=${game.title}`)
+      openUninstallBlockedByRunningGameModal(game)
+      return
+    }
+
     await TauriService.uninstallGame(currentGame.gameManifest.pathInstallLocation)
     // Supprimer le jeu installÃƒÆ’Ã‚Â© de la liste des jeux installÃƒÆ’Ã‚Â©s dans le fichier de configuration local
     const currentUserId: number | undefined = authStore.user?.id
@@ -604,6 +682,14 @@ const UninstallGame: (game: GameModel) => Promise<void> = async (game: GameModel
 
     notyf.success(`The game ${game.title} has been uninstalled successfully`)
   } catch (error: any) {
+    if (isUninstallBlockedByRunningGameError(error)) {
+      logger.warn(
+        `[Library] Uninstall blocked because game is running gameId=${game.id} title=${game.title}: ${error instanceof Error ? error.message : String(error)}`,
+      )
+      openUninstallBlockedByRunningGameModal(game)
+      return
+    }
+
     showPlayGameNotFoundExecutableMessageError.value = 'uninstall game'
     gameToPlayNotFoundExecutable.value = game
     showPlayGameNotFoundExecutableModal.value = true
