@@ -29,7 +29,52 @@
     "enableGTKAppId": false,
     "macOSPrivateApi": true,
     "security": {
-      "csp": "default-src 'self'; connect-src https://staging.api.crzgames.com https://api.crzgames.com https://s3.de.io.cloud.ovh.net http://127.0.0.1:3333 http://localhost:3556 http://localhost:9000 http://127.0.0.1:9000 http://ipc.localhost; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https://staging.api.crzgames.com https://api.crzgames.com https://s3.de.io.cloud.ovh.net http://localhost:9000 http://127.0.0.1:9000; media-src 'self' data: blob: https://staging.api.crzgames.com https://api.crzgames.com https://s3.de.io.cloud.ovh.net http://localhost:9000 http://127.0.0.1:9000; font-src 'self'; object-src 'none'; frame-src 'none';",
+      "csp": {
+        "default-src": "'self' customprotocol: asset:",
+        "connect-src": [
+          "ipc:",
+          "http://ipc.localhost",
+          "https://staging.api.crzgames.com",
+          "https://api.crzgames.com",
+          "https://s3.de.io.cloud.ovh.net",
+          "https://*.s3.de.io.cloud.ovh.net",
+          "http://127.0.0.1:3333",
+          "http://localhost:3556",
+          "http://localhost:9000",
+          "http://127.0.0.1:9000"
+        ],
+        "script-src": "'self'",
+        "style-src": "'self' 'unsafe-inline'",
+        "img-src": [
+          "'self'",
+          "asset:",
+          "http://asset.localhost",
+          "data:",
+          "blob:",
+          "https://staging.api.crzgames.com",
+          "https://api.crzgames.com",
+          "https://s3.de.io.cloud.ovh.net",
+          "https://*.s3.de.io.cloud.ovh.net",
+          "http://localhost:9000",
+          "http://127.0.0.1:9000"
+        ],
+        "media-src": [
+          "'self'",
+          "asset:",
+          "http://asset.localhost",
+          "data:",
+          "blob:",
+          "https://staging.api.crzgames.com",
+          "https://api.crzgames.com",
+          "https://s3.de.io.cloud.ovh.net",
+          "https://*.s3.de.io.cloud.ovh.net",
+          "http://localhost:9000",
+          "http://127.0.0.1:9000"
+        ],
+        "font-src": "'self'",
+        "object-src": "'none'",
+        "frame-src": "'none'"
+      },
       "assetProtocol": {
         "enable": false,
         "scope": []
@@ -90,7 +135,7 @@
       "files": {},
       "hardenedRuntime": true,
       "entitlements": null,
-      "exceptionDomain": "127.0.0.1 localhost staging.api.crzgames.com api.crzgames.com s3.de.io.cloud.ovh.net",
+      "exceptionDomain": "127.0.0.1 localhost staging.api.crzgames.com api.crzgames.com s3.de.io.cloud.ovh.net crzgames.s3.de.io.cloud.ovh.net",
       "frameworks": [],
       "providerShortName": null,
       "signingIdentity": null,
