@@ -1,53 +1,61 @@
 <template>
   <component :is="tag" :to="to" class="grid w-full min-w-[170px] max-w-[320px] gap-2">
     <div
-      class="relative aspect-[3/4] transform transition-transform duration-300 ease-in-out"
+      class="relative aspect-[3/4] overflow-hidden transform transition-transform duration-300 ease-in-out"
       :class="[
         props.enableHoverEffect ? 'hover:scale-105 hover:-translate-y-2' : '',
         props.visualGroupClass,
         !props.pictureFileUrl ? 'rounded-md bg-zinc-100' : '',
       ]"
-      @mouseover="playVideo"
-      @mouseout="resetVideo"
+      @mouseenter="playVideo"
+      @mouseleave="resetVideo"
     >
       <!-- Étiquette "À VENIR" ou "NOUVEAU" -->
       <span
         v-if="props.upcomingGame"
-        class="absolute left-2 top-2 rounded bg-yellow-500 px-2 py-1 text-xs font-bold text-white"
+        class="absolute left-2 top-2 z-20 rounded bg-yellow-500 px-2 py-1 text-xs font-bold text-white"
       >
         COMING SOON
       </span>
       <span
         v-else-if="props.newGame"
-        class="absolute left-2 top-2 rounded bg-green-500 px-2 py-1 text-xs font-bold text-white"
+        class="absolute left-2 top-2 z-20 rounded bg-green-500 px-2 py-1 text-xs font-bold text-white"
       >
         NEW
       </span>
 
       <!-- Image de la couverture du jeu -->
       <img
-        class="h-full w-full rounded-md object-cover"
+        class="absolute inset-0 h-full w-full rounded-md object-cover"
         v-if="props.pictureFileUrl"
         :src="props.pictureFileUrl"
-        v-show="!hover"
+        v-show="!hover || !canShowTrailerVideo || !trailerFrameReady"
         :alt="`${props.title} game cover`"
       />
 
       <!-- Vidéo du jeu -->
       <video
-        v-if="showVideo && props.trailerFileUrl"
+        v-if="canShowTrailerVideo"
         loop
+        muted
+        playsinline
+        preload="metadata"
         ref="gameVideoElement"
-        class="h-full w-full rounded-md object-cover"
+        class="absolute inset-0 h-full w-full rounded-md object-cover"
         v-show="hover"
-        :src="props.trailerFileUrl"
-      />
+        :poster="props.pictureFileUrl || undefined"
+        @loadeddata="onTrailerLoadedData"
+        @error="onTrailerPlaybackError"
+      >
+        <source :src="normalizedTrailerFileUrl || ''" :type="trailerMimeType || undefined" />
+      </video>
 
       <!-- Logo du jeu -->
       <img
         v-if="props.logoFileUrl"
         class="absolute bottom-2 left-1/2 h-auto -translate-x-1/2 transform"
         :src="props.logoFileUrl"
+        v-show="!hover || !canShowTrailerVideo || !trailerFrameReady"
         :alt="`${props.title} game logo`"
       />
 
@@ -188,7 +196,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, useSlots } from 'vue'
+import { computed, ref, useSlots, watch } from 'vue'
 import type { ComputedRef, PropType, Ref } from 'vue'
 
 import CrzSquareIconButton from '#src-common/components/buttons/CrzSquareIconButton.vue'
@@ -260,6 +268,8 @@ type Props = {
 const hover: Ref<boolean> = ref(false)
 const gameVideoElement: Ref<HTMLVideoElement | null> = ref(null)
 const resetTimeout: Ref<NodeJS.Timeout | null> = ref(null)
+const trailerPlaybackFailed: Ref<boolean> = ref(false)
+const trailerFrameReady: Ref<boolean> = ref(false)
 
 /* PROPS */
 const props: Props = defineProps({
@@ -406,13 +416,57 @@ const tag: ComputedRef<'div' | 'RouterLink'> = computed(() => {
   return 'div'
 })
 
+const normalizedTrailerFileUrl: ComputedRef<string | null> = computed((): string | null => {
+  const rawTrailerUrl: string = String(props.trailerFileUrl || '').trim()
+  if (!rawTrailerUrl || rawTrailerUrl === 'null' || rawTrailerUrl === 'undefined') {
+    return null
+  }
+
+  return rawTrailerUrl
+})
+
+const trailerMimeType: ComputedRef<string | null> = computed((): string | null => {
+  const trailerUrl: string | null = normalizedTrailerFileUrl.value
+  if (!trailerUrl) {
+    return null
+  }
+
+  const pathWithoutQueryAndHash: string = trailerUrl.split('#')[0]?.split('?')[0] || trailerUrl
+  const extension: string = pathWithoutQueryAndHash.split('.').pop()?.toLowerCase() || ''
+
+  if (extension === 'mp4' || extension === 'm4v') {
+    return 'video/mp4'
+  }
+  if (extension === 'webm') {
+    return 'video/webm'
+  }
+  if (extension === 'ogv' || extension === 'ogg') {
+    return 'video/ogg'
+  }
+
+  return null
+})
+
+const canShowTrailerVideo: ComputedRef<boolean> = computed((): boolean => {
+  return props.showVideo && !!normalizedTrailerFileUrl.value && !trailerPlaybackFailed.value
+})
+
+watch(
+  () => props.trailerFileUrl,
+  (): void => {
+    trailerPlaybackFailed.value = false
+    trailerFrameReady.value = false
+    hover.value = false
+  },
+)
+
 /* METHODS */
 /**
  * Play the video
  * @returns {void}
  */
 const playVideo: () => void = (): void => {
-  if (!props.showVideo) return
+  if (!canShowTrailerVideo.value) return
 
   // Annule tout timeout de réinitialisation en attente
   if (resetTimeout.value !== null) {
@@ -423,7 +477,24 @@ const playVideo: () => void = (): void => {
   hover.value = true
   const video: HTMLVideoElement | null = gameVideoElement.value
   if (video) {
-    video.play().catch((error: any) => console.error('Error playing video:', error))
+    video.muted = true
+    video.play().catch((error: unknown): void => {
+      // AbortError est fréquent lors de transitions rapides de hover; ce n'est pas une panne média.
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return
+      }
+
+      hover.value = false
+
+      if (error instanceof DOMException && error.name === 'NotSupportedError') {
+        trailerPlaybackFailed.value = true
+        console.warn(`[CrzGameCard] Trailer source unsupported for "${props.title || 'unknown game'}".`)
+        return
+      }
+
+      trailerPlaybackFailed.value = true
+      console.error('Error playing video:', error)
+    })
   }
 }
 
@@ -432,7 +503,10 @@ const playVideo: () => void = (): void => {
  * @returns {void}
  */
 const resetVideo: () => void = (): void => {
-  if (!props.showVideo) return
+  if (!canShowTrailerVideo.value) {
+    hover.value = false
+    return
+  }
 
   // Ajoute un léger délai avant de réinitialiser la vidéo
   if (resetTimeout.value === null) {
@@ -446,6 +520,24 @@ const resetVideo: () => void = (): void => {
       resetTimeout.value = null
     }, 100) // Délai de 100ms
   }
+}
+
+/**
+ * Marque la video comme indisponible lorsqu'une erreur media survient.
+ * @returns {void}
+ */
+const onTrailerPlaybackError: () => void = (): void => {
+  trailerPlaybackFailed.value = true
+  trailerFrameReady.value = false
+  hover.value = false
+}
+
+/**
+ * Marque la video comme prete des que la premiere frame est disponible.
+ * @returns {void}
+ */
+const onTrailerLoadedData: () => void = (): void => {
+  trailerFrameReady.value = true
 }
 
 /**
