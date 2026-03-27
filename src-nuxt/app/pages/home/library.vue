@@ -301,6 +301,39 @@
         </div>
       </div>
     </CrzModal>
+
+    <CrzModal
+      v-if="showInstallPathAccessDeniedModal"
+      :show="showInstallPathAccessDeniedModal"
+      :show-left-button="false"
+      :show-right-button="false"
+      title="Installation blocked"
+      bgClass="bg-gray-900"
+      @update:show="closeInstallPathAccessDeniedModal"
+    >
+      <div class="grid gap-4 text-white">
+        <p class="rounded-md border border-red-300/40 bg-red-700/40 px-3 py-2 font-semibold text-red-100">
+          Access denied: CrzGames Launcher cannot install the game in this folder.
+        </p>
+        <p>{{ getInstallPathAccessDeniedMessage() }}</p>
+        <p class="text-sm text-gray-200">
+          Selected path:
+          <span class="font-mono break-all">{{ installPathAccessDeniedPath || '-' }}</span>
+        </p>
+        <p class="text-sm text-gray-300">
+          This folder is protected and requires administrator rights to install files in it.
+        </p>
+        <div class="flex justify-end">
+          <button
+            @click="closeInstallPathAccessDeniedModal"
+            type="button"
+            class="translate-y-0 transform rounded-lg border border-gray-500 bg-gray-700 px-5 py-2.5 text-sm font-medium text-gray-300 duration-100 hover:bg-gray-600 hover:text-white focus:z-10 focus:outline-none active:translate-y-1"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </CrzModal>
   </div>
 </template>
 
@@ -416,6 +449,8 @@ const showPlayGameNotFoundExecutableMessageError: Ref<string> = ref('')
 const showUnstallGame: Ref<boolean> = ref(false)
 const showUninstallBlockedByRunningGameModal: Ref<boolean> = ref(false)
 const uninstallBlockedGameTitle: Ref<string> = ref('')
+const showInstallPathAccessDeniedModal: Ref<boolean> = ref(false)
+const installPathAccessDeniedPath: Ref<string> = ref('')
 
 // Modal pour rÃƒÆ’Ã‚Â©parer le jeu installÃƒÆ’Ã‚Â©
 const showFixGameInstalledModal: Ref<boolean> = ref(false)
@@ -789,6 +824,25 @@ const openUninstallBlockedByRunningGameModal: (game: GameModel) => void = (game:
 const closeUninstallBlockedByRunningGameModal: () => void = (): void => {
   showUninstallBlockedByRunningGameModal.value = false
   uninstallBlockedGameTitle.value = ''
+}
+
+/**
+ * Ouvre la modal d'information quand le chemin d'installation n'est pas accessible en ecriture.
+ * @param {string} installPath - Chemin d'installation selectionne.
+ * @returns {void}
+ */
+const openInstallPathAccessDeniedModal: (installPath: string) => void = (installPath: string): void => {
+  installPathAccessDeniedPath.value = installPath
+  showInstallPathAccessDeniedModal.value = true
+}
+
+/**
+ * Ferme la modal d'information de chemin d'installation refuse.
+ * @returns {void}
+ */
+const closeInstallPathAccessDeniedModal: () => void = (): void => {
+  showInstallPathAccessDeniedModal.value = false
+  installPathAccessDeniedPath.value = ''
 }
 
 /**
@@ -1272,6 +1326,34 @@ const onCheckCreateDesktopShortcut: (checked: boolean) => void = (checked: boole
 }
 
 /**
+ * Message affiche en cas d'acces ecriture refuse sur un chemin d'installation.
+ * @returns {string}
+ */
+const getInstallPathAccessDeniedMessage: () => string = (): string => {
+  return 'Access denied for the selected installation path. Choose another folder or relaunch CrzGames Launcher as administrator to install there.'
+}
+
+/**
+ * Verifie l'acces en ecriture sur le chemin d'installation.
+ * @param {string} installPath - Chemin a verifier
+ * @returns {Promise<boolean>} - True si le chemin est accessible en ecriture
+ */
+const validateInstallPathWriteAccess: (installPath: string) => Promise<boolean> = async (
+  installPath: string,
+): Promise<boolean> => {
+  const accessCheckResult = await TauriService.checkInstallPathWriteAccess(installPath)
+  if (accessCheckResult.isWritable) {
+    return true
+  }
+
+  logger.error(
+    `[Install Path Access] denied path=${installPath} error=${accessCheckResult.error || 'unknown error'}`,
+  )
+  openInstallPathAccessDeniedModal(installPath)
+  return false
+}
+
+/**
  * Set the default installation location
  * @param {boolean} addDirectoryGame - The add directory game
  * @param {boolean} launcherGetPath - The launcher get path
@@ -1387,6 +1469,13 @@ const downloadGame: (files?: FileDetails[]) => Promise<void> = async (files?: Fi
     files,
     gameToDownloadFileSizeCurrent || preloadedPayload?.totalSizeToDownload,
   )
+
+  if (gamePathInstallLocationPathSystem) {
+    const hasWriteAccessOnInstallPath: boolean = await validateInstallPathWriteAccess(gamePathInstallLocationPathSystem)
+    if (!hasWriteAccessOnInstallPath) {
+      return
+    }
+  }
 
   if (game && gamePathInstallLocationPathSystem) {
     const preloadedLatestVersion: string | undefined = preloadedPayload?.latestVersion?.trim()
@@ -1517,6 +1606,9 @@ const downloadGame: (files?: FileDetails[]) => Promise<void> = async (files?: Fi
 const changeDownloadPath: (addDirectoryGame: boolean) => Promise<void> = async (
   addDirectoryGame: boolean,
 ): Promise<void> => {
+  const previousPathInstallLocation: PathInstallLocation | undefined = gamePathInstallLocation.value
+    ? { ...gamePathInstallLocation.value }
+    : undefined
   const pathInstallLocation: PathInstallLocation | undefined = await TauriService.selectPathForInstallAndCheckSpace()
 
   if (pathInstallLocation) {
@@ -1525,11 +1617,24 @@ const changeDownloadPath: (addDirectoryGame: boolean) => Promise<void> = async (
       diskFreeSpace: pathInstallLocation.diskFreeSpace,
     }
 
-    checkIfEnoughDiskSpace(gameToDownloadFileSize.value || 0)
-
     if (addDirectoryGame) {
       await addDirectoryGameForPathInstallLocation()
     }
+
+    const selectedInstallPath: string | undefined = gamePathInstallLocation.value?.pathSystem
+    if (selectedInstallPath) {
+      const hasWriteAccessOnSelectedPath: boolean = await validateInstallPathWriteAccess(selectedInstallPath)
+
+      if (!hasWriteAccessOnSelectedPath) {
+        if (previousPathInstallLocation) {
+          gamePathInstallLocation.value = previousPathInstallLocation
+          checkIfEnoughDiskSpace(gameToDownloadFileSize.value || 0)
+        }
+        return
+      }
+    }
+
+    checkIfEnoughDiskSpace(gameToDownloadFileSize.value || 0)
   }
 }
 
@@ -1548,9 +1653,11 @@ const addDirectoryGameForPathInstallLocation: () => Promise<void> = async (): Pr
       // Utiliser un sÃƒÆ’Ã‚Â©parateur de chemin basÃƒÆ’Ã‚Â© sur le systÃƒÆ’Ã‚Â¨me d'exploitation
       const separator: string = systemInfo.os.toLowerCase() === 'windows' ? '\\' : '/'
       const fullPath: string = `${gamePathInstallLocation.value.pathSystem}${separator}${game.title}`
+      const diskFreeSpaceCurrentPath: number | undefined = gamePathInstallLocation.value.diskFreeSpace
 
       gamePathInstallLocation.value = {
         pathSystem: fullPath,
+        diskFreeSpace: diskFreeSpaceCurrentPath,
       }
     }
   }
