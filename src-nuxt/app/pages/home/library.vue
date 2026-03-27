@@ -279,17 +279,33 @@
       :show="showUninstallBlockedByRunningGameModal"
       :show-left-button="false"
       :show-right-button="false"
-      title="Unable to uninstall game"
       bgClass="bg-blue-800"
       @update:show="closeUninstallBlockedByRunningGameModal"
     >
-      <div class="grid gap-4 text-white">
-        <p>
-          You cannot uninstall
-          <span class="font-semibold">{{ uninstallBlockedGameTitle || 'this game' }}</span>
-          while it is running.
-        </p>
-        <p>Please close the game first, then try uninstalling again.</p>
+      <div class="grid gap-8">
+        <div class="flex flex-wrap gap-4">
+          <img
+            v-if="uninstallBlockedGame?.pictureFile?.url"
+            class="h-14 w-14 rounded-lg object-cover"
+            :src="uninstallBlockedGame.pictureFile.url"
+            :alt="uninstallBlockedGame?.title || 'Game'"
+          />
+          <div class="flex flex-col">
+            <h2 class="text-base font-medium text-zinc-300">
+              {{ uninstallBlockedGame?.title || 'Game' }}
+            </h2>
+            <h3 class="text-base font-bold text-red-500">Unable to uninstall game</h3>
+          </div>
+        </div>
+
+        <div class="grid gap-3 rounded-lg bg-yellow-100 p-4">
+          <h4 class="text-base font-bold text-red-600">Important: Read Carefully</h4>
+          <p class="text-sm text-black">
+            This game is currently running, so uninstall is blocked to avoid corrupted files.
+          </p>
+          <p class="text-sm text-black">Please close the game first, then try uninstalling again.</p>
+        </div>
+
         <div class="flex justify-end">
           <button
             @click="closeUninstallBlockedByRunningGameModal"
@@ -307,22 +323,40 @@
       :show="showInstallPathAccessDeniedModal"
       :show-left-button="false"
       :show-right-button="false"
-      title="Installation blocked"
-      bgClass="bg-gray-900"
+      bgClass="bg-blue-800"
       @update:show="closeInstallPathAccessDeniedModal"
     >
-      <div class="grid gap-4 text-white">
-        <p class="rounded-md border border-red-300/40 bg-red-700/40 px-3 py-2 font-semibold text-red-100">
-          Access denied: CrzGames Launcher cannot install the game in this folder.
-        </p>
-        <p>{{ getInstallPathAccessDeniedMessage() }}</p>
-        <p class="text-sm text-gray-200">
-          Selected path:
-          <span class="font-mono break-all">{{ installPathAccessDeniedPath || '-' }}</span>
-        </p>
-        <p class="text-sm text-gray-300">
-          This folder is protected and requires administrator rights to install files in it.
-        </p>
+      <div class="grid gap-8">
+        <div class="flex flex-wrap gap-4">
+          <img
+            v-if="installPathAccessDeniedGamePictureUrl"
+            class="h-14 w-14 rounded-lg object-cover"
+            :src="installPathAccessDeniedGamePictureUrl"
+            :alt="installPathAccessDeniedGameTitle || 'Game'"
+          />
+          <div class="flex flex-col">
+            <h2 class="text-base font-medium text-zinc-300">
+              {{ installPathAccessDeniedGameTitle || gameToDownload?.title || 'Game' }}
+            </h2>
+            <h3 class="text-base font-bold text-red-500">Installation blocked</h3>
+          </div>
+        </div>
+
+        <div class="grid gap-3 rounded-lg bg-yellow-100 p-4">
+          <h4 class="text-base font-bold text-red-600">Important: Read Carefully</h4>
+          <p class="text-sm text-black">
+            Access denied: CrzGames Launcher cannot install the game in this folder.
+          </p>
+          <p class="text-sm text-black">{{ getInstallPathAccessDeniedMessage() }}</p>
+          <p class="text-sm text-black">
+            Selected path:
+            <span class="font-mono break-all">{{ installPathAccessDeniedPath || '-' }}</span>
+          </p>
+          <p class="text-sm text-black">
+            This folder is protected and requires administrator rights to install files in it.
+          </p>
+        </div>
+
         <div class="flex justify-end">
           <button
             @click="closeInstallPathAccessDeniedModal"
@@ -448,9 +482,11 @@ const gameToPlayNotFoundExecutable: Ref<GameModel | null> = ref(null)
 const showPlayGameNotFoundExecutableMessageError: Ref<string> = ref('')
 const showUnstallGame: Ref<boolean> = ref(false)
 const showUninstallBlockedByRunningGameModal: Ref<boolean> = ref(false)
-const uninstallBlockedGameTitle: Ref<string> = ref('')
+const uninstallBlockedGame: Ref<GameModel | null> = ref(null)
 const showInstallPathAccessDeniedModal: Ref<boolean> = ref(false)
 const installPathAccessDeniedPath: Ref<string> = ref('')
+const installPathAccessDeniedGameTitle: Ref<string> = ref('')
+const installPathAccessDeniedGamePictureUrl: Ref<string> = ref('')
 
 // Modal pour rÃƒÆ’Ã‚Â©parer le jeu installÃƒÆ’Ã‚Â©
 const showFixGameInstalledModal: Ref<boolean> = ref(false)
@@ -813,7 +849,7 @@ const isUninstallBlockedByRunningGameError: (error: unknown) => boolean = (error
  * @returns {void}
  */
 const openUninstallBlockedByRunningGameModal: (game: GameModel) => void = (game: GameModel): void => {
-  uninstallBlockedGameTitle.value = game.title
+  uninstallBlockedGame.value = game
   showUninstallBlockedByRunningGameModal.value = true
 }
 
@@ -823,7 +859,7 @@ const openUninstallBlockedByRunningGameModal: (game: GameModel) => void = (game:
  */
 const closeUninstallBlockedByRunningGameModal: () => void = (): void => {
   showUninstallBlockedByRunningGameModal.value = false
-  uninstallBlockedGameTitle.value = ''
+  uninstallBlockedGame.value = null
 }
 
 /**
@@ -833,6 +869,8 @@ const closeUninstallBlockedByRunningGameModal: () => void = (): void => {
  */
 const openInstallPathAccessDeniedModal: (installPath: string) => void = (installPath: string): void => {
   installPathAccessDeniedPath.value = installPath
+  installPathAccessDeniedGameTitle.value = gameToDownload.value?.title || ''
+  installPathAccessDeniedGamePictureUrl.value = gameToDownload.value?.pictureFile?.url || ''
   showInstallPathAccessDeniedModal.value = true
 }
 
@@ -843,6 +881,8 @@ const openInstallPathAccessDeniedModal: (installPath: string) => void = (install
 const closeInstallPathAccessDeniedModal: () => void = (): void => {
   showInstallPathAccessDeniedModal.value = false
   installPathAccessDeniedPath.value = ''
+  installPathAccessDeniedGameTitle.value = ''
+  installPathAccessDeniedGamePictureUrl.value = ''
 }
 
 /**
