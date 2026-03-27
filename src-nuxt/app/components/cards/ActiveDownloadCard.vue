@@ -23,11 +23,22 @@
       <div class="grid gap-2">
         <div class="flex justify-between">
           <p class="font-serif text-sm font-medium text-zinc-400">Status:</p>
-          <p class="font-medium">{{ props.isPlaying ? 'Downloading' : 'Paused' }}</p>
+          <p class="font-medium flex items-center">
+            <span>{{ statusLabel }}</span>
+            <span v-if="showAnimatedStatusDots" class="ml-1 status-dots" aria-hidden="true">
+              <span>.</span>
+              <span>.</span>
+              <span>.</span>
+            </span>
+          </p>
         </div>
-        <div v-if="props.isPlaying" class="flex justify-between">
+        <div v-if="props.isPlaying && !isPostDownloadPhase" class="flex justify-between">
           <p class="font-serif text-sm font-medium text-zinc-400">Remaining time:</p>
           <p class="font-medium">{{ props.remainingTime }}</p>
+        </div>
+        <div v-if="isPostDownloadPhase" class="flex justify-between">
+          <p class="font-serif text-sm font-medium text-zinc-400">Post-download:</p>
+          <p class="font-medium">Finalizing installation</p>
         </div>
         <div class="flex justify-between">
           <p class="font-serif text-sm font-medium text-zinc-400">Downloaded:</p>
@@ -37,7 +48,7 @@
     </div>
 
     <!-- Boutons d'action -->
-    <div class="flex flex-col items-center gap-2">
+    <div v-if="!isPostDownloadPhase" class="flex flex-col items-center gap-2">
       <PlayPauseButton :isPlaying="props.isPlaying" @play="emit('play')" @pause="emit('pause')" />
       <CrzSquareIconButton tooltip="Cancel download" variant="red" iconName="x" @click="handleCancel" />
     </div>
@@ -45,6 +56,9 @@
 </template>
 
 <script lang="ts" setup>
+import { computed } from 'vue'
+import type { ComputedRef } from 'vue'
+
 import CrzSquareIconButton from '#src-common/components/buttons/CrzSquareIconButton.vue'
 
 import PlayPauseButton from '#src-nuxt/app/components/buttons/PlayPauseButton.vue'
@@ -135,6 +149,17 @@ const props: Props = defineProps({
 /* EMITS */
 const emit: (event: 'play' | 'pause' | 'cancel', ...args: any[]) => void = defineEmits(['play', 'pause', 'cancel'])
 
+/* COMPUTED */
+const isPostDownloadPhase: ComputedRef<boolean> = computed((): boolean => Math.round(props.progress) >= 100)
+const showAnimatedStatusDots: ComputedRef<boolean> = computed((): boolean => isPostDownloadPhase.value)
+const statusLabel: ComputedRef<string> = computed((): string => {
+  if (isPostDownloadPhase.value) {
+    return 'Downloaded files, installing'
+  }
+
+  return props.isPlaying ? 'Downloading' : 'Paused'
+})
+
 /* METHODS */
 /**
  * Handles cancel button click
@@ -143,3 +168,33 @@ const handleCancel: () => void = (): void => {
   emit('cancel')
 }
 </script>
+
+<style scoped>
+.status-dots span {
+  animation: status-dot-blink 1.2s infinite;
+  display: inline-block;
+}
+
+.status-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.status-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes status-dot-blink {
+  0%,
+  20% {
+    opacity: 0.2;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.2;
+  }
+}
+</style>

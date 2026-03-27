@@ -241,6 +241,14 @@ const hasActiveOrCompletedDownloads: ComputedRef<boolean> = computed(
 const normalizeGameTitle: (value: string) => string = (value: string): string => value.trim().toLowerCase()
 
 /**
+ * Indique si un telechargement est dans la phase post-download (100%) avant completion finale.
+ * @param {ActiveDownloadGame} game - Telechargement actif.
+ * @returns {boolean} - True si les fichiers sont entierement telecharges.
+ */
+const isPostDownloadPhase: (game: ActiveDownloadGame) => boolean = (game: ActiveDownloadGame): boolean =>
+  Math.round(game.progress) >= 100
+
+/**
  * Resolve game details for resume flow.
  * Uses gameId first, then falls back to title if local ids are stale.
  * @param {number} requestedGameId - Game id from active download state.
@@ -320,6 +328,13 @@ const openCancelDownloadModal: (gameToCancel: ActiveDownloadGame) => void = (
   gameToCancel: ActiveDownloadGame,
 ): void => {
   try {
+    if (isPostDownloadPhase(gameToCancel)) {
+      logger.debug(
+        `[Cancel Modal] Ignored for gameId=${gameToCancel.gameId} title=${gameToCancel.gameTitle} because download is already at 100%`,
+      )
+      return
+    }
+
     // Log l'action d'ouverture de la modal avec le titre du jeu
     logger.debug(`[Cancel Modal] Ouverture de la modal pour le jeu: ${gameToCancel.gameTitle}`)
 
@@ -402,6 +417,13 @@ const confirmGameDownloadCancellation: () => Promise<void> = async (): Promise<v
 const resumeGameDownload: (gameToResumeDownload: ActiveDownloadGame) => Promise<void> = async (
   gameToResumeDownload: ActiveDownloadGame,
 ): Promise<void> => {
+  if (isPostDownloadPhase(gameToResumeDownload)) {
+    logger.debug(
+      `[Download Resume] Ignored for gameId=${gameToResumeDownload.gameId} title=${gameToResumeDownload.gameTitle} because download is already at 100%`,
+    )
+    return
+  }
+
   if (pendingPlayPauseGameIds.has(gameToResumeDownload.gameId)) {
     return
   }
@@ -545,6 +567,13 @@ const resumeGameDownload: (gameToResumeDownload: ActiveDownloadGame) => Promise<
 const pauseGameDownload: (gameToPauseDownload: ActiveDownloadGame) => Promise<void> = async (
   gameToPauseDownload: ActiveDownloadGame,
 ): Promise<void> => {
+  if (isPostDownloadPhase(gameToPauseDownload)) {
+    logger.debug(
+      `[Download Pause] Ignored for gameId=${gameToPauseDownload.gameId} title=${gameToPauseDownload.gameTitle} because download is already at 100%`,
+    )
+    return
+  }
+
   if (pendingPlayPauseGameIds.has(gameToPauseDownload.gameId)) {
     return
   }
