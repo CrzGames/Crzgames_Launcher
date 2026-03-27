@@ -1103,7 +1103,12 @@ export class TauriService {
       gameManifest: gameManifest,
     })
 
-    await this.sendNotification('CrzGames', `${gameManifest.gameTitle} has been successfully installed`)
+    const installedVersion: string = String(gameManifest.version || '').trim()
+    const notificationBody: string = installedVersion
+      ? `${gameManifest.gameTitle} ${installedVersion} has been successfully installed`
+      : `${gameManifest.gameTitle} has been successfully installed`
+
+    await this.sendNotification('CrzGames', notificationBody)
   }
 
   /**
