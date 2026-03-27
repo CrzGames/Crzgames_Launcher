@@ -353,6 +353,7 @@ const gameInstalled: Ref<GameModel[]> = ref([])
 const gameNotInstalled: Ref<GameModel[]> = ref([])
 const gameNeedsUpdate: Ref<GameModel[]> = ref([])
 const gameActiveDownload: Ref<GameModel[]> = ref([])
+const pendingActiveDownloadGameIds: Set<number> = new Set()
 const gameNotInstalledVisible: ComputedRef<GameModel[]> = computed((): GameModel[] => {
   const activeDownloadGameIds: Set<number> = new Set(
     downloadsStore.activeDownloads.map((activeDownload: ActiveDownloadGame): number => activeDownload.gameId),
@@ -521,23 +522,39 @@ watch(
   () => downloadsStore.activeDownloads,
   async (activeDownloads: ActiveDownloadGame[]) => {
     for (const activeDownload of activeDownloads) {
+      const activeDownloadGameId: number = activeDownload.gameId
+
       // VÃƒÆ’Ã‚Â©rifier si le jeu tÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©chargÃƒÆ’Ã‚Â© n'est pas dÃƒÆ’Ã‚Â©jÃƒÆ’Ã‚Â  dans gameActiveDownload pour ÃƒÆ’Ã‚Â©viter les doublons
       // et s'il n'est pas dÃƒÆ’Ã‚Â©jÃƒÆ’Ã‚Â  dans gameNeedsUpdate pour ÃƒÆ’Ã‚Â©viter les doublons
       if (
-        !gameActiveDownload.value.some((game: GameModel): boolean => game.id === activeDownload.gameId) &&
-        !gameNeedsUpdate.value.some((game: GameModel): boolean => game.id === activeDownload.gameId)
+        !pendingActiveDownloadGameIds.has(activeDownloadGameId) &&
+        !gameActiveDownload.value.some((game: GameModel): boolean => game.id === activeDownloadGameId) &&
+        !gameNeedsUpdate.value.some((game: GameModel): boolean => game.id === activeDownloadGameId)
       ) {
+        pendingActiveDownloadGameIds.add(activeDownloadGameId)
+
         try {
           // Retirer ce jeu des jeux non installÃƒÆ’Ã‚Â©s
-          gameNotInstalled.value = gameNotInstalled.value.filter(
-            (game: GameModel): boolean => game.id !== activeDownload.gameId,
-          )
+          gameNotInstalled.value = gameNotInstalled.value.filter((game: GameModel): boolean => game.id !== activeDownloadGameId)
 
           // RÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©rer le jeu ÃƒÆ’Ã‚Â  tÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©charger
-          const game: GameModel = await GameService.getGameById(activeDownload.gameId)
-          gameActiveDownload.value.push(game)
+          const game: GameModel = await GameService.getGameById(activeDownloadGameId)
+
+          // Double-check apres await pour eviter les doublons en cas de callbacks concurrents.
+          if (
+            !gameActiveDownload.value.some(
+              (activeDownloadedGame: GameModel): boolean => activeDownloadedGame.id === activeDownloadGameId,
+            ) &&
+            !gameNeedsUpdate.value.some(
+              (gameNeedingUpdate: GameModel): boolean => gameNeedingUpdate.id === activeDownloadGameId,
+            )
+          ) {
+            gameActiveDownload.value.push(game)
+          }
         } catch (error: any) {
           console.error("Erreur lors de l'ajout du jeu ÃƒÆ’Ã‚Â  tÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©charger :", error)
+        } finally {
+          pendingActiveDownloadGameIds.delete(activeDownloadGameId)
         }
       }
     }
