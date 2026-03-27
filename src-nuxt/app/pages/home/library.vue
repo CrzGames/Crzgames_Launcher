@@ -386,6 +386,74 @@ const isSufficientDiskSpaceAvailable: Ref<boolean> = ref(false)
 const showButtonCreateDesktopShortcut: Ref<boolean> = ref(true)
 const showButtonChangePath: Ref<boolean> = ref(true)
 
+/**
+ * Normalise un titre de jeu pour les comparaisons.
+ * @param {string | undefined} value - Titre brut.
+ * @returns {string} - Titre normalise.
+ */
+const normalizeGameTitle: (value?: string) => string = (value?: string): string =>
+  (value || '').trim().toLowerCase()
+
+/**
+ * Resolves the canonical game id from an installed local manifest entry.
+ * Priority: direct id match, fallback by title.
+ * @param {GameInstalled} installedGame - Local installed game entry.
+ * @returns {number | undefined} - Canonical game id, if found.
+ */
+const resolveCanonicalGameIdForInstalledGame: (installedGame: GameInstalled) => number | undefined = (
+  installedGame: GameInstalled,
+): number | undefined => {
+  const libraryGames: GameModel[] = userGameLibrariesStore.userGameLibrariesSortedByPlatform || []
+  const manifestGameId: number = installedGame.gameManifest.gameId
+
+  const matchById: GameModel | undefined = libraryGames.find((libraryGame: GameModel): boolean => {
+    return libraryGame.id === manifestGameId
+  })
+  if (matchById) {
+    return matchById.id
+  }
+
+  const manifestTitle: string = normalizeGameTitle(installedGame.gameManifest.gameTitle)
+  if (!manifestTitle) {
+    return undefined
+  }
+
+  const matchByTitle: GameModel | undefined = libraryGames.find((libraryGame: GameModel): boolean => {
+    return normalizeGameTitle(libraryGame.title) === manifestTitle
+  })
+
+  return matchByTitle?.id
+}
+
+/**
+ * Trouve une entree de jeu installe pour un id de jeu canonique.
+ * @param {GameInstalled[] | undefined} collection - Collection installee.
+ * @param {number} canonicalGameId - Id canonique.
+ * @returns {GameInstalled | undefined} - Entree locale.
+ */
+const findInstalledEntryByCanonicalGameId: (
+  collection: GameInstalled[] | undefined,
+  canonicalGameId: number,
+) => GameInstalled | undefined = (
+  collection: GameInstalled[] | undefined,
+  canonicalGameId: number,
+): GameInstalled | undefined => {
+  return collection?.find((installedGame: GameInstalled): boolean => {
+    return resolveCanonicalGameIdForInstalledGame(installedGame) === canonicalGameId
+  })
+}
+
+/**
+ * Verifie si une entree installee correspond a un id de jeu canonique.
+ * @param {GameInstalled} installedGame - Entree locale.
+ * @param {number} canonicalGameId - Id canonique.
+ * @returns {boolean} - True si correspondance.
+ */
+const isInstalledEntryForCanonicalGameId: (installedGame: GameInstalled, canonicalGameId: number) => boolean = (
+  installedGame: GameInstalled,
+  canonicalGameId: number,
+): boolean => resolveCanonicalGameIdForInstalledGame(installedGame) === canonicalGameId
+
 /* CYCLE - HOOKS */
 onMounted(async (): Promise<void> => {
   try {
@@ -415,7 +483,9 @@ watch(
     for (const completedGame of completedDownloads) {
       // VÃƒÆ’Ã‚Â©rifier si le jeu tÃƒÆ’Ã‚Â©lÃƒÆ’Ã‚Â©chargÃƒÆ’Ã‚Â© n'est pas dÃƒÆ’Ã‚Â©jÃƒÆ’Ã‚Â  dans gamesInstalled pour ÃƒÆ’Ã‚Â©viter les doublons
       if (
-        !gamesInstalled.value?.some((game: GameInstalled): boolean => game.gameManifest.gameId === completedGame.gameId)
+        !gamesInstalled.value?.some((game: GameInstalled): boolean =>
+          isInstalledEntryForCanonicalGameId(game, completedGame.gameId),
+        )
       ) {
         try {
           // RÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©rer tous les jeux installÃƒÆ’Ã‚Â©s via un fichier installÃƒÆ’Ã‚Â© sur le disque de l'utilisateur
@@ -484,15 +554,11 @@ watch(
 const UninstallGame: (game: GameModel) => Promise<void> = async (game: GameModel): Promise<void> => {
   try {
     // Chercher le jeu dans les jeux installÃƒÆ’Ã‚Â©s
-    let currentGame: GameInstalled | undefined = gamesInstalled.value?.find(
-      (gameInstalled: GameInstalled) => gameInstalled.gameManifest.gameId === game.id,
-    )
+    let currentGame: GameInstalled | undefined = findInstalledEntryByCanonicalGameId(gamesInstalled.value, game.id)
 
     // Si le jeu n'est pas trouvÃƒÆ’Ã‚Â© dans les jeux installÃƒÆ’Ã‚Â©s, le chercher dans les jeux nÃƒÆ’Ã‚Â©cessitant une mise ÃƒÆ’Ã‚Â  jour
     if (!currentGame) {
-      currentGame = gamesNeedsUpdate.value.find(
-        (gameNeedsUpdate: GameInstalled) => gameNeedsUpdate.gameManifest.gameId === game.id,
-      )
+      currentGame = findInstalledEntryByCanonicalGameId(gamesNeedsUpdate.value, game.id)
     }
 
     // Si le jeu n'est trouvÃƒÆ’Ã‚Â© ni dans les jeux installÃƒÆ’Ã‚Â©s ni dans les jeux nÃƒÆ’Ã‚Â©cessitant une mise ÃƒÆ’Ã‚Â  jour, sortir
@@ -508,10 +574,10 @@ const UninstallGame: (game: GameModel) => Promise<void> = async (game: GameModel
 
     // Supprimer le jeu de la liste des jeux installÃƒÆ’Ã‚Â©s ou de la liste des jeux nÃƒÆ’Ã‚Â©cessitant une mise ÃƒÆ’Ã‚Â  jour
     gamesInstalled.value = gamesInstalled.value?.filter((gameInstalled: GameInstalled) => {
-      return gameInstalled.gameManifest.gameId !== game.id
+      return !isInstalledEntryForCanonicalGameId(gameInstalled, game.id)
     })
     gamesNeedsUpdate.value = gamesNeedsUpdate.value.filter((gameNeedsUpdate: GameInstalled) => {
-      return gameNeedsUpdate.gameManifest.gameId !== game.id
+      return !isInstalledEntryForCanonicalGameId(gameNeedsUpdate, game.id)
     })
 
     // Mettre ÃƒÆ’Ã‚Â  jour les listes de jeux ÃƒÆ’Ã‚Â  afficher
@@ -536,15 +602,11 @@ const UninstallGame: (game: GameModel) => Promise<void> = async (game: GameModel
  */
 const createShortcutOnDesktop: (game: GameModel) => Promise<void> = async (game: GameModel): Promise<void> => {
   // Chercher le jeu dans les jeux installÃƒÆ’Ã‚Â©s
-  let currentGame: GameInstalled | undefined = gamesInstalled.value?.find(
-    (gameInstalled: GameInstalled) => gameInstalled.gameManifest.gameId === game.id,
-  )
+  let currentGame: GameInstalled | undefined = findInstalledEntryByCanonicalGameId(gamesInstalled.value, game.id)
 
   // Si le jeu n'est pas trouvÃƒÆ’Ã‚Â© dans les jeux installÃƒÆ’Ã‚Â©s, le chercher dans les jeux nÃƒÆ’Ã‚Â©cessitant une mise ÃƒÆ’Ã‚Â  jour
   if (!currentGame) {
-    currentGame = gamesNeedsUpdate.value.find(
-      (gameNeedsUpdate: GameInstalled) => gameNeedsUpdate.gameManifest.gameId === game.id,
-    )
+    currentGame = findInstalledEntryByCanonicalGameId(gamesNeedsUpdate.value, game.id)
   }
 
   // Si le jeu n'est trouvÃƒÆ’Ã‚Â© ni dans les jeux installÃƒÆ’Ã‚Â©s ni dans les jeux nÃƒÆ’Ã‚Â©cessitant une mise ÃƒÆ’Ã‚Â  jour, sortir
@@ -578,16 +640,18 @@ const closePlayGameNotFoundExecutableModal: () => void = (): void => {
  * @returns {Promise<boolean>} - Retourne true si une mise ÃƒÆ’Ã‚Â  jour est disponible, false sinon
  */
 const checkForGameUpdate: (game: GameModel) => Promise<boolean> = async (game: GameModel): Promise<boolean> => {
+  const canonicalGameId: number = game.id
   const latestGameVersionAvailable: GameVersionModel | undefined =
-    await GameVersionService.getLatestAvailableGameVersionByGameId(game.id)
+    await GameVersionService.getLatestAvailableGameVersionByGameId(canonicalGameId)
 
-  const installedGame: GameInstalled | undefined = gamesInstalled.value?.find(
-    (gameInstalled: GameInstalled) => gameInstalled.gameManifest.gameId === game.id,
+  const installedGame: GameInstalled | undefined = findInstalledEntryByCanonicalGameId(
+    gamesInstalled.value,
+    canonicalGameId,
   )
 
   if (installedGame && latestGameVersionAvailable.version !== installedGame.gameManifest.version) {
     const gameModel: GameModel | undefined = userGameLibrariesStore.userGameLibrariesSortedByPlatform.find(
-      (game: GameModel) => game.id === installedGame.gameManifest.gameId,
+      (libraryGame: GameModel) => libraryGame.id === canonicalGameId,
     )
 
     if (gameModel) {
@@ -631,7 +695,6 @@ const loadGames: () => Promise<void> = async (): Promise<void> => {
 
   await userGameLibrariesStore.getUserGameLibraries()
 
-  // RÃƒÆ’Ã‚Â©initialiser les listes avant de les remplir
   gamesInstalled.value = []
   gameNeedsUpdate.value = []
   gamesNeedsUpdate.value = []
@@ -639,28 +702,37 @@ const loadGames: () => Promise<void> = async (): Promise<void> => {
   const installedGames: GameInstalled[] | undefined = await TauriService.getGamesInstalled(currentUserId)
 
   if (installedGames && installedGames.length > 0) {
-    // Check for updates
     for (const installedGame of installedGames) {
-      // RÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©rer la derniÃƒÆ’Ã‚Â¨re version du jeu disponible
-      const latestGameVersionAvailable: GameVersionModel | undefined =
-        await GameVersionService.getLatestAvailableGameVersionByGameId(installedGame.gameManifest.gameId)
-
-      // VÃƒÆ’Ã‚Â©rifier si la version du jeu installÃƒÆ’Ã‚Â© est diffÃƒÆ’Ã‚Â©rente de la version la plus rÃƒÆ’Ã‚Â©cente disponible
-      if (latestGameVersionAvailable.version !== installedGame.gameManifest.version) {
-        const gameModel: GameModel | undefined = userGameLibrariesStore.userGameLibrariesSortedByPlatform.find(
-          (game: GameModel) => game.id === installedGame.gameManifest.gameId,
+      const canonicalGameId: number | undefined = resolveCanonicalGameIdForInstalledGame(installedGame)
+      if (!canonicalGameId) {
+        logger.warn(
+          `[Library] Unable to resolve canonical gameId for installed manifest title="${installedGame.gameManifest.gameTitle}" id=${installedGame.gameManifest.gameId}`,
         )
+        continue
+      }
 
-        if (!gameModel) {
-          continue
+      try {
+        const latestGameVersionAvailable: GameVersionModel | undefined =
+          await GameVersionService.getLatestAvailableGameVersionByGameId(canonicalGameId)
+
+        if (latestGameVersionAvailable.version !== installedGame.gameManifest.version) {
+          const gameModel: GameModel | undefined = userGameLibrariesStore.userGameLibrariesSortedByPlatform.find(
+            (libraryGame: GameModel): boolean => libraryGame.id === canonicalGameId,
+          )
+
+          if (!gameModel) {
+            continue
+          }
+
+          gameNeedsUpdate.value.push(gameModel)
+          gamesNeedsUpdate.value = [...gamesNeedsUpdate.value, installedGame]
+        } else {
+          gamesInstalled.value = [...gamesInstalled.value, installedGame]
         }
-
-        // Ajouter le jeu ÃƒÆ’Ã‚Â  la liste des jeux nÃƒÆ’Ã‚Â©cessitant une mise ÃƒÆ’Ã‚Â  jour
-        gameNeedsUpdate.value.push(gameModel)
-        gamesNeedsUpdate.value = [...gamesNeedsUpdate.value, installedGame]
-      } else {
-        // Ajouter un par un les jeux installÃƒÆ’Ã‚Â©s dans la liste des jeux installÃƒÆ’Ã‚Â©s si la version est la mÃƒÆ’Ã‚Âªme
-        gamesInstalled.value = [...gamesInstalled.value, installedGame]
+      } catch (error: unknown) {
+        logger.warn(
+          `[Library] Failed to check latest version for canonicalGameId=${canonicalGameId} localManifestId=${installedGame.gameManifest.gameId}: ${error instanceof Error ? error.message : String(error)}`,
+        )
       }
     }
   }
@@ -686,11 +758,7 @@ const onPlayGame: (game: GameModel) => Promise<Promise<void> | string> = async (
      * Chercher le jeu dans les jeux installÃƒÆ’Ã‚Â©s par rapport ÃƒÆ’Ã‚Â  l'id du jeu passÃƒÆ’Ã‚Â© en paramÃƒÆ’Ã‚Â¨tre
      * lors de l'appel de la fonction onPlayGame, c'est quand on clique sur le bouton play du jeu
      */
-    const currentGame: GameInstalled | undefined = gamesInstalled.value.find(
-      (gameInstalled: GameInstalled): boolean => {
-        return gameInstalled.gameManifest.gameId === game.id
-      },
-    )
+    const currentGame: GameInstalled | undefined = findInstalledEntryByCanonicalGameId(gamesInstalled.value, game.id)
 
     /**
      * Si le jeu est trouvÃƒÆ’Ã‚Â© dans les jeux installÃƒÆ’Ã‚Â©s, on continue
@@ -703,7 +771,7 @@ const onPlayGame: (game: GameModel) => Promise<Promise<void> | string> = async (
       if (hasUpdate) {
         // Supprimer le jeu de la liste des jeux installÃƒÆ’Ã‚Â©s
         gamesInstalled.value = gamesInstalled.value.filter(
-          (gameInstalled: GameInstalled): boolean => gameInstalled.gameManifest.gameId !== game.id,
+          (gameInstalled: GameInstalled): boolean => !isInstalledEntryForCanonicalGameId(gameInstalled, game.id),
         )
 
         notyf.error(`An update is available for ${game.title}. Please update the game before playing.`)
@@ -741,7 +809,9 @@ const refreshLibrary: () => void = (): void => {
   ) {
     // Jeux installÃƒÆ’Ã‚Â©s
     gameInstalled.value = userGameLibrariesStore.userGameLibrariesSortedByPlatform.filter((game: GameModel) => {
-      return gamesInstalled.value?.some((installedGame: GameInstalled) => installedGame.gameManifest.gameId === game.id)
+      return gamesInstalled.value?.some((installedGame: GameInstalled) =>
+        isInstalledEntryForCanonicalGameId(installedGame, game.id),
+      )
     })
 
     // Jeux nÃƒÆ’Ã‚Â©cessitant une mise ÃƒÆ’Ã‚Â  jour
@@ -752,7 +822,9 @@ const refreshLibrary: () => void = (): void => {
     // Jeux non installÃƒÆ’Ã‚Â©s
     gameNotInstalled.value = userGameLibrariesStore.userGameLibrariesSortedByPlatform.filter((game: GameModel) => {
       return (
-        !gamesInstalled.value?.some((installedGame: GameInstalled) => installedGame.gameManifest.gameId === game.id) &&
+        !gamesInstalled.value?.some((installedGame: GameInstalled) =>
+          isInstalledEntryForCanonicalGameId(installedGame, game.id),
+        ) &&
         !gameNeedsUpdate.value.some((gameUpdate: GameModel) => gameUpdate.id === game.id)
       )
     })
@@ -791,12 +863,8 @@ const openDownloadModal: (
   let pathInstallLocationGame: string | undefined = undefined
 
   // VÃƒÆ’Ã‚Â©rifier si le jeu est installÃƒÆ’Ã‚Â© ou nÃƒÆ’Ã‚Â©cessite une mise ÃƒÆ’Ã‚Â  jour
-  const installedGame: GameInstalled | undefined = gamesInstalled.value?.find(
-    (installed: GameInstalled) => installed.gameManifest.gameId === game.id,
-  )
-  const gameNeedUpdate: GameInstalled | undefined = gamesNeedsUpdate.value.find(
-    (update: GameInstalled) => update.gameManifest.gameId === game.id,
-  )
+  const installedGame: GameInstalled | undefined = findInstalledEntryByCanonicalGameId(gamesInstalled.value, game.id)
+  const gameNeedUpdate: GameInstalled | undefined = findInstalledEntryByCanonicalGameId(gamesNeedsUpdate.value, game.id)
 
   const gameManifest: GameManifestLocal | undefined = installedGame
     ? installedGame.gameManifest
@@ -868,7 +936,7 @@ const openDownloadModal: (
     const currentOSInfo: SystemOSInfo = currentSystemOSInfo.value
 
     // RÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©rer le jeu
-    const gameDetails: GameModel = await GameService.getGameById(gameManifest.gameId)
+    const gameDetails: GameModel = await GameService.getGameById(game.id)
 
     // RÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©rer la plateforme du jeu qui correspond ÃƒÆ’Ã‚Â  l'OS du systÃƒÆ’Ã‚Â¨me actuel en rendant la comparaison insensible ÃƒÆ’Ã‚Â  la casse
     const gamePlatform: GamePlatformModel | undefined = gameDetails.gamePlatform.find(
@@ -1251,12 +1319,8 @@ const openFixGameInstalledModal: (game: GameModel) => Promise<void> = async (gam
   let launcherGetPath: boolean = true
 
   // VÃƒÆ’Ã‚Â©rifier si le jeu est installÃƒÆ’Ã‚Â© ou nÃƒÆ’Ã‚Â©cessite une mise ÃƒÆ’Ã‚Â  jour
-  const installedGame: GameInstalled | undefined = gamesInstalled.value?.find(
-    (installed: GameInstalled) => installed.gameManifest.gameId === game.id,
-  )
-  const gameNeedUpdate: GameInstalled | undefined = gamesNeedsUpdate.value.find(
-    (update: GameInstalled) => update.gameManifest.gameId === game.id,
-  )
+  const installedGame: GameInstalled | undefined = findInstalledEntryByCanonicalGameId(gamesInstalled.value, game.id)
+  const gameNeedUpdate: GameInstalled | undefined = findInstalledEntryByCanonicalGameId(gamesNeedsUpdate.value, game.id)
 
   if (installedGame) {
     pathInstallLocationGame = installedGame.gameManifest.pathInstallLocation
@@ -1452,3 +1516,4 @@ watchEffect((): void => {
   cursor: progress;
 }
 </style>
+

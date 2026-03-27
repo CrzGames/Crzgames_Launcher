@@ -233,6 +233,47 @@ const hasActiveOrCompletedDownloads: ComputedRef<boolean> = computed(
   (): boolean => activeDownloadGameList.value.length > 0 || completedDownloadGameList.value.length > 0,
 )
 
+/**
+ * Normalise un titre de jeu pour les comparaisons.
+ * @param {string} value - Titre brut.
+ * @returns {string} - Titre normalise.
+ */
+const normalizeGameTitle: (value: string) => string = (value: string): string => value.trim().toLowerCase()
+
+/**
+ * Resolve game details for resume flow.
+ * Uses gameId first, then falls back to title if local ids are stale.
+ * @param {number} requestedGameId - Game id from active download state.
+ * @param {GameManifestLocal} gameManifestLocal - Local manifest entry.
+ * @returns {Promise<GameModel>} - Resolved game model.
+ */
+const resolveGameDetailsForResume: (
+  requestedGameId: number,
+  gameManifestLocal: GameManifestLocal,
+) => Promise<GameModel> = async (requestedGameId: number, gameManifestLocal: GameManifestLocal): Promise<GameModel> => {
+  try {
+    return await GameService.getGameById(requestedGameId)
+  } catch (primaryError) {
+    const gamesResponse: Awaited<ReturnType<typeof GameService.getAllGames>> = await GameService.getAllGames(
+      gameManifestLocal.gameTitle,
+    )
+    const gamesByTitle: GameModel[] = Array.isArray(gamesResponse) ? gamesResponse : gamesResponse.data
+
+    const fallbackGame: GameModel | undefined = gamesByTitle.find(
+      (game: GameModel): boolean => normalizeGameTitle(game.title) === normalizeGameTitle(gameManifestLocal.gameTitle),
+    )
+
+    if (!fallbackGame) {
+      throw primaryError
+    }
+
+    logger.warn(
+      `[Download Resume] Resolved stale gameId requested=${requestedGameId} manifest=${gameManifestLocal.gameId} fallback=${fallbackGame.id}`,
+    )
+    return fallbackGame
+  }
+}
+
 /* HOOKS */
 /**
  * Hook execute au montage du composant pour initialiser les telechargements
@@ -397,9 +438,9 @@ const resumeGameDownload: (gameToResumeDownload: ActiveDownloadGame) => Promise<
     logger.debug(`[Download Resume] Systeme d'exploitation detecte: ${currentSystemOSInfo.os}`)
 
     // Recupere les donnees detaillees du jeu a partir de son ID
-    const gameDataDetails: GameModel = await GameService.getGameById(gameToResumeDownload.gameId)
+    const gameDataDetails: GameModel = await resolveGameDetailsForResume(gameToResumeDownload.gameId, gameManifestLocal)
     // Log la recuperation reussie des donnees du jeu
-    logger.debug(`[Download Resume] Donnees du jeu recuperees pour l'ID: ${gameToResumeDownload.gameId}`)
+    logger.debug(`[Download Resume] Donnees du jeu recuperees pour l'ID: ${gameDataDetails.id}`)
 
     // Recherche une plateforme compatible dans les donnees du jeu en comparant avec le systeme actuel
     const compatiblePlatform: GamePlatformModel | undefined = gameDataDetails.gamePlatform.find(
