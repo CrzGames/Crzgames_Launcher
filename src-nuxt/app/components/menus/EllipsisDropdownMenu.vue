@@ -1,26 +1,30 @@
 <template>
-  <div class="relative" ref="dropdown">
-    <CrzSquareIconButton
-      class="absolute bottom-1.5 right-2 border border-blue-900"
-      tooltip="Other actions"
-      variant="primary"
-      iconMode="fill"
-      iconName="ellipsis"
+  <div class="absolute bottom-2 right-[5.5rem] z-30" ref="dropdown">
+    <button
+      type="button"
+      class="flex h-8 w-8 translate-y-0 transform items-center justify-center rounded-md border border-blue-900 bg-amber-400 pb-[2px] text-xl leading-none text-gray-900 duration-100 hover:bg-amber-500 active:translate-y-1"
+      title="Other actions"
+      aria-label="Other actions"
       @click="toggleMenu"
-    />
+    >
+      ...
+    </button>
     <transition name="fade">
-      <div v-if="isOpen" class="dropdown-menu w-55 absolute right-0 z-20 mt-2 rounded-lg bg-gray-800 shadow-lg">
+      <div
+        v-if="isOpen"
+        class="absolute left-0 top-full z-40 mt-2 w-45 rounded-lg border border-[#3a3a3c] bg-[#1c1c1e] p-2 shadow-lg"
+      >
         <ul class="py-1">
           <li
             @click="createDesktopShortcut"
-            class="cursor-pointer whitespace-nowrap px-4 py-2 text-sm text-white hover:bg-gray-700"
+            class="cursor-pointer whitespace-nowrap px-4 py-2 text-left text-sm text-white hover:bg-gray-700"
           >
             Create a desktop shortcut
           </li>
           <!-- Add more options here -->
           <li
             @click="uninstallGame"
-            class="cursor-pointer whitespace-nowrap px-4 py-2 text-sm text-white hover:bg-gray-700"
+            class="cursor-pointer whitespace-nowrap px-4 py-2 text-left text-sm text-white hover:bg-gray-700"
           >
             Uninstall the game
           </li>
@@ -33,8 +37,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import type { Ref } from 'vue'
-
-import CrzSquareIconButton from '#src-common/components/buttons/CrzSquareIconButton.vue'
 
 /* REFS */
 const isOpen: Ref<boolean> = ref(false)
@@ -94,29 +96,6 @@ const uninstallGame: () => void = (): void => {
 </script>
 
 <style lang="scss" scoped>
-.dropdown-menu {
-  transform: translate(182px, -12px); /* Adjust this value to move the menu more to the right */
-  background-color: #1c1c1e; /* Dark background color */
-  border: 1px solid #3a3a3c; /* Border color to match the theme */
-  padding: 8px; /* Add some padding */
-}
-
-.dropdown-menu ul {
-  list-style: none; /* Remove default list styles */
-  padding: 0; /* Remove default padding */
-  margin: 0; /* Remove default margin */
-}
-
-.dropdown-menu li {
-  padding: 8px 12px; /* Add padding to list items */
-  border-radius: 4px; /* Add border radius to list items */
-  transition: background-color 0.2s; /* Add transition for background color */
-}
-
-.dropdown-menu li:hover {
-  background-color: #2c2c2e; /* Change background color on hover */
-}
-
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s;

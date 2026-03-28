@@ -1,8 +1,9 @@
 <template>
   <component :is="tag" :to="to" class="grid w-full min-w-[170px] max-w-[320px] gap-2">
     <div
-      class="relative aspect-[3/4] overflow-hidden transform transition-transform duration-300 ease-in-out"
+      class="relative aspect-[3/4] transform transition-transform duration-300 ease-in-out"
       :class="[
+        props.showVideo ? 'overflow-hidden' : 'overflow-visible',
         props.enableHoverEffect ? 'hover:scale-105 hover:-translate-y-2' : '',
         props.visualGroupClass,
         !props.pictureFileUrl ? 'rounded-md bg-zinc-100' : '',
@@ -119,8 +120,7 @@
 
       <!-- Bouton pour ouvrir le menu "..." -->
       <EllipsisDropdownMenu
-        v-if="props.showEllipsisButton"
-        class="absolute right-20 border border-blue-900"
+        v-if="shouldShowEllipsisMenu"
         @createDesktopShortcut="emit('createDesktopShortcut')"
         @uninstallGame="emit('uninstallGame')"
       />
@@ -449,6 +449,11 @@ const trailerMimeType: ComputedRef<string | null> = computed((): string | null =
 
 const canShowTrailerVideo: ComputedRef<boolean> = computed((): boolean => {
   return props.showVideo && !!normalizedTrailerFileUrl.value && !trailerPlaybackFailed.value
+})
+
+const shouldShowEllipsisMenu: ComputedRef<boolean> = computed((): boolean => {
+  // Fallback: cards in My Library "installed" / "needs update" should always expose this menu.
+  return props.showEllipsisButton || props.showPlayButton || props.showUpdateIndicator
 })
 
 watch(
