@@ -5,8 +5,8 @@ import { execSync } from 'child_process'
  * Changer les commandes si besoin pour un nouvelle environnement : dev, prod, etc.
  */
 const runCommandsNpm: () => void = (): void => {
-  execSync('npm run web:build:static:dev', { stdio: 'inherit' })
-  execSync('npm run web:run:dev', { stdio: 'inherit' })
+  execSync('npm run web:build:static:develop', { stdio: 'inherit' })
+  execSync('npm run web:run:develop', { stdio: 'inherit' })
 }
 
 runCommandsNpm()

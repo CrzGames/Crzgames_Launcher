@@ -17,11 +17,18 @@ import type { UnlistenFn } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import type { CloseRequestedEvent, Window as TauriWindow } from '@tauri-apps/api/window'
 import { enable, isEnabled } from '@tauri-apps/plugin-autostart'
-import { onBeforeUnmount, onMounted } from 'vue'
+import { onBeforeUnmount, onMounted, watch } from 'vue'
 
 import CrzSpinner from '#src-common/components/loaders/CrzSpinner.vue'
 
+import { TauriService } from '#src-core/services/TauriService'
+import {
+  GameVersionRealtimeService,
+  type GameVersionAvailableRealtimePayload,
+  type StopListeningToGameVersionUpdates,
+} from '#src-core/services/GameVersionRealtimeService'
 import { useAuthStore } from '#src-nuxt/app/stores/auth.store'
+import { useGameVersionRealtimeStore } from '#src-nuxt/app/stores/gameVersionRealtime.store'
 import { useWindowStore } from '#src-nuxt/app/stores/window.store'
 
 const unlistenTauriEvents: () => void = useNuxtApp().$unlistenTauriEvents
@@ -29,7 +36,9 @@ const unlistenTauriEvents: () => void = useNuxtApp().$unlistenTauriEvents
 /* STORES */
 const windowStore: any = useWindowStore()
 const authStore: ReturnType<typeof useAuthStore> = useAuthStore()
+const gameVersionRealtimeStore: ReturnType<typeof useGameVersionRealtimeStore> = useGameVersionRealtimeStore()
 let unlistenWindowCloseRequested: UnlistenFn | null = null
+let stopListeningToGameVersionUpdates: StopListeningToGameVersionUpdates | null = null
 let isClosingWindowInProgress: boolean = false
 
 /* HOOKS */
@@ -58,6 +67,8 @@ onBeforeUnmount(() => {
     unlistenWindowCloseRequested()
     unlistenWindowCloseRequested = null
   }
+
+  void unregisterGameVersionRealtimeListener()
 })
 
 /* METHODS */
@@ -124,6 +135,69 @@ const registerCloseRequestedPauseHandler: () => Promise<void> = async (): Promis
     console.error('registerCloseRequestedPauseHandler error:', error)
   }
 }
+
+/**
+ * Abonne globalement le launcher au canal realtime des nouvelles versions.
+ * @returns {Promise<void>}
+ */
+const registerGameVersionRealtimeListener: () => Promise<void> = async (): Promise<void> => {
+  if (stopListeningToGameVersionUpdates) {
+    return
+  }
+
+  stopListeningToGameVersionUpdates = await GameVersionRealtimeService.subscribe(
+    async (payload: GameVersionAvailableRealtimePayload): Promise<void> => {
+      if (!payload.isAvailable) {
+        return
+      }
+
+      gameVersionRealtimeStore.cacheLatestAvailableVersion(payload.gameId, payload.version)
+
+      if (gameVersionRealtimeStore.hasAlreadyNotifiedVersion(payload.gameId, payload.version)) {
+        return
+      }
+
+      gameVersionRealtimeStore.markVersionAsNotified(payload.gameId, payload.version)
+
+      const resolvedVersion: string = gameVersionRealtimeStore.getLatestAvailableVersionByGameId(payload.gameId) || payload.version
+      const resolvedGameTitle: string = String(payload.gameTitle || '').trim() || 'Game'
+      const notificationBody: string = `New update available for ${resolvedGameTitle}: ${resolvedVersion}`
+
+      await TauriService.sendNotification('CrzGames', notificationBody)
+    },
+  )
+}
+
+/**
+ * Desabonne globalement le launcher du canal realtime.
+ * @returns {Promise<void>}
+ */
+const unregisterGameVersionRealtimeListener: () => Promise<void> = async (): Promise<void> => {
+  if (!stopListeningToGameVersionUpdates) {
+    return
+  }
+
+  await stopListeningToGameVersionUpdates()
+  stopListeningToGameVersionUpdates = null
+}
+
+watch(
+  (): boolean => authStore.isConnected,
+  async (isConnected: boolean): Promise<void> => {
+    if (!isConnected) {
+      await unregisterGameVersionRealtimeListener()
+      gameVersionRealtimeStore.clearAll()
+      return
+    }
+
+    try {
+      await registerGameVersionRealtimeListener()
+    } catch (error: any) {
+      console.error('registerGameVersionRealtimeListener error:', error)
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <style lang="scss" scoped>

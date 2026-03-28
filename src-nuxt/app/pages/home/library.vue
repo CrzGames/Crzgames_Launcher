@@ -14,16 +14,6 @@
           @update:value="searchTerm = $event"
         />
 
-        <!-- Bouton "Check for Updates" -->
-        <button
-          v-if="gameInstalled.length > 0 || gameNeedsUpdate.length > 0"
-          @click="checkForUpdatesGames"
-          class="flex-shrink-0 min-w-[180px] flex items-center rounded px-4 py-2 text-black ml-auto pl-2"
-          :style="{ backgroundColor: 'rgb(224, 161, 0)' }"
-        >
-          <CrzIcon color="#000000" name="arrows-rotate" view-box="0 0 512 512" :width="18" :height="18" class="mr-2" />
-          Search for Game Updates
-        </button>
       </div>
     </div>
 
@@ -529,6 +519,7 @@ import Divider from '#src-nuxt/app/components/ui/Divider.vue'
 import { useAuthStore } from '#src-nuxt/app/stores/auth.store'
 import { useDownloadsStore } from '#src-nuxt/app/stores/downloads.store'
 import type { ActiveDownloadGame, CompleteDownloadGame } from '#src-nuxt/app/stores/downloads.store'
+import { useGameVersionRealtimeStore } from '#src-nuxt/app/stores/gameVersionRealtime.store'
 import { useUserGameLibrariesStore } from '#src-nuxt/app/stores/userGameLibraries.store'
 
 /* LAYOUT - MIDDLEWARE - TRANSITIONS */
@@ -549,6 +540,7 @@ definePageMeta({
 const userGameLibrariesStore: any = useUserGameLibrariesStore()
 const authStore: any = useAuthStore()
 const downloadsStore: ReturnType<typeof useDownloadsStore> = useDownloadsStore()
+const gameVersionRealtimeStore: ReturnType<typeof useGameVersionRealtimeStore> = useGameVersionRealtimeStore()
 
 /* DATA */
 /**
@@ -607,7 +599,6 @@ const gameInstalled: Ref<GameModel[]> = ref([])
 const gameNotInstalled: Ref<GameModel[]> = ref([])
 const gameNeedsUpdate: Ref<GameModel[]> = ref([])
 const gameActiveDownload: Ref<GameModel[]> = ref([])
-const latestAvailableVersionByGameId: Ref<Record<number, string>> = ref({})
 const pendingActiveDownloadGameIds: Set<number> = new Set()
 const gameNotInstalledVisible: ComputedRef<GameModel[]> = computed((): GameModel[] => {
   const activeDownloadGameIds: Set<number> = new Set(
@@ -911,15 +902,7 @@ const cacheLatestAvailableVersion: (gameId: number, latestVersion?: string) => v
   gameId: number,
   latestVersion?: string,
 ): void => {
-  const normalizedVersion: string | undefined = normalizeGameVersion(latestVersion)
-  if (!normalizedVersion) {
-    return
-  }
-
-  latestAvailableVersionByGameId.value = {
-    ...latestAvailableVersionByGameId.value,
-    [gameId]: normalizedVersion,
-  }
+  gameVersionRealtimeStore.cacheLatestAvailableVersion(gameId, latestVersion)
 }
 
 /**
@@ -929,7 +912,7 @@ const cacheLatestAvailableVersion: (gameId: number, latestVersion?: string) => v
  */
 const getLatestAvailableVersionByGameId: (gameId: number) => string | undefined = (
   gameId: number,
-): string | undefined => normalizeGameVersion(latestAvailableVersionByGameId.value[gameId])
+): string | undefined => normalizeGameVersion(gameVersionRealtimeStore.getLatestAvailableVersionByGameId(gameId))
 
 /**
  * Indique si le telechargement actif d'un jeu est actuellement en pause.
@@ -1488,11 +1471,6 @@ const checkForGameUpdate: (game: GameModel) => Promise<boolean> = async (game: G
  * Fait un check pour voir si les jeux dÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©jÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â  installÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©es ont besoin d'une mise ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â  jour
  * @returns {Promise<void>} - The promise
  */
-const checkForUpdatesGames: () => Promise<void> = async (): Promise<void> => {
-  await loadGames()
-  notyf.success('Games have been checked for updates')
-}
-
 /**
  * Load games from the library and the installed games
  * @returns {Promise<void>} - The promise
@@ -1517,11 +1495,34 @@ const loadGames: () => Promise<void> = async (): Promise<void> => {
     gamesInstalled.value = []
     gameNeedsUpdate.value = []
     gamesNeedsUpdate.value = []
-    latestAvailableVersionByGameId.value = {}
 
     const installedGames: GameInstalled[] | undefined = await TauriService.getGamesInstalled(currentUserId)
 
     if (installedGames && installedGames.length > 0) {
+      const installedCanonicalGameIds: number[] = [
+        ...new Set(
+          installedGames
+            .map((installedGame: GameInstalled): number | undefined =>
+              resolveCanonicalGameIdForInstalledGame(installedGame),
+            )
+            .filter((canonicalGameId: number | undefined): canonicalGameId is number => canonicalGameId !== undefined),
+        ),
+      ]
+
+      await Promise.all(
+        installedCanonicalGameIds.map(async (canonicalGameId: number): Promise<void> => {
+          try {
+            const latestGameVersionAvailable: GameVersionModel | undefined =
+              await GameVersionService.getLatestAvailableGameVersionByGameId(canonicalGameId)
+            cacheLatestAvailableVersion(canonicalGameId, latestGameVersionAvailable?.version)
+          } catch (error: unknown) {
+            logger.warn(
+              `[Library] Initial update check failed for canonicalGameId=${canonicalGameId}: ${error instanceof Error ? error.message : String(error)}`,
+            )
+          }
+        }),
+      )
+
       for (const installedGame of installedGames) {
         const canonicalGameId: number | undefined = resolveCanonicalGameIdForInstalledGame(installedGame)
         if (!canonicalGameId) {
@@ -1531,29 +1532,13 @@ const loadGames: () => Promise<void> = async (): Promise<void> => {
           continue
         }
 
-        try {
-          const latestGameVersionAvailable: GameVersionModel | undefined =
-            await GameVersionService.getLatestAvailableGameVersionByGameId(canonicalGameId)
-          cacheLatestAvailableVersion(canonicalGameId, latestGameVersionAvailable?.version)
+        const latestKnownVersion: string | undefined = getLatestAvailableVersionByGameId(canonicalGameId)
+        const installedVersion: string | undefined = normalizeGameVersion(installedGame.gameManifest.version)
 
-          if (latestGameVersionAvailable.version !== installedGame.gameManifest.version) {
-            const gameModel: GameModel | undefined = userGameLibrariesStore.userGameLibrariesSortedByPlatform.find(
-              (libraryGame: GameModel): boolean => libraryGame.id === canonicalGameId,
-            )
-
-            if (!gameModel) {
-              continue
-            }
-
-            gameNeedsUpdate.value.push(gameModel)
-            gamesNeedsUpdate.value = [...gamesNeedsUpdate.value, installedGame]
-          } else {
-            gamesInstalled.value = [...gamesInstalled.value, installedGame]
-          }
-        } catch (error: unknown) {
-          logger.warn(
-            `[Library] Failed to check latest version for canonicalGameId=${canonicalGameId} localManifestId=${installedGame.gameManifest.gameId}: ${error instanceof Error ? error.message : String(error)}`,
-          )
+        if (latestKnownVersion && installedVersion && latestKnownVersion !== installedVersion) {
+          gamesNeedsUpdate.value = [...gamesNeedsUpdate.value, installedGame]
+        } else {
+          gamesInstalled.value = [...gamesInstalled.value, installedGame]
         }
       }
     }
@@ -1626,10 +1611,50 @@ const onPlayGame: (game: GameModel) => Promise<Promise<void> | string> = async (
 }
 
 /**
+ * Recalcule les jeux installes / a mettre a jour a partir des versions connues en realtime.
+ * @returns {void}
+ */
+const reconcileInstalledStateWithKnownLatestVersions: () => void = (): void => {
+  const mergedInstalledEntries: GameInstalled[] = [...(gamesInstalled.value || []), ...(gamesNeedsUpdate.value || [])]
+  const uniqueEntriesByCanonicalGameId: Map<number, GameInstalled> = new Map<number, GameInstalled>()
+  const entriesWithoutCanonicalGameId: GameInstalled[] = []
+
+  for (const installedEntry of mergedInstalledEntries) {
+    const canonicalGameId: number | undefined = resolveCanonicalGameIdForInstalledGame(installedEntry)
+    if (!canonicalGameId) {
+      entriesWithoutCanonicalGameId.push(installedEntry)
+      continue
+    }
+
+    if (!uniqueEntriesByCanonicalGameId.has(canonicalGameId)) {
+      uniqueEntriesByCanonicalGameId.set(canonicalGameId, installedEntry)
+    }
+  }
+
+  const nextGamesInstalled: GameInstalled[] = [...entriesWithoutCanonicalGameId]
+  const nextGamesNeedsUpdate: GameInstalled[] = []
+
+  for (const [canonicalGameId, installedEntry] of uniqueEntriesByCanonicalGameId.entries()) {
+    const latestKnownVersion: string | undefined = getLatestAvailableVersionByGameId(canonicalGameId)
+    const installedVersion: string | undefined = normalizeGameVersion(installedEntry.gameManifest.version)
+
+    if (latestKnownVersion && installedVersion && latestKnownVersion !== installedVersion) {
+      nextGamesNeedsUpdate.push(installedEntry)
+    } else {
+      nextGamesInstalled.push(installedEntry)
+    }
+  }
+
+  gamesInstalled.value = nextGamesInstalled
+  gamesNeedsUpdate.value = nextGamesNeedsUpdate
+}
+
+/**
  * Refresh library
  * @returns {void}
  */
 const refreshLibrary: () => void = (): void => {
+  reconcileInstalledStateWithKnownLatestVersions()
   const libraryGames: GameModel[] = userGameLibrariesStore.userGameLibrariesSortedByPlatform || []
 
   if (libraryGames.length > 0) {
@@ -2565,6 +2590,14 @@ const scrollToTop: () => Promise<void> = async (): Promise<void> => {
 }
 
 /* WATCHERS */
+watch(
+  (): Record<number, string> => gameVersionRealtimeStore.latestAvailableVersionByGameId,
+  (): void => {
+    refreshLibrary()
+  },
+  { deep: true },
+)
+
 /**
  * Watcher for search term
  * @param {string} newValue - The new value
@@ -2645,6 +2678,7 @@ watchEffect((): void => {
   }
 }
 </style>
+
 
 
 
