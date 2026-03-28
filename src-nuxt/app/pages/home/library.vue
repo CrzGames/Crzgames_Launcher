@@ -368,6 +368,46 @@
     </CrzModal>
 
     <CrzModal
+      v-if="showCheckingDiskSpaceModal"
+      :show="showCheckingDiskSpaceModal"
+      :show-left-button="false"
+      :show-right-button="false"
+      bgClass="bg-blue-800"
+      @update:show="keepCheckingDiskSpaceModalOpen"
+    >
+      <div class="grid gap-8">
+        <div class="flex flex-wrap gap-4">
+          <img
+            v-if="checkingDiskSpaceGame?.pictureFile?.url"
+            class="h-14 w-14 rounded-lg object-cover"
+            :src="checkingDiskSpaceGame.pictureFile.url"
+            :alt="checkingDiskSpaceGame?.title || 'Game'"
+          />
+          <div class="flex flex-col">
+            <h2 class="text-base font-medium text-zinc-300">
+              {{ checkingDiskSpaceGame?.title || 'Game' }}
+            </h2>
+            <h3 class="text-base font-bold text-white">Checking disk space</h3>
+          </div>
+        </div>
+
+        <div class="grid gap-3 rounded-lg bg-orange-500/80 p-4">
+          <h4 class="flex items-center text-base font-bold text-white">
+            Preparing download options
+            <span class="library-loading-dots ml-1" aria-hidden="true">
+              <span>.</span>
+              <span>.</span>
+              <span>.</span>
+            </span>
+          </h4>
+          <p class="text-sm text-white">
+            We are checking available disk space before opening download settings.
+          </p>
+        </div>
+      </div>
+    </CrzModal>
+
+    <CrzModal
       v-if="showPreparingDownloadModal"
       :show="showPreparingDownloadModal"
       :show-left-button="false"
@@ -633,6 +673,8 @@ const preparingDownloadCheckedFiles: Ref<number> = ref(0)
 const preparingDownloadTotalFiles: Ref<number> = ref(0)
 const preparingDownloadProgressPercent: Ref<number> = ref(0)
 const preparingDownloadStep: Ref<'verifying-files' | 'checking-disk'> = ref('verifying-files')
+const showCheckingDiskSpaceModal: Ref<boolean> = ref(false)
+const checkingDiskSpaceGame: Ref<GameModel | null> = ref(null)
 
 // Modal pour rÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©parer le jeu installÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©
 const showFixGameInstalledModal: Ref<boolean> = ref(false)
@@ -1294,6 +1336,31 @@ const closePreparingDownloadModal: () => void = (): void => {
 const keepPreparingDownloadModalOpen: () => void = (): void => {}
 
 /**
+ * Ouvre la modal d'information de verification de l'espace disque.
+ * @param {GameModel} game - Jeu cible.
+ * @returns {void}
+ */
+const openCheckingDiskSpaceModal: (game: GameModel) => void = (game: GameModel): void => {
+  checkingDiskSpaceGame.value = game
+  showCheckingDiskSpaceModal.value = true
+}
+
+/**
+ * Ferme la modal de verification de l'espace disque.
+ * @returns {void}
+ */
+const closeCheckingDiskSpaceModal: () => void = (): void => {
+  showCheckingDiskSpaceModal.value = false
+  checkingDiskSpaceGame.value = null
+}
+
+/**
+ * Empeche la fermeture manuelle de la modal pendant la verification.
+ * @returns {void}
+ */
+const keepCheckingDiskSpaceModalOpen: () => void = (): void => {}
+
+/**
  * Ouvre la modal d'information quand le chemin d'installation n'est pas accessible en ecriture.
  * @param {string} installPath - Chemin d'installation selectionne.
  * @returns {void}
@@ -1799,6 +1866,7 @@ const openDownloadModal: (
       openPreparingDownloadModal(game, pathInstallLocationGame)
     } else {
       // Jeux non installÃ©s
+      openCheckingDiskSpaceModal(game)
       const gamePlatform: GamePlatformModel | undefined = game.gamePlatform.find(
         (gamePlatform: GamePlatformModel) =>
           gamePlatform.name.toLowerCase() === currentSystemOSInfo.value?.os.toLowerCase(),
@@ -1971,6 +2039,7 @@ const openDownloadModal: (
   } finally {
     pendingOpenDownloadModalGameIds.delete(game.id)
     closePreparingDownloadModal()
+    closeCheckingDiskSpaceModal()
   }
 }
 
