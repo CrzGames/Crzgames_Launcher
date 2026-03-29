@@ -180,7 +180,7 @@ sudo apt install -y libwebkit2gtk-4.1-dev \
   libssl-dev \
   libayatana-appindicator3-dev \
   librsvg2-dev \
-  fuse # for .AppImage
+  libfuse2 # for .AppImage not dependencies tauri
 ```
 
 2. Install Rust version >= 1.94.0 :
