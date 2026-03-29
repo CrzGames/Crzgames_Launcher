@@ -102,11 +102,58 @@
       @update:show="onCancelDownloadModalVisibilityChange"
       @ok="confirmGameDownloadCancellation"
     />
+
+    <CrzModal
+      v-if="showCancelingDownloadModal"
+      :show="showCancelingDownloadModal"
+      :show-left-button="false"
+      :show-right-button="false"
+      bgClass="bg-blue-800"
+      @update:show="keepCancelingDownloadModalOpen"
+    >
+      <div class="grid gap-8">
+        <div class="flex flex-wrap gap-4">
+          <img
+            v-if="cancelingDownloadGame?.gamePictureUrl"
+            class="h-14 w-14 rounded-lg object-cover"
+            :src="cancelingDownloadGame.gamePictureUrl"
+            :alt="cancelingDownloadGame?.gameTitle || 'Game'"
+          />
+          <div class="flex flex-col">
+            <h2 class="text-base font-medium text-zinc-300">
+              {{ cancelingDownloadGame?.gameTitle || 'Game' }}
+            </h2>
+            <h3 class="text-base font-bold text-white">Uninstalling game</h3>
+          </div>
+        </div>
+
+        <div class="grid gap-3 rounded-lg bg-orange-500/80 p-4">
+          <h4 class="flex items-center text-base font-bold text-white">
+            Removing files
+            <span class="library-loading-dots ml-1" aria-hidden="true">
+              <span>.</span>
+              <span>.</span>
+              <span>.</span>
+            </span>
+          </h4>
+          <p class="text-sm text-white">
+            Please wait while CrzGames Launcher removes the game files from your computer.
+          </p>
+          <p class="text-sm text-white">
+            {{ cancelingDownloadProgressRemovedEntries }} / {{ cancelingDownloadProgressTotalEntries }} items removed ({{
+              Math.round(cancelingDownloadProgressPercent)
+            }}%)
+          </p>
+        </div>
+      </div>
+    </CrzModal>
   </section>
 </template>
 
 <script lang="ts" setup>
 import type { Notyf } from 'notyf'
+import { listen } from '@tauri-apps/api/event'
+import type { UnlistenFn } from '@tauri-apps/api/event'
 import { computed, ref } from 'vue'
 import type { ComputedRef, Ref } from 'vue'
 import NavigationPages from '~/components/navigations/NavigationPages.vue'
@@ -116,6 +163,7 @@ import CrzSpinner from '~~/src-common/components/loaders/CrzSpinner.vue'
 import CrzIcon from '~~/src-common/components/ui/CrzIcon.vue'
 
 import CrzConfirmModal from '#src-common/components/modals/CrzConfirmModal.vue'
+import CrzModal from '#src-common/components/modals/CrzModal.vue'
 import type GameBinaryModel from '#src-common/core/models/GameBinaryModel'
 import type GameModel from '#src-common/core/models/GameModel'
 import type GamePlatformModel from '#src-common/core/models/GamePlatformModel'
@@ -135,6 +183,15 @@ import CompleteDownloadCard from '#src-nuxt/app/components/cards/CompleteDownloa
 import { useAuthStore } from '#src-nuxt/app/stores/auth.store'
 import { useDownloadsStore } from '#src-nuxt/app/stores/downloads.store'
 import type { ActiveDownloadGame, CompleteDownloadGame } from '#src-nuxt/app/stores/downloads.store'
+
+type UninstallGameProgressEventPayload = {
+  gameId?: number | null
+  pathInstallLocation?: string
+  removedEntries?: number
+  totalEntries?: number
+  progress?: number
+  done?: boolean
+}
 
 /* PAGE METADATA */
 /**
@@ -200,8 +257,16 @@ const isPageLoading: Ref<boolean> = ref<boolean>(true)
 const pendingPlayPauseGameIds: Set<number> = new Set<number>()
 const shouldResumeDownloadAfterCancelModalClose: Ref<boolean> = ref<boolean>(false)
 const isConfirmingDownloadCancellation: Ref<boolean> = ref<boolean>(false)
+const showCancelingDownloadModal: Ref<boolean> = ref<boolean>(false)
+const cancelingDownloadGame: Ref<ActiveDownloadGame | null> = ref<ActiveDownloadGame | null>(null)
+const cancelingDownloadPathInstallLocation: Ref<string> = ref<string>('')
+const cancelingDownloadProgressRemovedEntries: Ref<number> = ref<number>(0)
+const cancelingDownloadProgressTotalEntries: Ref<number> = ref<number>(0)
+const cancelingDownloadProgressPercent: Ref<number> = ref<number>(0)
+const unlistenUninstallGameProgress: Ref<UnlistenFn | null> = ref<UnlistenFn | null>(null)
 const DOWNLOAD_MANAGER_IMAGES_PRELOAD_TIMEOUT_MS: number = 8000
 const MIN_DOWNLOAD_MANAGER_SPINNER_MS: number = 250
+const MIN_CANCELING_DOWNLOAD_MODAL_VISIBLE_MS: number = 2000
 
 /* COMPUTED */
 /**
@@ -245,6 +310,108 @@ const cancelDownloadModalMessage: ComputedRef<string> = computed(
 const hasActiveOrCompletedDownloads: ComputedRef<boolean> = computed(
   (): boolean => activeDownloadGameList.value.length > 0 || completedDownloadGameList.value.length > 0,
 )
+
+const normalizeInstallPathForComparison: (pathValue?: string) => string = (pathValue?: string): string => {
+  return (pathValue || '').replace(/\\/g, '/').trim()
+}
+
+const areInstallPathsEqual: (left?: string, right?: string) => boolean = (
+  left?: string,
+  right?: string,
+): boolean => {
+  const normalizedLeft: string = normalizeInstallPathForComparison(left)
+  const normalizedRight: string = normalizeInstallPathForComparison(right)
+  if (!normalizedLeft || !normalizedRight) {
+    return false
+  }
+
+  const shouldCompareCaseInsensitive: boolean = normalizedLeft.includes(':') || normalizedRight.includes(':')
+  return shouldCompareCaseInsensitive
+    ? normalizedLeft.toLowerCase() === normalizedRight.toLowerCase()
+    : normalizedLeft === normalizedRight
+}
+
+const normalizeProgressNumber: (value: unknown) => number = (value: unknown): number => {
+  const parsedNumber: number = Number(value)
+  if (!Number.isFinite(parsedNumber)) {
+    return 0
+  }
+  return parsedNumber
+}
+
+const clampPercentage: (value: number) => number = (value: number): number => {
+  return Math.max(0, Math.min(100, value))
+}
+
+const resetCancelingDownloadProgress: () => void = (): void => {
+  cancelingDownloadProgressRemovedEntries.value = 0
+  cancelingDownloadProgressTotalEntries.value = 0
+  cancelingDownloadProgressPercent.value = 0
+}
+
+const handleCancelingDownloadProgress: (payload: UninstallGameProgressEventPayload) => void = (
+  payload: UninstallGameProgressEventPayload,
+): void => {
+  if (!showCancelingDownloadModal.value) {
+    return
+  }
+
+  const selectedGameId: number | undefined = cancelingDownloadGame.value?.gameId
+  const payloadGameId: number = normalizeProgressNumber(payload.gameId)
+  if (selectedGameId && payloadGameId && payloadGameId !== selectedGameId) {
+    return
+  }
+
+  const selectedInstallPath: string = cancelingDownloadPathInstallLocation.value
+  const payloadInstallPath: string | undefined = payload.pathInstallLocation
+  if (selectedInstallPath && payloadInstallPath && !areInstallPathsEqual(selectedInstallPath, payloadInstallPath)) {
+    return
+  }
+
+  const totalEntries: number = Math.max(0, Math.floor(normalizeProgressNumber(payload.totalEntries)))
+  const removedEntriesRaw: number = Math.max(0, Math.floor(normalizeProgressNumber(payload.removedEntries)))
+  const removedEntries: number = totalEntries > 0 ? Math.min(removedEntriesRaw, totalEntries) : removedEntriesRaw
+
+  cancelingDownloadProgressTotalEntries.value = totalEntries
+  cancelingDownloadProgressRemovedEntries.value = removedEntries
+
+  if (totalEntries > 0) {
+    cancelingDownloadProgressPercent.value = clampPercentage((removedEntries / totalEntries) * 100)
+  } else if (payload.done) {
+    cancelingDownloadProgressPercent.value = 100
+  } else {
+    cancelingDownloadProgressPercent.value = clampPercentage(normalizeProgressNumber(payload.progress))
+  }
+}
+
+const registerUninstallProgressListener: () => Promise<void> = async (): Promise<void> => {
+  if (unlistenUninstallGameProgress.value) {
+    return
+  }
+
+  try {
+    unlistenUninstallGameProgress.value = await listen<UninstallGameProgressEventPayload>(
+      'uninstall-game-progress',
+      (event): void => {
+        handleCancelingDownloadProgress(event.payload)
+      },
+    )
+  } catch (error: unknown) {
+    logger.error(
+      `[Uninstall Progress] Failed to register listener: ${error instanceof Error ? error.message : String(error)}`,
+      error as Error,
+    )
+  }
+}
+
+const unregisterUninstallProgressListener: () => void = (): void => {
+  if (!unlistenUninstallGameProgress.value) {
+    return
+  }
+
+  unlistenUninstallGameProgress.value()
+  unlistenUninstallGameProgress.value = null
+}
 
 const preloadDownloadManagerCardsImages: () => Promise<void> = async (): Promise<void> => {
   const imageUrls: string[] = getDownloadManagerCardImageUrls()
@@ -458,6 +625,7 @@ onMounted(async (): Promise<void> => {
 
   try {
     await scrollToTop()
+    await registerUninstallProgressListener()
 
     // Charge les telechargements persistants depuis le store pour l'utilisateur actuel
     await downloadsStore.loadActiveDownloadsPersisted(currentAuthenticatedUser)
@@ -478,6 +646,10 @@ onMounted(async (): Promise<void> => {
     }
     isPageLoading.value = false
   }
+})
+
+onBeforeUnmount((): void => {
+  unregisterUninstallProgressListener()
 })
 
 /* METHODS */
@@ -546,6 +718,24 @@ const closeCancelDownloadModalAndMaybeResume: () => Promise<void> = async (): Pr
   await resumeGameDownload(stillActiveGame)
 }
 
+const openCancelingDownloadModal: (gameToCancel: ActiveDownloadGame) => void = (
+  gameToCancel: ActiveDownloadGame,
+): void => {
+  resetCancelingDownloadProgress()
+  cancelingDownloadGame.value = gameToCancel
+  cancelingDownloadPathInstallLocation.value = gameToCancel.pathInstallLocation || ''
+  showCancelingDownloadModal.value = true
+}
+
+const closeCancelingDownloadModal: () => void = (): void => {
+  showCancelingDownloadModal.value = false
+  cancelingDownloadGame.value = null
+  cancelingDownloadPathInstallLocation.value = ''
+  resetCancelingDownloadProgress()
+}
+
+const keepCancelingDownloadModalOpen: () => void = (): void => {}
+
 /**
  * Ouvre la modal de confirmation pour annuler le telechargement d'un jeu specifique
  * - Met a jour la reference du jeu selectionne et affiche la modal
@@ -610,6 +800,7 @@ const openCancelDownloadModal: (gameToCancel: ActiveDownloadGame) => void = (
 const confirmGameDownloadCancellation: () => Promise<void> = async (): Promise<void> => {
   isConfirmingDownloadCancellation.value = true
   shouldResumeDownloadAfterCancelModalClose.value = false
+  let cancelingModalOpenedAt: number | null = null
 
   try {
     // Verifie si un jeu est selectionne pour l'annulation
@@ -624,6 +815,8 @@ const confirmGameDownloadCancellation: () => Promise<void> = async (): Promise<v
     const gameToCancel: ActiveDownloadGame = selectedGameForDownloadCancellation.value
     // Log l'action de confirmation de l'annulation
     logger.info(`[Download Cancellation] Confirmation de l'annulation pour: ${gameToCancel.gameTitle}`)
+    openCancelingDownloadModal(gameToCancel)
+    cancelingModalOpenedAt = Date.now()
 
     // Appelle TauriService pour annuler le telechargement avec l'ID du jeu et le chemin d'installation
     await TauriService.cancelDownloadGame(
@@ -652,6 +845,15 @@ const confirmGameDownloadCancellation: () => Promise<void> = async (): Promise<v
       `Failed to cancel download for ${selectedGameForDownloadCancellation.value?.gameTitle || 'unknown game'}`,
     )
   } finally {
+    if (cancelingModalOpenedAt !== null) {
+      const elapsedMs: number = Date.now() - cancelingModalOpenedAt
+      const remainingMs: number = Math.max(0, MIN_CANCELING_DOWNLOAD_MODAL_VISIBLE_MS - elapsedMs)
+      if (remainingMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, remainingMs))
+      }
+    }
+    closeCancelingDownloadModal()
+
     // Log la fin de l'operation, meme en cas d'erreur ou de succes
     logger.debug(`[Download Cancellation] Fermeture de la modal et reinitialisation de la selection`)
     // Masque la modal en definissant l'indicateur a false
@@ -919,3 +1121,35 @@ const scrollToTop: () => Promise<void> = async (): Promise<void> => {
   }
 }
 </script>
+
+<style lang="scss" scoped>
+.library-loading-dots {
+  display: inline-flex;
+  gap: 1px;
+}
+
+.library-loading-dots span {
+  animation: library-loading-dot 1.2s infinite ease-in-out;
+  opacity: 0.25;
+  line-height: 1;
+}
+
+.library-loading-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.library-loading-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes library-loading-dot {
+  0%,
+  20%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+</style>
