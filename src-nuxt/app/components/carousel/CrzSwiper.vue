@@ -70,7 +70,7 @@
 </template>
 
 <script lang="ts" setup>
-import { open } from '@tauri-apps/plugin-shell'
+import { openUrl } from '@tauri-apps/plugin-opener'
 import { DateTime } from 'luxon'
 // Import Swiper styles
 import 'swiper/css'
@@ -217,7 +217,7 @@ onUnmounted((): void => {
  * @param {string} url - The URL to open
  */
 const onButtonClick: (url: string) => void = (url: string): void => {
-  open(url).catch((error: any) => {
+  openUrl(url).catch((error: any) => {
     console.error('Erreur lors de l’ouverture du lien:', error)
   })
 }
@@ -325,7 +325,7 @@ const onClickSlide: (clickedIndex: number, event: MouseEvent) => void = (
       }
 
       const url: string = clickedCarousel.button_url
-      open(url).catch((error: any) => {
+      openUrl(url).catch((error: any) => {
         console.error('Erreur lors de l’ouverture du lien:', error)
       })
     } else if (window.innerWidth < 1000) {

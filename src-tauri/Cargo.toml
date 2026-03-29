@@ -29,7 +29,6 @@ tauri-plugin-notification = "2.3.3"
 tauri-plugin-log = { version = "2.8.0", features = ["colored"] }
 tauri-plugin-fs = "2.4.5"
 tauri-plugin-dialog = "2.6.0"
-tauri-plugin-shell = "2.3.5"
 tauri-plugin-autostart = "2.5.1"
 tauri-plugin-opener = "2.5.3"
 lazy_static = "1.5.0"
