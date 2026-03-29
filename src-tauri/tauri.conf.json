@@ -99,7 +99,7 @@
     "longDescription": "CrzGames Launcher is a desktop application that allows you to download and play games from CrzGames.",
     "shortDescription": "CrzGames Launcher is a desktop application that allows you to download and play games from CrzGames.",
     "license": "Proprietary",
-    "licenseFile": "legal/LICENSE.txt",
+    "licenseFile": "./legal/LICENSE.txt",
     "targets": "all",
     "icon": [
       "icons/32x32.png",
@@ -131,7 +131,7 @@
       }
     },
     "macOS": {
-      "minimumSystemVersion": "11.0",
+      "minimumSystemVersion": "15.0",
       "files": {},
       "hardenedRuntime": true,
       "entitlements": null,
@@ -152,7 +152,7 @@
           "height": 400,
           "width": 660
         },
-        "background": "dmg-config/background.png"
+        "background": "./macos/dmg-config/background.png"
       }
     },
     "windows": {

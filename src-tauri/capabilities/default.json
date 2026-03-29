@@ -6,7 +6,12 @@
   "permissions": [
     {
       "identifier": "fs:scope",
-      "allow": ["**", "$APPDATA/**"]
+        "allow": [
+          {
+            "path": "**/*",
+            "requireLiteralLeadingDot": false
+          }
+        ]
     },
     "autostart:allow-enable",
     "autostart:allow-disable",
