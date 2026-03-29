@@ -287,11 +287,43 @@ export class TauriService {
         }
       }
 
-      const normalizedPath: string = this.normalizePath(pathInstallLocation)
-      await mkdir(normalizedPath, { recursive: true })
+      const pathSeparator: string = sep()
+      const windowsDriveRootRegex: RegExp = /^[a-zA-Z]:[\\/]?$/
+      const normalizeRootPath: (path: string) => string = (path: string): string => {
+        const normalized: string = this.normalizePath(path).replace(/[\\/]+$/, '')
+        if (windowsDriveRootRegex.test(normalized)) return `${normalized}${pathSeparator}`
+        return normalized || pathSeparator
+      }
+      const getParentPath: (path: string) => string = (path: string): string => {
+        const normalizedCurrentPath: string = normalizeRootPath(path)
+        if (normalizedCurrentPath === pathSeparator) return pathSeparator
+        if (windowsDriveRootRegex.test(normalizedCurrentPath.replace(/[\\/]+$/, ''))) return normalizedCurrentPath
+
+        const normalizedWithoutTrailingSeparator: string = normalizedCurrentPath.replace(/[\\/]+$/, '')
+        const lastSeparatorIndex: number = normalizedWithoutTrailingSeparator.lastIndexOf(pathSeparator)
+        if (lastSeparatorIndex <= 0) return pathSeparator
+        return normalizedWithoutTrailingSeparator.slice(0, lastSeparatorIndex)
+      }
+
+      // Important:
+      // - On ne cree PAS le dossier cible pendant la simple validation du chemin (UX du path picker).
+      // - On verifie l'ecriture sur le dossier existant le plus proche.
+      let probeDirectoryPath: string = normalizeRootPath(pathInstallLocation)
+      while (!(await exists(probeDirectoryPath))) {
+        const parentPath: string = getParentPath(probeDirectoryPath)
+        if (parentPath === probeDirectoryPath) break
+        probeDirectoryPath = parentPath
+      }
+
+      if (!(await exists(probeDirectoryPath))) {
+        return {
+          isWritable: false,
+          error: `No existing parent directory found for path: ${pathInstallLocation}`,
+        }
+      }
 
       const probeFilename: string = `.__crzgames_write_probe_${Date.now()}_${Math.random().toString(36).slice(2)}.tmp`
-      const probeFilePath: string = this.normalizePath(`${normalizedPath}${sep()}${probeFilename}`)
+      const probeFilePath: string = this.normalizePath(await join(probeDirectoryPath, probeFilename))
 
       await writeTextFile(probeFilePath, 'crzgames-write-probe')
       await remove(probeFilePath, { recursive: false } as RemoveOptions)
