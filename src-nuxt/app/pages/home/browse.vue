@@ -304,7 +304,7 @@
       </div>
     </div>
     <!-- Composant de pagination -->
-    <div class="mt-auto">
+    <div v-if="!isLoadingGames && games && games.length > 0" class="mt-auto">
       <CrzPagination
         v-if="!isLoadingGames && games && games.length > 0"
         :total="total"
