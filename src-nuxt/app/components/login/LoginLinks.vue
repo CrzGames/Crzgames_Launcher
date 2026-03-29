@@ -19,7 +19,7 @@
 </template>
 
 <script lang="ts" setup>
-import { open } from '@tauri-apps/plugin-shell'
+import { openUrl } from '@tauri-apps/plugin-opener'
 
 /* DATA */
 const linkSignupURL: string = import.meta.env.VITE_WEBSITE_BASE_URL_SIGNUP
@@ -39,6 +39,6 @@ const handleLinkClick: (url: string, event: Event) => Promise<void> = async (
   event.preventDefault()
 
   // Ouvrir le lien dans le navigateur par défaut
-  await open(url)
+  await openUrl(url)
 }
 </script>
