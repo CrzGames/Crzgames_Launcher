@@ -15,11 +15,9 @@ use std::env;
 use std::fs;
 use std::io::{BufReader, Read};
 use std::path::{Path, PathBuf};
-#[allow(unused_imports)]
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
-use std::thread;
 use sysinfo::{Disks, System};
 use tauri::{
     image::Image,
@@ -45,6 +43,32 @@ const EXECUTABLE_EXTENSIONS: [&str; 1] = ["AppImage"];
 
 const MAX_CONCURRENT_DOWNLOADS: usize = 6;
 const PRESIGN_BATCH_CHUNK_SIZE: usize = 200;
+
+async fn run_blocking<T, F>(task_name: &'static str, task: F) -> Result<T, String>
+where
+    T: Send + 'static,
+    F: FnOnce() -> Result<T, String> + Send + 'static,
+{
+    spawn_blocking(task)
+        .await
+        .map_err(|error| format!("{} join error: {}", task_name, error))?
+}
+
+fn check_disk_space_sync(path: String) -> Result<u64, String> {
+    let disks = Disks::new_with_refreshed_list();
+    for disk in disks.iter() {
+        if let Some(mount_point) = disk.mount_point().to_str() {
+            if mount_point == path {
+                return Ok(disk.available_space());
+            }
+        }
+    }
+
+    Err(format!(
+        "Aucun disque trouvé pour le chemin fourni: {}",
+        path
+    ))
+}
 
 // getSystemOSInfoCurrent
 #[derive(Debug, serde::Serialize)]
@@ -79,23 +103,7 @@ fn get_system_os_info_current() -> SystemOSInfo {
 
 #[tauri::command]
 async fn check_disk_space(path: String) -> Result<u64, String> {
-    let mut system = System::new_all();
-    system.refresh_all(); // Refresh the system to get the latest information
-
-    // Utilisation de Disks pour accéder aux informations de disque
-    let disks = Disks::new_with_refreshed_list();
-    for disk in disks.iter() {
-        if let Some(mount_point) = disk.mount_point().to_str() {
-            if mount_point == path {
-                return Ok(disk.available_space());
-            }
-        }
-    }
-
-    Err(format!(
-        "Aucun disque trouvé pour le chemin fourni: {}",
-        path
-    ))
+    run_blocking("check_disk_space", move || check_disk_space_sync(path)).await
 }
 
 // getLauncherPathDirectory
@@ -554,6 +562,19 @@ fn calculate_initial_downloaded_for_resume(
     total
 }
 
+async fn calculate_initial_downloaded_for_resume_async(
+    game_directory: PathBuf,
+    files_to_download: Vec<FileDetails>,
+) -> Result<u64, String> {
+    run_blocking("calculate_initial_downloaded_for_resume", move || {
+        Ok(calculate_initial_downloaded_for_resume(
+            game_directory.as_path(),
+            files_to_download.as_slice(),
+        ))
+    })
+    .await
+}
+
 async fn fetch_presigned_download_url(
     client: &reqwest::Client,
     presign_api_url: &str,
@@ -637,7 +658,7 @@ async fn download_single_file_with_resume(
         }
 
         if target_path.exists() {
-            match calculate_file_hash(&target_path) {
+            match calculate_file_hash_async(target_path.clone()).await {
                 Ok(existing_hash) if existing_hash == file.hash => return Ok(file),
                 _ => {
                     let _ = fs::remove_file(&target_path);
@@ -673,7 +694,7 @@ async fn download_single_file_with_resume(
                 })?;
             }
 
-            let downloaded_hash = calculate_file_hash(&target_path)?;
+            let downloaded_hash = calculate_file_hash_async(target_path.clone()).await?;
             if downloaded_hash == file.hash {
                 total_downloaded_atomic.fetch_add(file.size, Ordering::Relaxed);
                 return Ok(file);
@@ -804,7 +825,7 @@ async fn download_single_file_with_resume(
         fs::rename(&part_path, &target_path)
             .map_err(|e| format!("Failed to finalize downloaded file {}: {}", file.name, e))?;
 
-        let downloaded_hash = calculate_file_hash(&target_path)?;
+        let downloaded_hash = calculate_file_hash_async(target_path.clone()).await?;
         if downloaded_hash != file.hash {
             let rollback_bytes = counted_resume_bytes.saturating_add(bytes_written_this_attempt);
             atomic_saturating_sub(&total_downloaded_atomic, rollback_bytes);
@@ -875,21 +896,47 @@ async fn download_and_update_game(
     );
     let game_directory = PathBuf::from(&file_location_download);
     let manifest_path = game_directory.join("manifest_local.json");
-    let manifest_existed_before_run = manifest_path.exists();
+    let manifest_existed_before_run =
+        run_blocking("manifest_exists", move || Ok(manifest_path.exists())).await?;
     println!(
         "[download_and_update_game] session={} game_directory={}",
         session_id,
         game_directory.display()
     );
-    fs::create_dir_all(&game_directory).map_err(|e| e.to_string())?;
-    let (mut game_manifest, has_valid_manifest_before_run) = load_or_create_manifest(
-        &file_location_download,
-        game_id,
-        game_title.clone(),
-        game_binary_size,
-        game_version.clone(),
-    )?;
-    remove_obsolete_files(&game_directory, &mut game_manifest, &game_manifest_remote)?;
+    let game_directory_for_create = game_directory.clone();
+    run_blocking("create_game_directory", move || {
+        fs::create_dir_all(&game_directory_for_create).map_err(|e| e.to_string())?;
+        Ok(())
+    })
+    .await?;
+    let file_location_download_for_manifest = file_location_download.clone();
+    let game_title_for_manifest = game_title.clone();
+    let game_version_for_manifest = game_version.clone();
+    let (mut game_manifest, has_valid_manifest_before_run) =
+        run_blocking("load_or_create_manifest", move || {
+            load_or_create_manifest(
+                &file_location_download_for_manifest,
+                game_id,
+                game_title_for_manifest,
+                game_binary_size,
+                game_version_for_manifest,
+            )
+        })
+        .await?;
+    game_manifest = run_blocking("remove_obsolete_files", {
+        let game_directory_for_cleanup = game_directory.clone();
+        let game_manifest_remote_for_cleanup = game_manifest_remote.clone();
+        let mut manifest_to_update = game_manifest;
+        move || {
+            remove_obsolete_files(
+                &game_directory_for_cleanup,
+                &mut manifest_to_update,
+                &game_manifest_remote_for_cleanup,
+            )?;
+            Ok(manifest_to_update)
+        }
+    })
+    .await?;
     remove_duplicates(&mut game_manifest);
     game_manifest.version = game_version.clone();
     let remote_manifest_total_size: u64 = game_manifest_remote
@@ -906,7 +953,15 @@ async fn download_and_update_game(
     };
     game_manifest.gameBinarySize = resolved_game_binary_size;
     game_manifest.gameTitle = game_title.clone();
-    save_manifest(&file_location_download, &game_manifest)?;
+    game_manifest = run_blocking("save_manifest", {
+        let file_location_download_for_save = file_location_download.clone();
+        let manifest_to_save = game_manifest;
+        move || {
+            save_manifest(&file_location_download_for_save, &manifest_to_save)?;
+            Ok(manifest_to_save)
+        }
+    })
+    .await?;
 
     let download_targets: Vec<FileDetails> = if files_to_download.is_empty() {
         Vec::new()
@@ -939,8 +994,11 @@ async fn download_and_update_game(
     let total_size_to_download: u64 = download_targets.iter().map(|file| file.size).sum();
     let files_count: usize = download_targets.len();
     let requested_files_count: usize = files_to_download.len();
-    let initial_downloaded: u64 =
-        calculate_initial_downloaded_for_resume(&game_directory, &download_targets);
+    let initial_downloaded: u64 = calculate_initial_downloaded_for_resume_async(
+        game_directory.clone(),
+        download_targets.clone(),
+    )
+    .await?;
     println!(
         "[download_and_update_game] session={} requested_files={} effective_targets={} total_size_to_download={} initial_downloaded={}",
         session_id, requested_files_count, files_count, total_size_to_download, initial_downloaded
@@ -1123,7 +1181,12 @@ async fn download_and_update_game(
                 .map_err(|e| format!("Download task join error: {}", e))??;
             game_manifest.files.push(downloaded_file);
             remove_duplicates(&mut game_manifest);
-            save_manifest(&file_location_download, &game_manifest)?;
+            let file_location_download_for_save = file_location_download.clone();
+            let manifest_snapshot = game_manifest.clone();
+            run_blocking("save_manifest", move || {
+                save_manifest(&file_location_download_for_save, &manifest_snapshot)
+            })
+            .await?;
         }
         Ok(())
     }
@@ -1151,20 +1214,43 @@ async fn download_and_update_game(
     // This prevents accidental deletion of already valid files when we repaired only a subset.
     game_manifest.files = game_manifest_remote.files.clone();
     remove_duplicates(&mut game_manifest);
-    save_manifest(&file_location_download, &game_manifest)?;
+    game_manifest = run_blocking("save_manifest", {
+        let file_location_download_for_save = file_location_download.clone();
+        let manifest_to_save = game_manifest;
+        move || {
+            save_manifest(&file_location_download_for_save, &manifest_to_save)?;
+            Ok(manifest_to_save)
+        }
+    })
+    .await?;
     // If metadata did not exist before this run, keep existing files/directories.
     // In repair mode ("metadata missing"), we only redownload missing/corrupted files
     // and regenerate manifest_local.json without deleting other already present content.
     if manifest_existed_before_run && has_valid_manifest_before_run {
-        clean_up_directory(&game_directory, &game_manifest)?;
+        game_manifest = run_blocking("clean_up_directory", {
+            let game_directory_for_cleanup = game_directory.clone();
+            let manifest_to_cleanup = game_manifest;
+            move || {
+                clean_up_directory(&game_directory_for_cleanup, &manifest_to_cleanup)?;
+                Ok(manifest_to_cleanup)
+            }
+        })
+        .await?;
     }
     if desktop_shortcut {
-        create_shortcut(file_location_download.clone())
-            .map_err(|e| format!("Failed to create shortcut: {}", e))?;
+        let install_path_for_shortcut = file_location_download.clone();
+        run_blocking("create_shortcut", move || {
+            create_shortcut_sync(install_path_for_shortcut)
+                .map_err(|e| format!("Failed to create shortcut: {}", e))
+        })
+        .await?;
     }
-    let final_total_downloaded: u64 =
-        calculate_initial_downloaded_for_resume(&game_directory, &download_targets)
-            .min(total_size_to_download);
+    let final_total_downloaded: u64 = calculate_initial_downloaded_for_resume_async(
+        game_directory.clone(),
+        download_targets.clone(),
+    )
+    .await?
+    .min(total_size_to_download);
     let final_progress: f64 = if total_size_to_download == 0 {
         100.0
     } else {
@@ -1223,6 +1309,13 @@ fn calculate_file_hash(file_path: &Path) -> Result<String, String> {
         hasher.update(&buffer[..bytes_read]);
     }
     Ok(format!("{:x}", hasher.finalize()))
+}
+
+async fn calculate_file_hash_async(file_path: PathBuf) -> Result<String, String> {
+    run_blocking("calculate_file_hash", move || {
+        calculate_file_hash(file_path.as_path())
+    })
+    .await
 }
 fn load_or_create_manifest(
     file_location_download: &str,
@@ -1353,7 +1446,14 @@ fn find_executable_in_directory(directory_path: &Path) -> Result<String, String>
 
 // createShortcut
 #[tauri::command]
-fn create_shortcut(directory_path: String) -> Result<(), String> {
+async fn create_shortcut(directory_path: String) -> Result<(), String> {
+    run_blocking("create_shortcut", move || {
+        create_shortcut_sync(directory_path)
+    })
+    .await
+}
+
+fn create_shortcut_sync(directory_path: String) -> Result<(), String> {
     let system_os_info = get_system_os_info_current();
     let os = &system_os_info.os;
     let desktop_path = get_desktop_path().ok_or_else(|| {
@@ -1534,71 +1634,40 @@ fn get_desktop_path() -> Option<PathBuf> {
 
 #[tauri::command]
 async fn launch_game(file_location_download: String) -> Result<(), String> {
-    // Créer un canal pour transmettre les erreurs
-    let (tx, mut rx) = mpsc::channel(1);
+    run_blocking("launch_game", move || {
+        launch_game_sync(file_location_download)
+    })
+    .await
+}
 
-    thread::spawn(move || {
-        // Vérifiez si le répertoire de jeu existe
-        let game_dir = std::path::Path::new(&file_location_download);
-        if !game_dir.exists() {
-            let _ = tx.blocking_send(Err(format!(
-                "Game directory does not exist: {:?}",
-                game_dir
-            )));
-            return;
-        }
-
-        // Trouver l'exécutable dans le répertoire du jeu
-        let executable_path = match find_executable_in_directory(&game_dir) {
-            Ok(path) => path,
-            Err(e) => {
-                let _ = tx.blocking_send(Err(format!("Error finding executable: {}", e)));
-                return;
-            }
-        };
-        let game_path = std::path::Path::new(&executable_path);
-
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            let mut permissions = match std::fs::metadata(&game_path) {
-                Ok(metadata) => metadata.permissions(),
-                Err(e) => {
-                    let _ = tx.blocking_send(Err(format!("Failed to get metadata: {}", e)));
-                    return;
-                }
-            };
-            permissions.set_mode(permissions.mode() | 0o111); // chmod +x
-            if let Err(e) = std::fs::set_permissions(&game_path, permissions) {
-                let _ = tx.blocking_send(Err(format!("Failed to set permissions: {}", e)));
-                return;
-            }
-        }
-
-        // Utiliser std::process::Command pour lancer le jeu et capturer les erreurs
-        use std::process::Command;
-        let output = match Command::new(&game_path).current_dir(&game_dir).output() {
-            Ok(output) => output,
-            Err(e) => {
-                let _ = tx.blocking_send(Err(format!("Failed to launch game: {}", e)));
-                return;
-            }
-        };
-
-        // Vérifiez si le processus a renvoyé une erreur
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            let _ = tx.blocking_send(Err(format!("Failed to launch game: {}", stderr)));
-            return;
-        }
-
-        let _ = tx.blocking_send(Ok(()));
-    });
-
-    // Recevoir et traiter le résultat sans bloquer le thread principal
-    if let Some(result) = rx.recv().await {
-        return result;
+fn launch_game_sync(file_location_download: String) -> Result<(), String> {
+    let game_dir = PathBuf::from(&file_location_download);
+    if !game_dir.exists() {
+        return Err(format!("Game directory does not exist: {:?}", game_dir));
     }
+
+    let executable_path = find_executable_in_directory(&game_dir)
+        .map_err(|e| format!("Error finding executable: {}", e))?;
+    let game_path = PathBuf::from(&executable_path);
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut permissions = fs::metadata(&game_path)
+            .map_err(|e| format!("Failed to get metadata: {}", e))?
+            .permissions();
+        permissions.set_mode(permissions.mode() | 0o111); // chmod +x
+        fs::set_permissions(&game_path, permissions)
+            .map_err(|e| format!("Failed to set permissions: {}", e))?;
+    }
+
+    Command::new(&game_path)
+        .current_dir(&game_dir)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|e| format!("Failed to launch game: {}", e))?;
 
     Ok(())
 }
@@ -1666,6 +1735,13 @@ fn delete_paths_with_progress(
 
 #[tauri::command]
 async fn is_game_running(path_install_location: String) -> Result<bool, String> {
+    run_blocking("is_game_running", move || {
+        is_game_running_sync(path_install_location)
+    })
+    .await
+}
+
+fn is_game_running_sync(path_install_location: String) -> Result<bool, String> {
     let game_directory = Path::new(&path_install_location);
 
     if !game_directory.exists() || !game_directory.is_dir() {
