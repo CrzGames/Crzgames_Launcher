@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import { LogicalSize } from '@tauri-apps/api/dpi'
 import { appConfigDir, join, sep } from '@tauri-apps/api/path'
-import { Window } from '@tauri-apps/api/window'
+import { getCurrentWindow } from '@tauri-apps/api/window'
 import { open } from '@tauri-apps/plugin-dialog'
 import type { RemoveOptions } from '@tauri-apps/plugin-fs'
 import { BaseDirectory, exists, mkdir, readDir, readTextFile, remove, writeTextFile } from '@tauri-apps/plugin-fs'
@@ -875,7 +875,7 @@ export class TauriService {
     const windowStore = useWindowStore()
     windowStore.setLoading(true)
 
-    const appWindow: Window = new Window('main')
+    const appWindow = getCurrentWindow()
 
     const newSize: LogicalSize = new LogicalSize(width, height)
     await appWindow.setSize(newSize)
@@ -895,7 +895,7 @@ export class TauriService {
     const windowStore = useWindowStore()
     windowStore.setLoading(true)
 
-    const appWindow: Window = new Window('main')
+    const appWindow = getCurrentWindow()
 
     const newSize: LogicalSize = new LogicalSize(width, height)
     await appWindow.setSize(newSize)
@@ -915,7 +915,7 @@ export class TauriService {
   public static async adjustWindowHomeToLogin(width: number, height: number): Promise<void> {
     useWindowStore().setLoading(true)
 
-    const appWindow: Window = new Window('main')
+    const appWindow = getCurrentWindow()
 
     const newSize: LogicalSize = new LogicalSize(width, height)
     await appWindow.setSize(newSize)
@@ -934,7 +934,7 @@ export class TauriService {
   public static async adjustWindowHomeToLoginForMiddleware(width: number, height: number): Promise<void> {
     useWindowStore().setLoading(true)
 
-    const appWindow: Window = new Window('main')
+    const appWindow = getCurrentWindow()
 
     const newSize: LogicalSize = new LogicalSize(width, height)
     await appWindow.setSize(newSize)
