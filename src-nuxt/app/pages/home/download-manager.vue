@@ -816,20 +816,15 @@ const resumeGameDownload: (gameToResumeDownload: ActiveDownloadGame) => Promise<
       0,
     )
 
-    gameToResumeDownload.totalSizeToDownload = totalSizeToDownloadForResume
+    // Garder l'etat "Checking local files..." visible jusqu'au premier event
+    // de progression reelle pour eviter un clignotement "Calculating... / 0 Byte".
     gameToResumeDownload.gameBinarySize = remoteManifestTotalSize || gameToResumeDownload.gameBinarySize
-    gameToResumeDownload.totalDownloadedBytesNow = 0
-    gameToResumeDownload.progress = 0
-    gameToResumeDownload.speed = '0 B/s'
-    gameToResumeDownload.remainingTime = totalSizeToDownloadForResume > 0 ? 'Calculating...' : '0 min 0 sec'
     gameToResumeDownload.hasError = false
     gameToResumeDownload.errorMessage = undefined
 
-    // Marque le telechargement comme actif en modifiant l'etat isPlaying
-    gameToResumeDownload.isPreparingResume = false
-    gameToResumeDownload.isPlaying = true
-    // Log la mise a jour de l'etat du telechargement
-    logger.info(`[Download Resume] Telechargement marque comme actif pour ${gameDataDetails.title}`)
+    logger.info(
+      `[Download Resume] Resume checks completed for ${gameDataDetails.title}. filesToDownload=${filesToDownloadForGame.length} bytesToDownload=${totalSizeToDownloadForResume}. Waiting first progress event before switching UI state.`,
+    )
 
     // Lance le telechargement du jeu avec toutes les informations necessaires
     await TauriService.downloadGame(

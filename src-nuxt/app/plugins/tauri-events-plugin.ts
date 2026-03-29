@@ -327,31 +327,55 @@ const handleDownloadProgress: (event: LauncherTauriEvent) => Promise<void> = asy
   }
 
   const sessionId: string = getSessionIdFromPayload(payload, gameId)
+  const existingActiveDownloadBeforeSessionCheck: ActiveDownloadGame | undefined = downloadsStore.activeDownloads.find(
+    (activeDownload: ActiveDownloadGame): boolean => activeDownload.gameId === gameId,
+  )
 
   if (isCompletedSessionEvent(gameId, sessionId)) {
-    return
+    const shouldAllowPendingDownloadStart: boolean =
+      !!existingActiveDownloadBeforeSessionCheck &&
+      !existingActiveDownloadBeforeSessionCheck.sessionId &&
+      !!existingActiveDownloadBeforeSessionCheck.isPlaying
+    if (shouldAllowPendingDownloadStart) {
+      completedSessionByGameId.delete(gameId)
+    } else {
+      return
+    }
   }
 
   trackSessionFromProgressEvent(gameId, sessionId)
 
   const totalSizeToDownload: number = resolveTotalSizeToDownloadFromPayload(payload)
   const fallbackGameBinarySize: number = toNumber(payload.gameBinarySize, 0)
+  let existingActiveDownload: ActiveDownloadGame | undefined = downloadsStore.activeDownloads.find(
+    (activeDownload: ActiveDownloadGame): boolean => activeDownload.gameId === gameId,
+  )
+  if (!existingActiveDownload) {
+    logger.debug(
+      `[Progress Event] Ignored session=${sessionId} gameId=${gameId} because no active download exists in store`,
+    )
+    return
+  }
 
   const rawTotalDownloaded: number = Math.max(toNumber(payload.totalDownloaded, 0), 0)
   const totalDownloaded: number = totalSizeToDownload > 0 ? Math.min(rawTotalDownloaded, totalSizeToDownload) : 0
   const speed: number = totalSizeToDownload > 0 ? Math.max(toNumber(payload.speed, 0), 0) : 0
   const progress: number = totalSizeToDownload > 0 ? (totalDownloaded / totalSizeToDownload) * 100 : 100
 
-  const gamePictureUrl: string = await getGamePictureUrlByGameId(gameId, downloadsStore)
+  const gamePictureUrl: string =
+    existingActiveDownload.gamePictureUrl || (await getGamePictureUrlByGameId(gameId, downloadsStore))
 
   // Re-check apres await pour ignorer les events devenus obsoletes
   if (isCompletedSessionEvent(gameId, sessionId) || latestSessionByGameId.get(gameId) !== sessionId) {
     return
   }
 
-  const existingActiveDownload: ActiveDownloadGame | undefined = downloadsStore.activeDownloads.find(
+  existingActiveDownload = downloadsStore.activeDownloads.find(
     (activeDownload: ActiveDownloadGame): boolean => activeDownload.gameId === gameId,
   )
+  if (!existingActiveDownload) {
+    return
+  }
   const shouldUpsertActiveDownload: boolean = existingActiveDownload?.sessionId !== sessionId
 
   if (shouldUpsertActiveDownload) {
@@ -523,6 +547,37 @@ const handleDownloadError: (event: LauncherTauriEvent) => void = (event: Launche
 
   const sessionId: string = getSessionIdFromPayload(payload, gameId)
   latestSessionByGameId.set(gameId, sessionId)
+
+  const rawError: string = String(payload.error || 'unknown')
+  const normalizedError: string = rawError.toLowerCase()
+  const isDownloadPausedInterruption: boolean = normalizedError.includes('download paused')
+  const isDownloadCanceledInterruption: boolean = normalizedError.includes('download canceled')
+
+  if (isDownloadCanceledInterruption) {
+    completedSessionByGameId.set(gameId, sessionId)
+    lastPersistAtByGameId.delete(gameId)
+    lastProgressLogAtByGameId.delete(gameId)
+    lastEnqueuedProgressEventAtByGameId.delete(gameId)
+    const userId: number = toNumber(payload.userId, 0)
+    if (userId > 0) {
+      void TauriService.removeGameProgressDownload(gameId, userId)
+    }
+
+    const hasActiveDownloadToRemove: boolean = downloadsStore.activeDownloads.some(
+      (download: ActiveDownloadGame): boolean => download.gameId === gameId,
+    )
+    if (hasActiveDownloadToRemove) {
+      downloadsStore.setActiveDownloads(
+        downloadsStore.activeDownloads.filter(
+          (download: ActiveDownloadGame): boolean => download.gameId !== gameId,
+        ),
+      )
+    }
+
+    logger.info(`[Download Event] session=${sessionId} gameId=${gameId} interruption=${rawError}`)
+    return
+  }
+
   completedSessionByGameId.delete(gameId)
 
   const activeDownload: ActiveDownloadGame | undefined = downloadsStore.activeDownloads.find(
@@ -534,12 +589,7 @@ const handleDownloadError: (event: LauncherTauriEvent) => void = (event: Launche
     activeDownload.remainingTime = '0 min 0 sec'
   }
 
-  const rawError: string = String(payload.error || 'unknown')
-  const normalizedError: string = rawError.toLowerCase()
-  const isExpectedInterruption: boolean =
-    normalizedError.includes('download paused') || normalizedError.includes('download canceled')
-
-  if (isExpectedInterruption) {
+  if (isDownloadPausedInterruption) {
     if (activeDownload) {
       activeDownload.hasError = false
       activeDownload.errorMessage = undefined

@@ -11,6 +11,7 @@ use serde_json::json;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::collections::VecDeque;
 use std::env;
 use std::fs;
 use std::io::{BufReader, Read};
@@ -43,6 +44,13 @@ const EXECUTABLE_EXTENSIONS: [&str; 1] = ["AppImage"];
 
 const MAX_CONCURRENT_DOWNLOADS: usize = 6;
 const PRESIGN_BATCH_CHUNK_SIZE: usize = 200;
+const CHECK_MISSING_FILES_MAX_PARALLEL_HASH: usize = 4;
+const PROGRESS_EMIT_INTERVAL_MS: u64 = 200;
+const PROGRESS_EMIT_MIN_BYTES_DELTA: u64 = 256 * 1024;
+const PROGRESS_EMIT_MIN_PROGRESS_DELTA: f64 = 0.2;
+const PROGRESS_EMIT_MAX_SILENCE_TICKS: u64 = 10;
+const MANIFEST_SAVE_MIN_INTERVAL_MS: u64 = 1200;
+const MANIFEST_SAVE_MIN_FILE_DELTA: usize = 4;
 
 async fn run_blocking<T, F>(task_name: &'static str, task: F) -> Result<T, String>
 where
@@ -52,6 +60,16 @@ where
     spawn_blocking(task)
         .await
         .map_err(|error| format!("{} join error: {}", task_name, error))?
+}
+
+async fn save_manifest_async(
+    file_location_download: String,
+    manifest_snapshot: GameManifestLocal,
+) -> Result<(), String> {
+    run_blocking("save_manifest", move || {
+        save_manifest(&file_location_download, &manifest_snapshot)
+    })
+    .await
 }
 
 fn check_disk_space_sync(path: String) -> Result<u64, String> {
@@ -166,31 +184,98 @@ async fn check_missing_files(
     let local_manifest_for_worker: GameManifestLocal = local_manifest.clone();
 
     let worker = spawn_blocking(move || {
-        let game_directory = Path::new(&file_location_download_for_worker);
-        let mut missing_files = Vec::new();
         let total_files_worker: u64 = local_manifest_for_worker.files.len() as u64;
-        let mut checked_files: u64 = 0;
+        let worker_count: usize = std::cmp::max(
+            1,
+            std::cmp::min(
+                CHECK_MISSING_FILES_MAX_PARALLEL_HASH,
+                std::thread::available_parallelism()
+                    .map(|parallelism| parallelism.get())
+                    .unwrap_or(CHECK_MISSING_FILES_MAX_PARALLEL_HASH),
+            ),
+        );
 
-        for file in &local_manifest_for_worker.files {
-            let file_path = game_directory.join(&file.name);
-            if !file_path.exists() {
-                missing_files.push(file.clone());
-                checked_files += 1;
-                let _ = progress_tx.send((checked_files, total_files_worker));
-                continue;
-            }
+        let game_directory = Arc::new(PathBuf::from(file_location_download_for_worker));
+        let queue: Arc<Mutex<VecDeque<(usize, FileDetails)>>> = Arc::new(Mutex::new(
+            local_manifest_for_worker
+                .files
+                .into_iter()
+                .enumerate()
+                .collect::<VecDeque<(usize, FileDetails)>>(),
+        ));
+        let missing_files: Arc<Mutex<Vec<(usize, FileDetails)>>> = Arc::new(Mutex::new(Vec::new()));
+        let checked_files: Arc<AtomicU64> = Arc::new(AtomicU64::new(0));
+        let mut workers = Vec::with_capacity(worker_count);
 
-            match calculate_file_hash(&file_path) {
-                Ok(existing_hash) if existing_hash == file.hash => {}
-                Ok(_) => missing_files.push(file.clone()),
-                Err(_) => missing_files.push(file.clone()),
-            }
+        for _ in 0..worker_count {
+            let queue_for_worker = Arc::clone(&queue);
+            let missing_files_for_worker = Arc::clone(&missing_files);
+            let checked_files_for_worker = Arc::clone(&checked_files);
+            let game_directory_for_worker = Arc::clone(&game_directory);
+            let progress_tx_for_worker = progress_tx.clone();
 
-            checked_files += 1;
-            let _ = progress_tx.send((checked_files, total_files_worker));
+            workers.push(std::thread::spawn(move || -> Result<(), String> {
+                loop {
+                    let next_file_entry: Option<(usize, FileDetails)> = {
+                        let mut queue_guard = queue_for_worker
+                            .lock()
+                            .map_err(|_| "check_missing_files queue lock poisoned".to_string())?;
+                        queue_guard.pop_front()
+                    };
+
+                    let Some((file_index, file)) = next_file_entry else {
+                        break;
+                    };
+
+                    let file_path: PathBuf = game_directory_for_worker.join(&file.name);
+                    let is_file_missing_or_invalid: bool = if !file_path.exists() {
+                        true
+                    } else {
+                        match calculate_file_hash(file_path.as_path()) {
+                            Ok(existing_hash) => existing_hash != file.hash,
+                            Err(_) => true,
+                        }
+                    };
+
+                    if is_file_missing_or_invalid {
+                        let mut missing_files_guard =
+                            missing_files_for_worker.lock().map_err(|_| {
+                                "check_missing_files missing_files lock poisoned".to_string()
+                            })?;
+                        missing_files_guard.push((file_index, file));
+                    }
+
+                    let checked_now: u64 =
+                        checked_files_for_worker.fetch_add(1, Ordering::Relaxed) + 1;
+                    let _ = progress_tx_for_worker.send((checked_now, total_files_worker));
+                }
+
+                Ok(())
+            }));
         }
 
-        Ok::<Vec<FileDetails>, String>(missing_files)
+        drop(progress_tx);
+
+        for worker_handle in workers {
+            worker_handle
+                .join()
+                .map_err(|_| "check_missing_files worker thread panicked".to_string())??;
+        }
+
+        let mut missing_files_ordered: Vec<(usize, FileDetails)> = {
+            let missing_files_guard = missing_files
+                .lock()
+                .map_err(|_| "check_missing_files missing_files lock poisoned".to_string())?;
+            missing_files_guard.clone()
+        };
+        missing_files_ordered.sort_by_key(|(index, _)| *index);
+
+        Ok::<Vec<FileDetails>, String>(
+            missing_files_ordered
+                .into_iter()
+                .map(|(_, file)| file)
+                .collect(),
+        )
     });
 
     while let Some((checked_files, total_files_worker)) = progress_rx.recv().await {
@@ -299,6 +384,16 @@ fn get_or_create_download_state(game_id: u64) -> (Arc<AtomicBool>, Arc<AtomicBoo
         .clone()
 }
 
+fn get_download_state_if_exists(game_id: u64) -> Option<(Arc<AtomicBool>, Arc<AtomicBool>)> {
+    let states = DOWNLOAD_STATES.lock().unwrap();
+    states.get(&game_id).cloned()
+}
+
+fn cleanup_download_state(game_id: u64) {
+    let mut states = DOWNLOAD_STATES.lock().unwrap();
+    states.remove(&game_id);
+}
+
 fn try_mark_download_running(game_id: u64) -> bool {
     let mut running_downloads = RUNNING_DOWNLOADS.lock().unwrap();
     running_downloads.insert(game_id)
@@ -316,6 +411,7 @@ struct DownloadRunningGuard {
 impl Drop for DownloadRunningGuard {
     fn drop(&mut self) {
         unmark_download_running(self.game_id);
+        cleanup_download_state(self.game_id);
     }
 }
 
@@ -333,21 +429,24 @@ fn atomic_saturating_sub(atomic: &AtomicU64, value: u64) {
 
 #[tauri::command]
 fn cancel_download(game_id: u64) {
-    let (cancel, _) = get_or_create_download_state(game_id);
-    cancel.store(true, Ordering::Relaxed);
+    if let Some((cancel, _)) = get_download_state_if_exists(game_id) {
+        cancel.store(true, Ordering::Relaxed);
+    }
 }
 
 #[tauri::command]
 fn pause_download(game_id: u64) {
-    let (_, pause) = get_or_create_download_state(game_id);
-    pause.store(true, Ordering::Relaxed);
+    if let Some((_, pause)) = get_download_state_if_exists(game_id) {
+        pause.store(true, Ordering::Relaxed);
+    }
 }
 
 #[tauri::command]
 fn resume_download(game_id: u64) {
-    let (cancel, pause) = get_or_create_download_state(game_id);
-    cancel.store(false, Ordering::Relaxed);
-    pause.store(false, Ordering::Relaxed);
+    if let Some((cancel, pause)) = get_download_state_if_exists(game_id) {
+        cancel.store(false, Ordering::Relaxed);
+        pause.store(false, Ordering::Relaxed);
+    }
 }
 
 fn pause_all_running_downloads() {
@@ -357,8 +456,9 @@ fn pause_all_running_downloads() {
     };
 
     for game_id in running_game_ids {
-        let (_, pause) = get_or_create_download_state(game_id);
-        pause.store(true, Ordering::Relaxed);
+        if let Some((_, pause)) = get_download_state_if_exists(game_id) {
+            pause.store(true, Ordering::Relaxed);
+        }
     }
 }
 
@@ -953,15 +1053,7 @@ async fn download_and_update_game(
     };
     game_manifest.gameBinarySize = resolved_game_binary_size;
     game_manifest.gameTitle = game_title.clone();
-    game_manifest = run_blocking("save_manifest", {
-        let file_location_download_for_save = file_location_download.clone();
-        let manifest_to_save = game_manifest;
-        move || {
-            save_manifest(&file_location_download_for_save, &manifest_to_save)?;
-            Ok(manifest_to_save)
-        }
-    })
-    .await?;
+    save_manifest_async(file_location_download.clone(), game_manifest.clone()).await?;
 
     let download_targets: Vec<FileDetails> = if files_to_download.is_empty() {
         Vec::new()
@@ -1039,14 +1131,21 @@ async fn download_and_update_game(
     let progress_game_title = game_title.clone();
     let progress_game_version = game_version.clone();
     let progress_task = tokio::spawn(async move {
-        let mut interval = tokio::time::interval(Duration::from_millis(200));
+        let mut interval = tokio::time::interval(Duration::from_millis(PROGRESS_EMIT_INTERVAL_MS));
+        let mut last_emitted_total_downloaded: u64 = initial_downloaded.min(total_size_to_download);
+        let mut last_emitted_progress: f64 = initial_progress;
+        let mut silent_ticks: u64 = 0;
+        let mut bytes_since_last_emit: u64 = 0;
+
         loop {
             interval.tick().await;
             if progress_stop_flag.load(Ordering::Relaxed) {
                 break;
             }
+
+            silent_ticks = silent_ticks.saturating_add(1);
             let bytes_in_window: u64 = progress_session_downloaded.swap(0, Ordering::Relaxed);
-            let speed: f64 = bytes_in_window as f64 / 0.2_f64;
+            bytes_since_last_emit = bytes_since_last_emit.saturating_add(bytes_in_window);
             let total_downloaded_now: u64 = progress_total_downloaded
                 .load(Ordering::Relaxed)
                 .min(total_size_to_download);
@@ -1055,6 +1154,27 @@ async fn download_and_update_game(
             } else {
                 (total_downloaded_now as f64 / total_size_to_download as f64) * 100.0
             };
+
+            let bytes_delta: u64 =
+                total_downloaded_now.saturating_sub(last_emitted_total_downloaded);
+            let progress_delta: f64 = (progress - last_emitted_progress).abs();
+            let should_emit_progress: bool = bytes_delta >= PROGRESS_EMIT_MIN_BYTES_DELTA
+                || progress_delta >= PROGRESS_EMIT_MIN_PROGRESS_DELTA
+                || total_downloaded_now == total_size_to_download
+                || silent_ticks >= PROGRESS_EMIT_MAX_SILENCE_TICKS;
+
+            if !should_emit_progress {
+                continue;
+            }
+
+            let elapsed_seconds: f64 =
+                (silent_ticks as f64 * PROGRESS_EMIT_INTERVAL_MS as f64) / 1000.0;
+            let speed: f64 = if elapsed_seconds > 0.0 {
+                bytes_since_last_emit as f64 / elapsed_seconds
+            } else {
+                0.0
+            };
+
             let _ = progress_window.emit(
                 "download-game-progress",
                 Some(json!({
@@ -1072,6 +1192,11 @@ async fn download_and_update_game(
                     "filesCount": files_count,
                 })),
             );
+
+            last_emitted_total_downloaded = total_downloaded_now;
+            last_emitted_progress = progress;
+            silent_ticks = 0;
+            bytes_since_last_emit = 0;
         }
     });
     let download_result: Result<(), String> = async {
@@ -1128,6 +1253,10 @@ async fn download_and_update_game(
 
         let semaphore = Arc::new(Semaphore::new(MAX_CONCURRENT_DOWNLOADS));
         let mut join_set: JoinSet<Result<FileDetails, String>> = JoinSet::new();
+        let mut completed_files: usize = 0;
+        let mut pending_manifest_files: usize = 0;
+        let mut last_manifest_save_at = std::time::Instant::now();
+
         for file in download_targets.clone() {
             if cancel_flag.load(Ordering::Relaxed) {
                 return Err("Download canceled".to_string());
@@ -1181,12 +1310,20 @@ async fn download_and_update_game(
                 .map_err(|e| format!("Download task join error: {}", e))??;
             game_manifest.files.push(downloaded_file);
             remove_duplicates(&mut game_manifest);
-            let file_location_download_for_save = file_location_download.clone();
-            let manifest_snapshot = game_manifest.clone();
-            run_blocking("save_manifest", move || {
-                save_manifest(&file_location_download_for_save, &manifest_snapshot)
-            })
-            .await?;
+
+            completed_files = completed_files.saturating_add(1);
+            pending_manifest_files = pending_manifest_files.saturating_add(1);
+
+            let should_flush_manifest: bool = pending_manifest_files >= MANIFEST_SAVE_MIN_FILE_DELTA
+                || last_manifest_save_at.elapsed()
+                    >= Duration::from_millis(MANIFEST_SAVE_MIN_INTERVAL_MS)
+                || completed_files >= files_count;
+
+            if should_flush_manifest {
+                save_manifest_async(file_location_download.clone(), game_manifest.clone()).await?;
+                pending_manifest_files = 0;
+                last_manifest_save_at = std::time::Instant::now();
+            }
         }
         Ok(())
     }
@@ -1214,25 +1351,17 @@ async fn download_and_update_game(
     // This prevents accidental deletion of already valid files when we repaired only a subset.
     game_manifest.files = game_manifest_remote.files.clone();
     remove_duplicates(&mut game_manifest);
-    game_manifest = run_blocking("save_manifest", {
-        let file_location_download_for_save = file_location_download.clone();
-        let manifest_to_save = game_manifest;
-        move || {
-            save_manifest(&file_location_download_for_save, &manifest_to_save)?;
-            Ok(manifest_to_save)
-        }
-    })
-    .await?;
+    save_manifest_async(file_location_download.clone(), game_manifest.clone()).await?;
     // If metadata did not exist before this run, keep existing files/directories.
     // In repair mode ("metadata missing"), we only redownload missing/corrupted files
     // and regenerate manifest_local.json without deleting other already present content.
     if manifest_existed_before_run && has_valid_manifest_before_run {
-        game_manifest = run_blocking("clean_up_directory", {
+        let manifest_for_cleanup = game_manifest.clone();
+        run_blocking("clean_up_directory", {
             let game_directory_for_cleanup = game_directory.clone();
-            let manifest_to_cleanup = game_manifest;
             move || {
-                clean_up_directory(&game_directory_for_cleanup, &manifest_to_cleanup)?;
-                Ok(manifest_to_cleanup)
+                clean_up_directory(&game_directory_for_cleanup, &manifest_for_cleanup)?;
+                Ok(())
             }
         })
         .await?;
@@ -1245,12 +1374,7 @@ async fn download_and_update_game(
         })
         .await?;
     }
-    let final_total_downloaded: u64 = calculate_initial_downloaded_for_resume_async(
-        game_directory.clone(),
-        download_targets.clone(),
-    )
-    .await?
-    .min(total_size_to_download);
+    let final_total_downloaded: u64 = total_size_to_download;
     let final_progress: f64 = if total_size_to_download == 0 {
         100.0
     } else {
