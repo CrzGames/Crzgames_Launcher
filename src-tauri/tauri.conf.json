@@ -166,6 +166,9 @@
     }
   },
   "plugins": {
+    "fs": {
+      "requireLiteralLeadingDot": false
+    },
     "updater": {
       "windows": {
         "installMode": "passive"

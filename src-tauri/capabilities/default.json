@@ -8,8 +8,7 @@
       "identifier": "fs:scope",
         "allow": [
           {
-            "path": "**/*",
-            "requireLiteralLeadingDot": false
+            "path": "**/*"
           }
         ]
     },
