@@ -1,40 +1,38 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use tauri::{
-    Window,
-    Manager,
-    Emitter,
-    menu::{MenuBuilder, MenuItemBuilder},
-    tray::{TrayIconBuilder, TrayIconEvent, MouseButton},
-    image::Image,
-};
-use tauri_plugin_log::{Target, TargetKind};
-use tauri_plugin_autostart::MacosLauncher;
-use std::env;
-use std::path::{Path, PathBuf};
-use std::fs;
-use std::io::{BufReader, Read};
 use core::time::Duration;
-use serde_json::json;
 use dirs;
-use sysinfo::{ Disks, System };
 use futures::StreamExt;
-use sha2::{Digest, Sha256};
-use tokio::io::AsyncWriteExt;
-use tokio::sync::{mpsc, Semaphore};
-use tokio::task::{JoinSet, spawn_blocking};
-use tokio::fs::OpenOptions as TokioOpenOptions;
-use std::thread;
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use lazy_static::lazy_static;
-use std::collections::HashSet;
 #[allow(unused_imports)]
 use futures::TryFutureExt;
+use lazy_static::lazy_static;
+use serde_json::json;
+use sha2::{Digest, Sha256};
+use std::collections::HashMap;
+use std::collections::HashSet;
+use std::env;
+use std::fs;
+use std::io::{BufReader, Read};
+use std::path::{Path, PathBuf};
 #[allow(unused_imports)]
 use std::process::Command;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
+use std::thread;
+use sysinfo::{Disks, System};
+use tauri::{
+    image::Image,
+    menu::{MenuBuilder, MenuItemBuilder},
+    tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
+    Emitter, Manager, Window,
+};
+use tauri_plugin_autostart::MacosLauncher;
+use tauri_plugin_log::{Target, TargetKind};
+use tokio::fs::OpenOptions as TokioOpenOptions;
+use tokio::io::AsyncWriteExt;
+use tokio::sync::{mpsc, Semaphore};
+use tokio::task::{spawn_blocking, JoinSet};
 
 #[cfg(target_os = "windows")]
 const EXECUTABLE_EXTENSIONS: [&str; 1] = ["exe"];
@@ -82,7 +80,7 @@ fn get_system_os_info_current() -> SystemOSInfo {
 #[tauri::command]
 async fn check_disk_space(path: String) -> Result<u64, String> {
     let mut system = System::new_all();
-    system.refresh_all();  // Refresh the system to get the latest information
+    system.refresh_all(); // Refresh the system to get the latest information
 
     // Utilisation de Disks pour accéder aux informations de disque
     let disks = Disks::new_with_refreshed_list();
@@ -94,20 +92,29 @@ async fn check_disk_space(path: String) -> Result<u64, String> {
         }
     }
 
-    Err(format!("Aucun disque trouvé pour le chemin fourni: {}", path))
+    Err(format!(
+        "Aucun disque trouvé pour le chemin fourni: {}",
+        path
+    ))
 }
 
 // getLauncherPathDirectory
 #[tauri::command]
 fn get_launcher_path_directory() -> Result<String, String> {
     // Obtenez le chemin de l'exécutable courant.
-    let exe_path = env::current_exe().map_err(|e| format!("Error obtaining current exe path: {}", e))?;
+    let exe_path =
+        env::current_exe().map_err(|e| format!("Error obtaining current exe path: {}", e))?;
 
     // Obtenez le dossier contenant l'exécutable.
-    let parent_dir = exe_path.parent().ok_or("Error obtaining parent directory".to_string())?;
+    let parent_dir = exe_path
+        .parent()
+        .ok_or("Error obtaining parent directory".to_string())?;
 
     // Convertissez PathBuf en String pour le renvoyer.
-    parent_dir.to_str().map(String::from).ok_or("Error converting path to string".to_string())
+    parent_dir
+        .to_str()
+        .map(String::from)
+        .ok_or("Error converting path to string".to_string())
 }
 
 fn remove_duplicates(manifest: &mut GameManifestLocal) {
@@ -119,7 +126,7 @@ fn remove_duplicates(manifest: &mut GameManifestLocal) {
 async fn check_missing_files(
     webview: Window,
     file_location_download: String,
-    local_manifest: GameManifestLocal
+    local_manifest: GameManifestLocal,
 ) -> Result<Vec<FileDetails>, String> {
     let game_id: u64 = local_manifest.gameId;
     let total_files: u64 = local_manifest.files.len() as u64;
@@ -220,9 +227,16 @@ async fn check_missing_files(
     Ok(missing_files)
 }
 
-fn clean_up_directory(game_directory: &Path, game_manifest: &GameManifestLocal) -> Result<(), String> {
+fn clean_up_directory(
+    game_directory: &Path,
+    game_manifest: &GameManifestLocal,
+) -> Result<(), String> {
     // Vérifier et supprimer les fichiers et dossiers indésirables
-    let manifest_files: HashSet<PathBuf> = game_manifest.files.iter().map(|f| game_directory.join(&f.name)).collect();
+    let manifest_files: HashSet<PathBuf> = game_manifest
+        .files
+        .iter()
+        .map(|f| game_directory.join(&f.name))
+        .collect();
     let mut to_delete = Vec::new();
 
     // Chemin complet du fichier manifest_local.json
@@ -234,7 +248,10 @@ fn clean_up_directory(game_directory: &Path, game_manifest: &GameManifestLocal) 
         let path = entry.path();
 
         // Si le chemin n'est pas dans les fichiers du manifeste, l'ajouter à la liste des suppressions
-        if path != manifest_file_path && !manifest_files.contains(&path) && !manifest_files.iter().any(|f| f.starts_with(&path)) {
+        if path != manifest_file_path
+            && !manifest_files.contains(&path)
+            && !manifest_files.iter().any(|f| f.starts_with(&path))
+        {
             to_delete.push(path);
         }
     }
@@ -242,9 +259,11 @@ fn clean_up_directory(game_directory: &Path, game_manifest: &GameManifestLocal) 
     // Supprimer les fichiers et dossiers indésirables
     for path in to_delete {
         if path.is_dir() {
-            fs::remove_dir_all(&path).map_err(|e| format!("Failed to remove directory: {}: {}", path.display(), e))?;
+            fs::remove_dir_all(&path)
+                .map_err(|e| format!("Failed to remove directory: {}: {}", path.display(), e))?;
         } else {
-            fs::remove_file(&path).map_err(|e| format!("Failed to remove file: {}: {}", path.display(), e))?;
+            fs::remove_file(&path)
+                .map_err(|e| format!("Failed to remove file: {}: {}", path.display(), e))?;
         }
     }
 
@@ -261,7 +280,15 @@ lazy_static! {
 
 fn get_or_create_download_state(game_id: u64) -> (Arc<AtomicBool>, Arc<AtomicBool>) {
     let mut states = DOWNLOAD_STATES.lock().unwrap();
-    states.entry(game_id).or_insert_with(|| (Arc::new(AtomicBool::new(false)), Arc::new(AtomicBool::new(false)))).clone()
+    states
+        .entry(game_id)
+        .or_insert_with(|| {
+            (
+                Arc::new(AtomicBool::new(false)),
+                Arc::new(AtomicBool::new(false)),
+            )
+        })
+        .clone()
 }
 
 fn try_mark_download_running(game_id: u64) -> bool {
@@ -288,12 +315,8 @@ fn atomic_saturating_sub(atomic: &AtomicU64, value: u64) {
     let mut current = atomic.load(Ordering::Relaxed);
     loop {
         let new_value = current.saturating_sub(value);
-        match atomic.compare_exchange_weak(
-            current,
-            new_value,
-            Ordering::Relaxed,
-            Ordering::Relaxed,
-        ) {
+        match atomic.compare_exchange_weak(current, new_value, Ordering::Relaxed, Ordering::Relaxed)
+        {
             Ok(_) => break,
             Err(actual) => current = actual,
         }
@@ -334,10 +357,14 @@ fn pause_all_running_downloads() {
 fn remove_obsolete_files(
     game_directory: &Path,
     local_manifest: &mut GameManifestLocal,
-    remote_manifest: &GameManifestRemote
+    remote_manifest: &GameManifestRemote,
 ) -> Result<(), String> {
     // Crée un ensemble de tuples (name, size, hash) pour les fichiers du manifeste distant
-    let remote_files: HashSet<_> = remote_manifest.files.iter().map(|file| (&file.name, file.size, &file.hash)).collect();
+    let remote_files: HashSet<_> = remote_manifest
+        .files
+        .iter()
+        .map(|file| (&file.name, file.size, &file.hash))
+        .collect();
 
     // Parcourt les fichiers du manifeste local
     local_manifest.files.retain(|local_file| {
@@ -496,7 +523,10 @@ fn get_part_file_path(target_path: &Path) -> PathBuf {
     PathBuf::from(format!("{}.part", target_path.to_string_lossy()))
 }
 
-fn calculate_initial_downloaded_for_resume(game_directory: &Path, files_to_download: &[FileDetails]) -> u64 {
+fn calculate_initial_downloaded_for_resume(
+    game_directory: &Path,
+    files_to_download: &[FileDetails],
+) -> u64 {
     let mut total: u64 = 0;
 
     for file in files_to_download {
@@ -533,10 +563,7 @@ async fn fetch_presigned_download_url(
 ) -> Result<String, String> {
     let request_url = reqwest::Url::parse_with_params(
         presign_api_url,
-        &[
-            ("bucketName", bucket_name),
-            ("pathFilename", path_filename),
-        ],
+        &[("bucketName", bucket_name), ("pathFilename", path_filename)],
     )
     .map_err(|e| format!("Failed to build presign URL: {}", e))?;
 
@@ -569,8 +596,8 @@ async fn fetch_presigned_download_url(
         .await
         .map_err(|e| format!("Failed to read presign response body: {}", e))?;
 
-    let payload: LauncherPresignedDownloadResponse = serde_json::from_str(&body)
-        .map_err(|e| format!("Invalid presign response JSON: {}", e))?;
+    let payload: LauncherPresignedDownloadResponse =
+        serde_json::from_str(&body).map_err(|e| format!("Invalid presign response JSON: {}", e))?;
 
     if payload.url.trim().is_empty() {
         return Err("Presign API returned an empty URL".to_string());
@@ -639,7 +666,10 @@ async fn download_single_file_with_resume(
         if resume_offset == file.size && file.size > 0 {
             if !target_path.exists() {
                 fs::rename(&part_path, &target_path).map_err(|e| {
-                    format!("Failed to restore complete part file for {}: {}", file.name, e)
+                    format!(
+                        "Failed to restore complete part file for {}: {}",
+                        file.name, e
+                    )
                 })?;
             }
 
@@ -723,7 +753,8 @@ async fn download_single_file_with_resume(
                 return Err("Download paused".to_string());
             }
 
-            let bytes = chunk.map_err(|e| format!("Error receiving chunk for {}: {}", file.name, e))?;
+            let bytes =
+                chunk.map_err(|e| format!("Error receiving chunk for {}: {}", file.name, e))?;
             output
                 .write_all(&bytes)
                 .await
@@ -799,10 +830,7 @@ async fn download_single_file_with_resume(
         return Ok(file);
     }
 
-    Err(format!(
-        "Failed to download {} after retries",
-        file.name
-    ))
+    Err(format!("Failed to download {} after retries", file.name))
 }
 
 #[tauri::command]
@@ -822,7 +850,7 @@ async fn download_and_update_game(
     game_binary_size: u64,
     game_id: u64,
     user_id: u64,
-    game_manifest_remote: GameManifestRemote
+    game_manifest_remote: GameManifestRemote,
 ) -> Result<(), String> {
     println!("Starting optimized download for game: {}", game_title);
     let (cancel_flag, pause_flag) = get_or_create_download_state(game_id);
@@ -864,7 +892,11 @@ async fn download_and_update_game(
     remove_obsolete_files(&game_directory, &mut game_manifest, &game_manifest_remote)?;
     remove_duplicates(&mut game_manifest);
     game_manifest.version = game_version.clone();
-    let remote_manifest_total_size: u64 = game_manifest_remote.files.iter().map(|file| file.size).sum();
+    let remote_manifest_total_size: u64 = game_manifest_remote
+        .files
+        .iter()
+        .map(|file| file.size)
+        .sum();
     let resolved_game_binary_size: u64 = if remote_manifest_total_size > 0 {
         remote_manifest_total_size
     } else if game_binary_size > 0 {
@@ -1099,17 +1131,20 @@ async fn download_and_update_game(
     stop_progress_emitter.store(true, Ordering::Relaxed);
     let _ = progress_task.await;
     if let Err(error) = download_result {
-        let _ = webview.emit("download-game-error", Some(json!({
-            "sessionId": session_id,
-            "userId": user_id,
-            "pathInstallLocation": file_location_download,
-            "gameId": game_id,
-            "gameTitle": game_title,
-            "gameVersion": game_version,
-            "totalSizeToDownload": total_size_to_download,
-            "gameBinarySize": resolved_game_binary_size,
-            "error": error.clone(),
-        })));
+        let _ = webview.emit(
+            "download-game-error",
+            Some(json!({
+                "sessionId": session_id,
+                "userId": user_id,
+                "pathInstallLocation": file_location_download,
+                "gameId": game_id,
+                "gameTitle": game_title,
+                "gameVersion": game_version,
+                "totalSizeToDownload": total_size_to_download,
+                "gameBinarySize": resolved_game_binary_size,
+                "error": error.clone(),
+            })),
+        );
         return Err(error);
     }
     // Rebuild full local manifest from remote manifest after a successful run.
@@ -1127,8 +1162,9 @@ async fn download_and_update_game(
         create_shortcut(file_location_download.clone())
             .map_err(|e| format!("Failed to create shortcut: {}", e))?;
     }
-    let final_total_downloaded: u64 = calculate_initial_downloaded_for_resume(&game_directory, &download_targets)
-        .min(total_size_to_download);
+    let final_total_downloaded: u64 =
+        calculate_initial_downloaded_for_resume(&game_directory, &download_targets)
+            .min(total_size_to_download);
     let final_progress: f64 = if total_size_to_download == 0 {
         100.0
     } else {
@@ -1153,18 +1189,22 @@ async fn download_and_update_game(
             })),
         )
         .map_err(|e| format!("Failed to emit final download progress event: {}", e))?;
-    webview.emit("game-installation-complete", Some(json!({
-        "sessionId": session_id,
-        "gameTitle": game_title,
-        "gameId": game_id,
-        "userId": user_id,
-        "fileLocationDownload": file_location_download,
-        "gameVersion": game_version,
-        "gameBinarySize": resolved_game_binary_size,
-        "filesCount": game_manifest.files.len(),
-        "totalDownloaded": final_total_downloaded,
-        "totalSizeToDownload": total_size_to_download
-    })))
+    webview
+        .emit(
+            "game-installation-complete",
+            Some(json!({
+                "sessionId": session_id,
+                "gameTitle": game_title,
+                "gameId": game_id,
+                "userId": user_id,
+                "fileLocationDownload": file_location_download,
+                "gameVersion": game_version,
+                "gameBinarySize": resolved_game_binary_size,
+                "filesCount": game_manifest.files.len(),
+                "totalDownloaded": final_total_downloaded,
+                "totalSizeToDownload": total_size_to_download
+            })),
+        )
         .map_err(|e| format!("Failed to emit game installation complete event: {}", e))?;
     Ok(())
 }
@@ -1256,7 +1296,9 @@ fn find_executable_in_directory(directory_path: &Path) -> Result<String, String>
         return Err(format!("Invalid directory path: {:?}", directory_path));
     }
 
-    for entry in fs::read_dir(directory_path).map_err(|e| format!("Failed to read directory: {}", e))? {
+    for entry in
+        fs::read_dir(directory_path).map_err(|e| format!("Failed to read directory: {}", e))?
+    {
         let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
         let path = entry.path();
 
@@ -1267,8 +1309,11 @@ fn find_executable_in_directory(directory_path: &Path) -> Result<String, String>
                 if path.extension().and_then(|ext| ext.to_str()) == Some("app") {
                     let app_executable_path = path.join("Contents/MacOS");
                     if app_executable_path.exists() {
-                        for app_entry in fs::read_dir(&app_executable_path).map_err(|e| format!("Failed to read app directory: {}", e))? {
-                            let app_entry = app_entry.map_err(|e| format!("Failed to read app entry: {}", e))?;
+                        for app_entry in fs::read_dir(&app_executable_path)
+                            .map_err(|e| format!("Failed to read app directory: {}", e))?
+                        {
+                            let app_entry = app_entry
+                                .map_err(|e| format!("Failed to read app entry: {}", e))?;
                             let app_path = app_entry.path();
                             if app_path.is_file() && app_path.extension().is_none() {
                                 return Ok(app_path.to_string_lossy().into_owned());
@@ -1281,7 +1326,10 @@ fn find_executable_in_directory(directory_path: &Path) -> Result<String, String>
             if let Ok(executable) = find_executable_in_directory(&path) {
                 return Ok(executable);
             }
-        } else if EXECUTABLE_EXTENSIONS.iter().any(|&ext| path.extension().map_or(false, |p_ext| p_ext == ext)) {
+        } else if EXECUTABLE_EXTENSIONS
+            .iter()
+            .any(|&ext| path.extension().map_or(false, |p_ext| p_ext == ext))
+        {
             return Ok(path.to_string_lossy().into_owned());
         } else if cfg!(target_os = "linux") && path.extension().is_none() {
             // Vérifiez si le fichier sans extension est exécutable sous Linux
@@ -1356,7 +1404,9 @@ fn create_shortcut(directory_path: String) -> Result<(), String> {
                     .map_err(|e| format!("Failed to create ShellLink: {}", e))?;
 
                 // Force explicit icon location to avoid generic Windows shortcut icon.
-                sl.set_icon_location(Some(resolved_executable_path.to_string_lossy().into_owned()));
+                sl.set_icon_location(Some(
+                    resolved_executable_path.to_string_lossy().into_owned(),
+                ));
                 sl.header_mut().set_icon_index(0);
 
                 // Keep working directory aligned with executable location.
@@ -1372,7 +1422,10 @@ fn create_shortcut(directory_path: String) -> Result<(), String> {
             #[cfg(target_os = "macos")]
             {
                 // Raccourci ALIAS for macOS
-                let alias_name = format!("{}.alias", app_bundle_path.file_stem().unwrap().to_str().unwrap());
+                let alias_name = format!(
+                    "{}.alias",
+                    app_bundle_path.file_stem().unwrap().to_str().unwrap()
+                );
                 let alias_path = Path::new(&desktop_path).join(&alias_name);
                 let apple_script = format!(
                     "tell application \"Finder\" to make alias file to POSIX file \"{}\" at POSIX file \"{}\"",
@@ -1415,9 +1468,7 @@ fn create_shortcut(directory_path: String) -> Result<(), String> {
                     Type=Application\n\
                     Categories=Game;\n\
                     Terminal=false\n",
-                    exe_name,
-                    executable_path,
-                    icon_name
+                    exe_name, executable_path, icon_name
                 );
 
                 let applications_path = dirs::data_dir().unwrap().join("applications");
@@ -1425,8 +1476,10 @@ fn create_shortcut(directory_path: String) -> Result<(), String> {
                     fs::create_dir_all(&applications_path)
                         .map_err(|e| format!("Failed to create applications directory: {}", e))?;
                 }
-                let desktop_file_path = Path::new(&desktop_path).join(format!("{}.desktop", exe_name));
-                let applications_file_path = applications_path.join(format!("{}.desktop", exe_name));
+                let desktop_file_path =
+                    Path::new(&desktop_path).join(format!("{}.desktop", exe_name));
+                let applications_file_path =
+                    applications_path.join(format!("{}.desktop", exe_name));
 
                 // Écrire le fichier .desktop et définir les permissions pour le bureau
                 fs::write(&desktop_file_path, &desktop_entry)
@@ -1435,7 +1488,12 @@ fn create_shortcut(directory_path: String) -> Result<(), String> {
                     .arg("+x")
                     .arg(&desktop_file_path)
                     .output()
-                    .map_err(|e| format!("Failed to set .desktop file as executable on desktop: {}", e))?;
+                    .map_err(|e| {
+                        format!(
+                            "Failed to set .desktop file as executable on desktop: {}",
+                            e
+                        )
+                    })?;
 
                 // Activer "Allow Launching"
                 Command::new("gio")
@@ -1444,16 +1502,24 @@ fn create_shortcut(directory_path: String) -> Result<(), String> {
                     .arg("metadata::trusted")
                     .arg("true")
                     .output()
-                    .map_err(|e| format!("Failed to set metadata::trusted on .desktop file: {}", e))?;
+                    .map_err(|e| {
+                        format!("Failed to set metadata::trusted on .desktop file: {}", e)
+                    })?;
 
                 // Écrire le fichier .desktop et définir les permissions pour applications
-                fs::write(&applications_file_path, &desktop_entry)
-                    .map_err(|e| format!("Failed to create .desktop file in applications: {}", e))?;
+                fs::write(&applications_file_path, &desktop_entry).map_err(|e| {
+                    format!("Failed to create .desktop file in applications: {}", e)
+                })?;
                 Command::new("chmod")
                     .arg("+x")
                     .arg(&applications_file_path)
                     .output()
-                    .map_err(|e| format!("Failed to set .desktop file as executable in applications: {}", e))?;
+                    .map_err(|e| {
+                        format!(
+                            "Failed to set .desktop file as executable in applications: {}",
+                            e
+                        )
+                    })?;
             }
         }
         _ => return Err("Unsupported OS".to_string()),
@@ -1475,7 +1541,10 @@ async fn launch_game(file_location_download: String) -> Result<(), String> {
         // Vérifiez si le répertoire de jeu existe
         let game_dir = std::path::Path::new(&file_location_download);
         if !game_dir.exists() {
-            let _ = tx.blocking_send(Err(format!("Game directory does not exist: {:?}", game_dir)));
+            let _ = tx.blocking_send(Err(format!(
+                "Game directory does not exist: {:?}",
+                game_dir
+            )));
             return;
         }
 
@@ -1508,10 +1577,7 @@ async fn launch_game(file_location_download: String) -> Result<(), String> {
 
         // Utiliser std::process::Command pour lancer le jeu et capturer les erreurs
         use std::process::Command;
-        let output = match Command::new(&game_path)
-            .current_dir(&game_dir)
-            .output()
-        {
+        let output = match Command::new(&game_path).current_dir(&game_dir).output() {
             Ok(output) => output,
             Err(e) => {
                 let _ = tx.blocking_send(Err(format!("Failed to launch game: {}", e)));
@@ -1545,8 +1611,13 @@ fn are_paths_equal_for_current_os(left: &Path, right: &Path) -> bool {
     }
 }
 
-fn collect_paths_for_recursive_delete(current_path: &Path, paths_to_delete: &mut Vec<PathBuf>) -> Result<(), String> {
-    for entry in fs::read_dir(current_path).map_err(|e| format!("Failed to read directory: {}", e))? {
+fn collect_paths_for_recursive_delete(
+    current_path: &Path,
+    paths_to_delete: &mut Vec<PathBuf>,
+) -> Result<(), String> {
+    for entry in
+        fs::read_dir(current_path).map_err(|e| format!("Failed to read directory: {}", e))?
+    {
         let entry = entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
         let path = entry.path();
         let file_type = entry
@@ -1567,7 +1638,7 @@ fn collect_paths_for_recursive_delete(current_path: &Path, paths_to_delete: &mut
 
 fn delete_paths_with_progress(
     paths_to_delete: Vec<PathBuf>,
-    progress_tx: mpsc::UnboundedSender<(u64, u64)>
+    progress_tx: mpsc::UnboundedSender<(u64, u64)>,
 ) -> Result<(), String> {
     let total_entries: u64 = paths_to_delete.len() as u64;
     let _ = progress_tx.send((0, total_entries));
@@ -1579,9 +1650,11 @@ fn delete_paths_with_progress(
             .file_type();
 
         if file_type.is_dir() {
-            fs::remove_dir(&path).map_err(|e| format!("Failed to remove directory {}: {}", path.display(), e))?;
+            fs::remove_dir(&path)
+                .map_err(|e| format!("Failed to remove directory {}: {}", path.display(), e))?;
         } else {
-            fs::remove_file(&path).map_err(|e| format!("Failed to remove file {}: {}", path.display(), e))?;
+            fs::remove_file(&path)
+                .map_err(|e| format!("Failed to remove file {}: {}", path.display(), e))?;
         }
 
         removed_entries += 1;
@@ -1603,8 +1676,8 @@ async fn is_game_running(path_install_location: String) -> Result<bool, String> 
     }
 
     let executable_path = find_executable_in_directory(game_directory)?;
-    let expected_executable_path = fs::canonicalize(&executable_path)
-        .unwrap_or_else(|_| PathBuf::from(&executable_path));
+    let expected_executable_path =
+        fs::canonicalize(&executable_path).unwrap_or_else(|_| PathBuf::from(&executable_path));
     let expected_executable_name = expected_executable_path
         .file_name()
         .and_then(|name| name.to_str())
@@ -1619,7 +1692,10 @@ async fn is_game_running(path_install_location: String) -> Result<bool, String> 
             let normalized_process_executable_path = fs::canonicalize(process_executable_path)
                 .unwrap_or_else(|_| process_executable_path.to_path_buf());
 
-            if are_paths_equal_for_current_os(&normalized_process_executable_path, &expected_executable_path) {
+            if are_paths_equal_for_current_os(
+                &normalized_process_executable_path,
+                &expected_executable_path,
+            ) {
                 return Ok(true);
             }
         }
@@ -1718,6 +1794,7 @@ async fn uninstall_game(
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_autostart::init(
             MacosLauncher::LaunchAgent,
             None,
@@ -1753,9 +1830,18 @@ pub fn run() {
                 .plugin(tauri_plugin_updater::Builder::new().build())?;
 
             // Définir le menu de la barre d'état
-            let show = MenuItemBuilder::new("Open CrzGames").id("show").build(app).unwrap();
-            let hide = MenuItemBuilder::new("Hide CrzGames").id("hide").build(app).unwrap();
-            let quit = MenuItemBuilder::new("Quit CrzGames").id("quit").build(app).unwrap();
+            let show = MenuItemBuilder::new("Open CrzGames")
+                .id("show")
+                .build(app)
+                .unwrap();
+            let hide = MenuItemBuilder::new("Hide CrzGames")
+                .id("hide")
+                .build(app)
+                .unwrap();
+            let quit = MenuItemBuilder::new("Quit CrzGames")
+                .id("quit")
+                .build(app)
+                .unwrap();
 
             // Créer le menu de la barre d'état
             let menu = MenuBuilder::new(app)

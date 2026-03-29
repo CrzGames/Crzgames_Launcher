@@ -36,3 +36,5 @@ lerna-debug.log*
 
 # Tests Reports
 tests/unit/test-reports/
+
+src-tauri/2
