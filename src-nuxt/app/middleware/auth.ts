@@ -4,6 +4,7 @@ import type { RouteLocationNormalized } from 'vue-router'
 import { TauriService } from '#src-core/services/TauriService'
 
 import { useAuthStore } from '#src-nuxt/app/stores/auth.store'
+import { useWindowStore } from '#src-nuxt/app/stores/window.store'
 
 /**
  * Middleware pour vérifier si l'utilisateur est connecté
@@ -13,11 +14,26 @@ import { useAuthStore } from '#src-nuxt/app/stores/auth.store'
  */
 export default defineNuxtRouteMiddleware(async (_to: RouteLocationNormalized, _from: RouteLocationNormalized) => {
   const authStore: any = useAuthStore()
+  const windowStore: ReturnType<typeof useWindowStore> = useWindowStore()
+
+  const redirectToLoginSafely = async () => {
+    try {
+      await Promise.race([
+        TauriService.adjustWindowHomeToLoginForMiddleware(400, 585),
+        new Promise<void>((resolve: () => void) => setTimeout(resolve, 800)),
+      ])
+    } catch (error) {
+      console.error('[auth middleware] Failed to adjust window before redirecting to login:', error)
+    } finally {
+      // Safety net to avoid infinite global loader if a resize transition stalls.
+      windowStore.setLoading(false)
+    }
+
+    return await navigateTo('/login')
+  }
 
   if (!authStore.authToken) {
-    await TauriService.adjustWindowHomeToLoginForMiddleware(400, 585)
-    await navigateTo('/login')
-    return
+    return await redirectToLoginSafely()
   }
 
   if (!authStore.user) {
@@ -25,7 +41,6 @@ export default defineNuxtRouteMiddleware(async (_to: RouteLocationNormalized, _f
   }
 
   if (!authStore.isConnected) {
-    await TauriService.adjustWindowHomeToLoginForMiddleware(400, 585)
-    await navigateTo('/login')
+    return await redirectToLoginSafely()
   }
 })

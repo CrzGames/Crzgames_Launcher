@@ -12,11 +12,6 @@ import { GameVersionRealtimeService } from '#src-core/services/GameVersionRealti
 import { useDownloadsStore } from '#src-nuxt/app/stores/downloads.store'
 import type { ActiveDownloadGame } from '#src-nuxt/app/stores/downloads.store'
 
-/* DATA */
-const user: string | undefined = CookieService.getCookie('user')
-const tempVerifyEmail: string | undefined = CookieService.getCookie('temp_verify_email')
-const authToken: string | undefined = CookieService.getCookie('authToken')
-
 /* TYPES */
 /**
  * Type for state of the AuthStoreState
@@ -40,9 +35,21 @@ export const useAuthStore: any = defineStore('authStore', {
    * @returns {AuthStoreState} - Retourne l'état initial du store de l'authentification
    */
   state: (): AuthStoreState => ({
-    user: (user ? JSON.parse(user) : undefined) as UserModel | undefined,
-    authToken: authToken as string | undefined,
-    tempVerifyEmail: tempVerifyEmail as string | undefined,
+    user: (() => {
+      const userSerialized: string | undefined = CookieService.getCookie('user')
+      if (!userSerialized) {
+        return undefined
+      }
+
+      try {
+        return new UserModel(JSON.parse(userSerialized))
+      } catch {
+        CookieService.deleteCookie('user')
+        return undefined
+      }
+    })() as UserModel | undefined,
+    authToken: CookieService.getCookie('authToken') as string | undefined,
+    tempVerifyEmail: CookieService.getCookie('temp_verify_email') as string | undefined,
   }),
   actions: {
     /**
@@ -83,7 +90,12 @@ export const useAuthStore: any = defineStore('authStore', {
       try {
         const result: AuthModel = await AuthService.signIn(auth)
         this.setAuthToken(result.token)
-        await this.fetchUser()
+        const fetchedUser: UserModel | null = await this.fetchUser()
+        if (!fetchedUser) {
+          this.setAuthToken(undefined)
+          this.setUser(undefined)
+          throw new Error('Authentication succeeded but failed to load current user')
+        }
 
         return result
       } catch (e) {
