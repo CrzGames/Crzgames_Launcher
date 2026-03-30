@@ -12,10 +12,10 @@ import { Base64 } from 'js-base64'
 import { useWindowStore } from '~~/src-nuxt/app/stores/window.store'
 
 import { CloudStorageS3Service } from '#src-common/core/services/CloudStorageS3Service'
+import CookieService from '#src-common/core/services/CookieService'
 
 import { createLogger } from '#src-core/utils/logger'
 import type { Logger } from '#src-core/utils/logger'
-import CookieService from '#src-common/core/services/CookieService'
 
 const logger: Logger = createLogger('TauriService')
 
@@ -907,13 +907,14 @@ export class TauriService {
     const windowStore = useWindowStore()
     windowStore.setLoading(true)
 
-    const appWindow = getCurrentWindow()
+    const appWindow: ReturnType<typeof getCurrentWindow> = getCurrentWindow()
+    await this.prepareWindowForResize(appWindow)
 
     const newSize: LogicalSize = new LogicalSize(width, height)
     await appWindow.setMinSize(null)
-    await appWindow.setResizable(false)
     await appWindow.setSize(newSize)
     await appWindow.center()
+    await appWindow.setResizable(false)
 
     await navigateTo('/login')
   }
@@ -929,12 +930,12 @@ export class TauriService {
     const windowStore = useWindowStore()
     windowStore.setLoading(true)
 
-    const appWindow = getCurrentWindow()
+    const appWindow: ReturnType<typeof getCurrentWindow> = getCurrentWindow()
+    await this.prepareWindowForResize(appWindow)
 
     const newSize: LogicalSize = new LogicalSize(width, height)
-    await appWindow.setSize(newSize)
-    await appWindow.setResizable(true)
     await appWindow.setMinSize(new LogicalSize(1042, 660))
+    await appWindow.setSize(newSize)
     await appWindow.center()
 
     await navigateTo('/home/carousel')
@@ -949,13 +950,14 @@ export class TauriService {
   public static async adjustWindowHomeToLogin(width: number, height: number): Promise<void> {
     useWindowStore().setLoading(true)
 
-    const appWindow = getCurrentWindow()
+    const appWindow: ReturnType<typeof getCurrentWindow> = getCurrentWindow()
+    await this.prepareWindowForResize(appWindow)
 
     const newSize: LogicalSize = new LogicalSize(width, height)
     await appWindow.setMinSize(null)
-    await appWindow.setResizable(false)
     await appWindow.setSize(newSize)
     await appWindow.center()
+    await appWindow.setResizable(false)
 
     await navigateTo('/login')
   }
@@ -969,13 +971,48 @@ export class TauriService {
   public static async adjustWindowHomeToLoginForMiddleware(width: number, height: number): Promise<void> {
     useWindowStore().setLoading(true)
 
-    const appWindow = getCurrentWindow()
+    const appWindow: ReturnType<typeof getCurrentWindow> = getCurrentWindow()
+    await this.prepareWindowForResize(appWindow)
 
     const newSize: LogicalSize = new LogicalSize(width, height)
     await appWindow.setMinSize(null)
-    await appWindow.setResizable(false)
     await appWindow.setSize(newSize)
     await appWindow.center()
+    await appWindow.setResizable(false)
+  }
+
+  /**
+   * Stabilise l'etat de la fenetre avant un resize cross-platform.
+   * Necessaire notamment pour macOS/Linux quand la fenetre etait maximisee/fullscreen.
+   * @param {ReturnType<typeof getCurrentWindow>} appWindow - Fenetre Tauri courante
+   * @returns {Promise<void>} - Promesse resolue
+   */
+  private static async prepareWindowForResize(appWindow: ReturnType<typeof getCurrentWindow>): Promise<void> {
+    let changedWindowState: boolean = false
+
+    try {
+      if (await appWindow.isFullscreen()) {
+        await appWindow.setFullscreen(false)
+        changedWindowState = true
+      }
+    } catch (error) {
+      logger.debug('[prepareWindowForResize] Failed to exit fullscreen before resize', error)
+    }
+
+    try {
+      if (await appWindow.isMaximized()) {
+        await appWindow.unmaximize()
+        changedWindowState = true
+      }
+    } catch (error) {
+      logger.debug('[prepareWindowForResize] Failed to unmaximize before resize', error)
+    }
+
+    await appWindow.setResizable(true)
+
+    if (changedWindowState) {
+      await new Promise<void>((resolve: () => void) => setTimeout(resolve, 60))
+    }
   }
 
   /**
