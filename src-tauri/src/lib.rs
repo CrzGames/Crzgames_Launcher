@@ -40,7 +40,7 @@ const EXECUTABLE_EXTENSIONS: [&str; 1] = ["exe"];
 const EXECUTABLE_EXTENSIONS: [&str; 1] = ["app"];
 
 #[cfg(target_os = "linux")]
-const EXECUTABLE_EXTENSIONS: [&str; 1] = ["AppImage"];
+const EXECUTABLE_EXTENSIONS: [&str; 0] = [];
 
 const MAX_CONCURRENT_DOWNLOADS: usize = 6;
 const PRESIGN_BATCH_CHUNK_SIZE: usize = 200;
@@ -1549,10 +1549,22 @@ fn find_executable_in_directory(directory_path: &Path) -> Result<String, String>
         {
             return Ok(path.to_string_lossy().into_owned());
         } else if cfg!(target_os = "linux") && path.extension().is_none() {
-            // Vérifiez si le fichier sans extension est exécutable sous Linux
+            // Linux (sans AppImage):
+            // detecter un vrai binaire ELF sans extension (ex: rc2d-game-template)
             #[cfg(unix)]
             {
                 use std::os::unix::fs::PermissionsExt;
+                if let Ok(mut file) = fs::File::open(&path) {
+                    let mut elf_magic: [u8; 4] = [0; 4];
+                    if file.read_exact(&mut elf_magic).is_err()
+                        || elf_magic != [0x7F, b'E', b'L', b'F']
+                    {
+                        continue;
+                    }
+                } else {
+                    continue;
+                }
+
                 if let Ok(metadata) = fs::metadata(&path) {
                     let mut permissions = metadata.permissions();
                     permissions.set_mode(permissions.mode() | 0o111); // chmod +x
@@ -1575,6 +1587,55 @@ async fn create_shortcut(directory_path: String) -> Result<(), String> {
         create_shortcut_sync(directory_path)
     })
     .await
+}
+
+#[cfg(target_os = "linux")]
+fn find_linux_shortcut_icon_source(directory_path: &Path, exe_name: &str) -> Option<PathBuf> {
+    let candidate_paths: [PathBuf; 3] = [
+        directory_path.join("app-icon.png"),
+        directory_path.join(format!("{}.png", exe_name)),
+        directory_path.join("icon.png"),
+    ];
+
+    candidate_paths
+        .iter()
+        .find(|path| path.exists() && path.is_file())
+        .cloned()
+}
+
+#[cfg(target_os = "linux")]
+fn install_linux_shortcut_icon(exe_name: &str, icon_source_path: &Path) -> Result<String, String> {
+    let data_dir: PathBuf =
+        dirs::data_dir().ok_or_else(|| "Failed to resolve data directory".to_string())?;
+    let hicolor_dir: PathBuf = data_dir.join("icons").join("hicolor");
+    let icon_theme_apps_dir: PathBuf = hicolor_dir.join("256x256").join("apps");
+
+    fs::create_dir_all(&icon_theme_apps_dir)
+        .map_err(|e| format!("Failed to create icon theme directory: {}", e))?;
+
+    let icon_dest_path: PathBuf = icon_theme_apps_dir.join(format!("{}.png", exe_name));
+    fs::copy(icon_source_path, &icon_dest_path)
+        .map_err(|e| format!("Failed to copy icon into icon theme directory: {}", e))?;
+
+    // Legacy fallback for some desktop environments.
+    if let Some(home_dir) = dirs::home_dir() {
+        let legacy_icons_dir: PathBuf = home_dir.join(".icons");
+        if fs::create_dir_all(&legacy_icons_dir).is_ok() {
+            let _ = fs::copy(
+                icon_source_path,
+                legacy_icons_dir.join(format!("{}.png", exe_name)),
+            );
+        }
+    }
+
+    // Best effort: refresh icon cache if tool is available.
+    let _ = Command::new("gtk-update-icon-cache")
+        .arg("-f")
+        .arg("-t")
+        .arg(&hicolor_dir)
+        .output();
+
+    Ok(exe_name.to_string())
 }
 
 fn create_shortcut_sync(directory_path: String) -> Result<(), String> {
@@ -1668,34 +1729,54 @@ fn create_shortcut_sync(directory_path: String) -> Result<(), String> {
         "Linux" => {
             #[cfg(target_os = "linux")]
             {
-                // Définir les chemins de l'icône et des fichiers .desktop
-                let icon_name = format!("{}.png", exe_name);
-                let icon_source_path = directory_path.join(&icon_name);
-                let icon_dest_path = dirs::home_dir().unwrap().join(".icons").join(&icon_name);
+                let executable_path_buf: PathBuf = PathBuf::from(&executable_path);
+                let resolved_executable_path: PathBuf = if executable_path_buf.is_absolute() {
+                    executable_path_buf
+                } else {
+                    directory_path.join(executable_path_buf)
+                };
+                let resolved_executable_path_str = resolved_executable_path.to_string_lossy();
+                let working_directory_str = directory_path.to_string_lossy();
 
-                // Créer le répertoire d'icônes s'il n'existe pas
-                if !icon_dest_path.parent().unwrap().exists() {
-                    fs::create_dir_all(icon_dest_path.parent().unwrap())
-                        .map_err(|e| format!("Failed to create icons directory: {}", e))?;
-                }
+                // Definir l'icone:
+                // - priorite a app-icon.png (packaging RC2D)
+                // - fallback vers <executable>.png puis icon.png
+                let icon_field: String = if let Some(icon_source_path) =
+                    find_linux_shortcut_icon_source(directory_path, exe_name)
+                {
+                    let icon_source_path_str: String =
+                        icon_source_path.to_string_lossy().into_owned();
+                    match install_linux_shortcut_icon(exe_name, &icon_source_path) {
+                        Ok(icon_name) => icon_name,
+                        Err(error) => {
+                            println!(
+                                    "Failed to install Linux shortcut icon (fallback to source path): {}",
+                                    error
+                                );
+                            icon_source_path_str
+                        }
+                    }
+                } else {
+                    // Fallback compatible Linux si aucune icone specifique du jeu n'est fournie.
+                    "application-x-executable".to_string()
+                };
 
-                // Copier l'icône vers le répertoire des icônes
-                fs::copy(&icon_source_path, &icon_dest_path)
-                    .map_err(|e| format!("Failed to copy icon: {}", e))?;
-
-                // Créer le fichier .desktop
+                // Creer le fichier .desktop
                 let desktop_entry = format!(
                     "[Desktop Entry]\n\
                     Name={}\n\
                     Exec=\"{}\"\n\
+                    Path={}\n\
                     Icon={}\n\
                     Type=Application\n\
                     Categories=Game;\n\
                     Terminal=false\n",
-                    exe_name, executable_path, icon_name
+                    exe_name, resolved_executable_path_str, working_directory_str, icon_field
                 );
 
-                let applications_path = dirs::data_dir().unwrap().join("applications");
+                let data_dir: PathBuf = dirs::data_dir()
+                    .ok_or_else(|| "Failed to resolve data directory".to_string())?;
+                let applications_path = data_dir.join("applications");
                 if !applications_path.exists() {
                     fs::create_dir_all(&applications_path)
                         .map_err(|e| format!("Failed to create applications directory: {}", e))?;
@@ -1719,16 +1800,19 @@ fn create_shortcut_sync(directory_path: String) -> Result<(), String> {
                         )
                     })?;
 
-                // Activer "Allow Launching"
-                Command::new("gio")
+                // Best effort: "Allow Launching" (GNOME). On ne casse pas le flux si indisponible.
+                if let Err(error) = Command::new("gio")
                     .arg("set")
                     .arg(&desktop_file_path)
                     .arg("metadata::trusted")
                     .arg("true")
                     .output()
-                    .map_err(|e| {
-                        format!("Failed to set metadata::trusted on .desktop file: {}", e)
-                    })?;
+                {
+                    println!(
+                        "Skipping metadata::trusted on desktop shortcut (gio unavailable or failed): {}",
+                        error
+                    );
+                }
 
                 // Écrire le fichier .desktop et définir les permissions pour applications
                 fs::write(&applications_file_path, &desktop_entry).map_err(|e| {
