@@ -32,15 +32,17 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, onUnmounted, ref } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 import type { RouteLocationNormalizedLoadedGeneric } from 'vue-router'
 
 import SideBarLeft from '#src-nuxt/app/components/navigations/SideBarLeft.vue'
 import SideBarRight from '#src-nuxt/app/components/navigations/SideBarRight.vue'
 import WindowBar from '#src-nuxt/app/components/window-bar/WindowBar.vue'
+import { useWindowStore } from '#src-nuxt/app/stores/window.store'
 
 /* DATA */
 const route: RouteLocationNormalizedLoadedGeneric = useRoute()
+const windowStore: ReturnType<typeof useWindowStore> = useWindowStore()
 
 /* REFS */
 const windowWidth: Ref<number> = ref(window.innerWidth)
@@ -53,6 +55,12 @@ onMounted((): void => {
 
   // Ajouter un écouteur pour les redimensionnements
   window.addEventListener('resize', handleResize)
+
+  // Safety net: guarantee we never keep the global transition loader
+  // stuck when entering a home page.
+  void nextTick((): void => {
+    windowStore.setLoading(false)
+  })
 })
 
 onUnmounted((): void => {

@@ -9,6 +9,22 @@ import CookieService from '#src-common/core/services/CookieService'
  */
 export default class BaseApiService {
   protected static apiUrl: string = import.meta.env.VITE_API_BASE_URL
+  protected static readonly DEFAULT_TIMEOUT_MS: number = 15000
+
+  /**
+   * Resolve HTTP timeout from env with fallback.
+   * @returns {number} - Timeout in milliseconds
+   */
+  protected static getTimeoutMs(): number {
+    const rawTimeoutFromEnv: unknown = import.meta.env.VITE_API_TIMEOUT_MS
+    const parsedTimeoutMs: number = Number(rawTimeoutFromEnv)
+    if (Number.isFinite(parsedTimeoutMs) && parsedTimeoutMs > 0) {
+      return parsedTimeoutMs
+    }
+
+    return this.DEFAULT_TIMEOUT_MS
+  }
+
   /**
    * Client
    * @returns {AxiosInstance} - AxiosInstance
@@ -19,6 +35,7 @@ export default class BaseApiService {
     return axios.create({
       baseURL: this.apiUrl,
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      timeout: this.getTimeoutMs(),
     })
   }
 
