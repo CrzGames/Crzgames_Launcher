@@ -123,6 +123,7 @@
         v-if="shouldShowEllipsisMenu"
         @createDesktopShortcut="emit('createDesktopShortcut')"
         @uninstallGame="emit('uninstallGame')"
+        @forceUpdateGame="emit('forceUpdateGame')"
       />
       <!-- Bouton pour acheter le jeu -->
       <a
@@ -396,6 +397,7 @@ const emit = defineEmits<{
   'open-ellipsis-menu': []
   createDesktopShortcut: []
   uninstallGame: []
+  forceUpdateGame: []
 }>()
 
 /*COMPUTED*/

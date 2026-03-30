@@ -28,6 +28,13 @@
           >
             Uninstall the game
           </li>
+          <li
+            v-if="isForceUpdateActionVisible"
+            @click="forceUpdateGame"
+            class="cursor-pointer whitespace-nowrap px-4 py-2 text-left text-sm text-white hover:bg-gray-700"
+          >
+            Force update check
+          </li>
         </ul>
       </div>
     </transition>
@@ -47,7 +54,11 @@ const dropdown: Ref<HTMLElement | null> = ref(null)
 const emit = defineEmits<{
   createDesktopShortcut: []
   uninstallGame: []
+  forceUpdateGame: []
 }>()
+
+const isForceUpdateActionVisible: boolean =
+  import.meta.env.VITE_NODE_ENV === 'development' || import.meta.env.VITE_NODE_ENV === 'staging'
 
 /* METHODS */
 /**
@@ -91,6 +102,15 @@ const createDesktopShortcut: () => void = (): void => {
  */
 const uninstallGame: () => void = (): void => {
   emit('uninstallGame')
+  isOpen.value = false // Close the menu
+}
+
+/**
+ * Force update check against remote manifest
+ * @returns {void}
+ */
+const forceUpdateGame: () => void = (): void => {
+  emit('forceUpdateGame')
   isOpen.value = false // Close the menu
 }
 </script>

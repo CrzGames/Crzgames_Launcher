@@ -103,6 +103,7 @@
               @fixGameInstalledInLibrary="openFixGameInstalledModal(game)"
               @createDesktopShortcut="createShortcutOnDesktop(game)"
               @uninstallGame="UninstallGame(game)"
+              @forceUpdateGame="openDownloadModal(game, false, false, true)"
               @download="openDownloadModal(game, false, false)"
             />
             <p v-if="getLibraryVersionLabel(game.id, 'needs-update')" class="text-xs font-medium text-zinc-400">
@@ -145,6 +146,7 @@
               @fixGameInstalledInLibrary="openFixGameInstalledModal(game)"
               @createDesktopShortcut="createShortcutOnDesktop(game)"
               @uninstallGame="UninstallGame(game)"
+              @forceUpdateGame="openDownloadModal(game, false, false, true)"
             />
             <p v-if="getLibraryVersionLabel(game.id, 'installed')" class="text-xs font-medium text-zinc-400">
               {{ getLibraryVersionLabel(game.id, 'installed') }}
@@ -1827,13 +1829,20 @@ const preloadLibraryImage: (url: string) => Promise<void> = (url: string): Promi
  * @param {GameModel} game - The game
  * @param {boolean} addDirectoryGame - The add directory game
  * @param {boolean} launcherGetPath - The launcher get path
+ * @param {boolean} forceRemoteCheck - Force le check distant meme si la version est identique
  * @returns {Promise<void>} - The promise
  */
 const openDownloadModal: (
   game: GameModel,
   addDirectoryGame: boolean,
   launcherGetPath: boolean,
-) => Promise<void> = async (game: GameModel, addDirectoryGame: boolean, launcherGetPath: boolean): Promise<void> => {
+  forceRemoteCheck?: boolean,
+) => Promise<void> = async (
+  game: GameModel,
+  addDirectoryGame: boolean,
+  launcherGetPath: boolean,
+  forceRemoteCheck: boolean = false,
+): Promise<void> => {
   if (pendingOpenDownloadModalGameIds.has(game.id)) {
     return
   }
@@ -2004,20 +2013,25 @@ const openDownloadModal: (
             (totalSize: number, file: FileDetails): number => totalSize + file.size,
             0,
           )
-          preloadedDownloadPayload.value = {
-            gameId: gameDetails.id,
-            bucketName: gameBinaryPlatform.file.bucket.name,
-            basePathFilename: gameBinaryPlatform.file.pathfilename,
-            latestVersion: latestGameVersionAvailable.version,
-            fullPathFilename: fullPathFilename,
-            gameManifestRemote: gameManifestRemote,
-            totalSizeToDownload: totalSizeToDownload,
-          }
+	          preloadedDownloadPayload.value = {
+	            gameId: gameDetails.id,
+	            bucketName: gameBinaryPlatform.file.bucket.name,
+	            basePathFilename: gameBinaryPlatform.file.pathfilename,
+	            latestVersion: latestGameVersionAvailable.version,
+	            fullPathFilename: fullPathFilename,
+	            gameManifestRemote: gameManifestRemote,
+	            totalSizeToDownload: totalSizeToDownload,
+	          }
 
-          setPreparingDownloadDiskStep()
-          diskStepStartedAtMs = Date.now()
-          await setInstallLocationDefault(addDirectoryGame, launcherGetPath, totalSizeToDownload, pathInstallLocationGame)
-        }
+	          if (forceRemoteCheck && totalSizeToDownload === 0) {
+	            notyf.success(`Force update check completed: no file differences found for ${game.title}.`)
+	            return
+	          }
+
+	          setPreparingDownloadDiskStep()
+	          diskStepStartedAtMs = Date.now()
+	          await setInstallLocationDefault(addDirectoryGame, launcherGetPath, totalSizeToDownload, pathInstallLocationGame)
+	        }
       }
     }
 
