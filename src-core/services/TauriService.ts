@@ -996,7 +996,7 @@ export class TauriService {
         changedWindowState = true
       }
     } catch (error) {
-      logger.debug('[prepareWindowForResize] Failed to exit fullscreen before resize', error)
+      logger.debug(`[prepareWindowForResize] Failed to exit fullscreen before resize: ${String(error)}`)
     }
 
     try {
@@ -1005,7 +1005,7 @@ export class TauriService {
         changedWindowState = true
       }
     } catch (error) {
-      logger.debug('[prepareWindowForResize] Failed to unmaximize before resize', error)
+      logger.debug(`[prepareWindowForResize] Failed to unmaximize before resize: ${String(error)}`)
     }
 
     await appWindow.setResizable(true)
