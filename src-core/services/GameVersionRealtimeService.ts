@@ -164,7 +164,12 @@ export class GameVersionRealtimeService {
     if (this.subscription) {
       try {
         if (this.subscription.isCreated && !this.subscription.isDeleted) {
-          await this.subscription.delete()
+          const token: string | undefined = CookieService.getCookie('authToken')
+          if (token) {
+            await this.subscription.delete()
+          } else {
+            this.logger.info('[SSE] Skip unsubscribe request: missing auth token')
+          }
         }
       } catch (error: unknown) {
         this.logger.warn(
@@ -186,4 +191,3 @@ export class GameVersionRealtimeService {
     }
   }
 }
-

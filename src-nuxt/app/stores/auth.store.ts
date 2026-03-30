@@ -7,6 +7,7 @@ import CookieService from '#src-common/core/services/CookieService'
 
 import { TauriService } from '#src-core/services/TauriService'
 import type { GameProgressDownload } from '#src-core/services/TauriService'
+import { GameVersionRealtimeService } from '#src-core/services/GameVersionRealtimeService'
 
 import { useDownloadsStore } from '#src-nuxt/app/stores/downloads.store'
 import type { ActiveDownloadGame } from '#src-nuxt/app/stores/downloads.store'
@@ -149,6 +150,7 @@ export const useAuthStore: any = defineStore('authStore', {
      */
     async signOut(): Promise<void> {
       await this.pauseCurrentUserActiveDownloads()
+      await GameVersionRealtimeService.disconnect()
       this.setAuthToken(undefined)
       this.setUser(undefined)
       await TauriService.adjustWindowHomeToLogin(400, 585)
