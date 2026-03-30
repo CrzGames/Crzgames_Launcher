@@ -72,6 +72,7 @@ jobs:
           libssl-dev
           libayatana-appindicator3-dev
           librsvg2-dev
+          xdg-utils
 
       - name: Setup new version xCode - macOS (arm64)
         if: matrix.platform == 'macos-26'
