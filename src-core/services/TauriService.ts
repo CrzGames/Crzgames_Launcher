@@ -910,6 +910,8 @@ export class TauriService {
     const appWindow = getCurrentWindow()
 
     const newSize: LogicalSize = new LogicalSize(width, height)
+    await appWindow.setMinSize(null)
+    await appWindow.setResizable(false)
     await appWindow.setSize(newSize)
     await appWindow.center()
 
@@ -950,8 +952,9 @@ export class TauriService {
     const appWindow = getCurrentWindow()
 
     const newSize: LogicalSize = new LogicalSize(width, height)
-    await appWindow.setSize(newSize)
+    await appWindow.setMinSize(null)
     await appWindow.setResizable(false)
+    await appWindow.setSize(newSize)
     await appWindow.center()
 
     await navigateTo('/login')
@@ -969,8 +972,9 @@ export class TauriService {
     const appWindow = getCurrentWindow()
 
     const newSize: LogicalSize = new LogicalSize(width, height)
-    await appWindow.setSize(newSize)
+    await appWindow.setMinSize(null)
     await appWindow.setResizable(false)
+    await appWindow.setSize(newSize)
     await appWindow.center()
   }
 
