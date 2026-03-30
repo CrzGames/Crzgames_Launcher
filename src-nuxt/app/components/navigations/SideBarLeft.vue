@@ -54,7 +54,6 @@
 <script lang="ts" setup>
 import { onMounted, onUnmounted, ref } from 'vue'
 import type { Ref } from 'vue'
-import { useRoute } from 'vue-router'
 
 import CrzIcon from '#src-common/components/ui/CrzIcon.vue'
 
