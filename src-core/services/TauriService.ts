@@ -910,9 +910,8 @@ export class TauriService {
     const appWindow: ReturnType<typeof getCurrentWindow> = getCurrentWindow()
     await this.prepareWindowForResize(appWindow)
 
-    const newSize: LogicalSize = new LogicalSize(width, height)
     await appWindow.setMinSize(null)
-    await appWindow.setSize(newSize)
+    await this.resizeWindowWithRetry(appWindow, width, height)
     await appWindow.center()
     await appWindow.setResizable(false)
 
@@ -933,9 +932,9 @@ export class TauriService {
     const appWindow: ReturnType<typeof getCurrentWindow> = getCurrentWindow()
     await this.prepareWindowForResize(appWindow)
 
-    const newSize: LogicalSize = new LogicalSize(width, height)
+    await appWindow.setMinSize(null)
+    await this.resizeWindowWithRetry(appWindow, width, height)
     await appWindow.setMinSize(new LogicalSize(1042, 660))
-    await appWindow.setSize(newSize)
     await appWindow.center()
 
     await navigateTo('/home/carousel')
@@ -953,9 +952,8 @@ export class TauriService {
     const appWindow: ReturnType<typeof getCurrentWindow> = getCurrentWindow()
     await this.prepareWindowForResize(appWindow)
 
-    const newSize: LogicalSize = new LogicalSize(width, height)
     await appWindow.setMinSize(null)
-    await appWindow.setSize(newSize)
+    await this.resizeWindowWithRetry(appWindow, width, height)
     await appWindow.center()
     await appWindow.setResizable(false)
 
@@ -974,9 +972,8 @@ export class TauriService {
     const appWindow: ReturnType<typeof getCurrentWindow> = getCurrentWindow()
     await this.prepareWindowForResize(appWindow)
 
-    const newSize: LogicalSize = new LogicalSize(width, height)
     await appWindow.setMinSize(null)
-    await appWindow.setSize(newSize)
+    await this.resizeWindowWithRetry(appWindow, width, height)
     await appWindow.center()
     await appWindow.setResizable(false)
   }
@@ -988,12 +985,16 @@ export class TauriService {
    * @returns {Promise<void>} - Promesse resolue
    */
   private static async prepareWindowForResize(appWindow: ReturnType<typeof getCurrentWindow>): Promise<void> {
-    let changedWindowState: boolean = false
-
     try {
       if (await appWindow.isFullscreen()) {
-        await appWindow.setFullscreen(false)
-        changedWindowState = true
+        const resizedAfterFullscreenExit: boolean = await this.waitForResizeEventAfterAction(
+          appWindow,
+          240,
+          async (): Promise<void> => await appWindow.setFullscreen(false),
+        )
+        if (!resizedAfterFullscreenExit) {
+          logger.debug('[prepareWindowForResize] No resize event received after exiting fullscreen')
+        }
       }
     } catch (error) {
       logger.debug(`[prepareWindowForResize] Failed to exit fullscreen before resize: ${String(error)}`)
@@ -1001,18 +1002,167 @@ export class TauriService {
 
     try {
       if (await appWindow.isMaximized()) {
-        await appWindow.unmaximize()
-        changedWindowState = true
+        const resizedAfterUnmaximize: boolean = await this.waitForResizeEventAfterAction(
+          appWindow,
+          240,
+          async (): Promise<void> => await appWindow.unmaximize(),
+        )
+        if (!resizedAfterUnmaximize) {
+          logger.debug('[prepareWindowForResize] No resize event received after unmaximize')
+        }
       }
     } catch (error) {
       logger.debug(`[prepareWindowForResize] Failed to unmaximize before resize: ${String(error)}`)
     }
 
     await appWindow.setResizable(true)
+  }
 
-    if (changedWindowState) {
-      await new Promise<void>((resolve: () => void) => setTimeout(resolve, 60))
+  /**
+   * Resize window and verify applied size with retries.
+   * Some window managers (notably macOS/Linux in release mode) can ignore
+   * the first resize call right after toggling resizable/maximize/fullscreen.
+   * @param {ReturnType<typeof getCurrentWindow>} appWindow - Current Tauri window
+   * @param {number} width - Target logical width
+   * @param {number} height - Target logical height
+   * @returns {Promise<void>} - Promise resolved
+   */
+  private static async resizeWindowWithRetry(
+    appWindow: ReturnType<typeof getCurrentWindow>,
+    width: number,
+    height: number,
+  ): Promise<void> {
+    const maxAttempts: number = 3
+    const resizeEventTimeoutMs: number = 280
+    const sizeTolerancePx: number = 4
+    const targetSize: LogicalSize = new LogicalSize(width, height)
+
+    for (let attempt: number = 1; attempt <= maxAttempts; attempt++) {
+      const isAlreadyAtTargetSize: boolean = await this.isWindowAtTargetSize(appWindow, width, height, sizeTolerancePx)
+      if (isAlreadyAtTargetSize) {
+        return
+      }
+
+      const resizeEventReceived: boolean = await this.waitForResizeEventAfterAction(
+        appWindow,
+        resizeEventTimeoutMs,
+        async (): Promise<void> => await appWindow.setSize(targetSize),
+      )
+
+      const isAtTargetSizeAfterResize: boolean = await this.isWindowAtTargetSize(appWindow, width, height, sizeTolerancePx)
+      if (isAtTargetSizeAfterResize) {
+        return
+      }
+
+      const currentWindowSize: { width: number; height: number } | undefined = await this.getWindowLogicalInnerSize(appWindow)
+      const currentWindowSizeLabel: string = currentWindowSize
+        ? `${currentWindowSize.width.toFixed(1)}x${currentWindowSize.height.toFixed(1)}`
+        : 'unknown'
+
+      logger.debug(
+        `[resizeWindowWithRetry] attempt ${attempt}/${maxAttempts} mismatch ` +
+          `target=${width}x${height} current=${currentWindowSizeLabel} resizeEvent=${resizeEventReceived}`,
+      )
     }
+
+    logger.debug(`[resizeWindowWithRetry] failed to apply target size ${width}x${height} after ${maxAttempts} attempts`)
+  }
+
+  /**
+   * Wait for a resize event that should happen after a given action.
+   * @param {ReturnType<typeof getCurrentWindow>} appWindow - Current Tauri window
+   * @param {number} timeoutMs - Maximum wait time
+   * @param {() => Promise<void>} action - Action expected to trigger a resize
+   * @returns {Promise<boolean>} - True if a resize event is observed before timeout
+   */
+  private static async waitForResizeEventAfterAction(
+    appWindow: ReturnType<typeof getCurrentWindow>,
+    timeoutMs: number,
+    action: () => Promise<void>,
+  ): Promise<boolean> {
+    return await new Promise<boolean>(async (resolve: (value: boolean) => void): Promise<void> => {
+      let isSettled: boolean = false
+      let unlisten: (() => void) | null = null
+
+      const finalize: (result: boolean) => void = (result: boolean): void => {
+        if (isSettled) {
+          return
+        }
+
+        isSettled = true
+        clearTimeout(timeoutHandle)
+
+        if (unlisten) {
+          unlisten()
+          unlisten = null
+        }
+
+        resolve(result)
+      }
+
+      const timeoutHandle: ReturnType<typeof setTimeout> = setTimeout((): void => finalize(false), timeoutMs)
+
+      try {
+        unlisten = await appWindow.onResized((): void => finalize(true))
+      } catch (error) {
+        logger.debug(`[waitForResizeEventAfterAction] Failed to subscribe to resize event: ${String(error)}`)
+        finalize(false)
+        return
+      }
+
+      try {
+        await action()
+      } catch (error) {
+        logger.debug(`[waitForResizeEventAfterAction] Resize action failed: ${String(error)}`)
+        finalize(false)
+      }
+    })
+  }
+
+  /**
+   * Read current logical inner size of the window.
+   * @param {ReturnType<typeof getCurrentWindow>} appWindow - Current Tauri window
+   * @returns {Promise<{ width: number; height: number } | undefined>} - Logical size or undefined
+   */
+  private static async getWindowLogicalInnerSize(
+    appWindow: ReturnType<typeof getCurrentWindow>,
+  ): Promise<{ width: number; height: number } | undefined> {
+    try {
+      const innerSize: { width: number; height: number } = await appWindow.innerSize()
+      const scaleFactor: number = await appWindow.scaleFactor()
+
+      return {
+        width: innerSize.width / scaleFactor,
+        height: innerSize.height / scaleFactor,
+      }
+    } catch (error) {
+      logger.debug(`[getWindowLogicalInnerSize] Failed to read window size: ${String(error)}`)
+      return undefined
+    }
+  }
+
+  /**
+   * Check if the window is already at the target logical size.
+   * @param {ReturnType<typeof getCurrentWindow>} appWindow - Current Tauri window
+   * @param {number} targetWidth - Expected logical width
+   * @param {number} targetHeight - Expected logical height
+   * @param {number} tolerancePx - Tolerance in logical pixels
+   * @returns {Promise<boolean>} - True when size is within tolerance
+   */
+  private static async isWindowAtTargetSize(
+    appWindow: ReturnType<typeof getCurrentWindow>,
+    targetWidth: number,
+    targetHeight: number,
+    tolerancePx: number,
+  ): Promise<boolean> {
+    const currentSize: { width: number; height: number } | undefined = await this.getWindowLogicalInnerSize(appWindow)
+    if (!currentSize) {
+      return false
+    }
+
+    const widthDelta: number = Math.abs(currentSize.width - targetWidth)
+    const heightDelta: number = Math.abs(currentSize.height - targetHeight)
+    return widthDelta <= tolerancePx && heightDelta <= tolerancePx
   }
 
   /**
